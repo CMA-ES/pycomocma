@@ -169,17 +169,46 @@ class BiobjectiveNondominatedSortedList(list):
             return True
         return False
 
-    def dominators(self, f_pair):
-        """not yet implemented
-        return the list of all `f_pair`-dominating elements in `self`.
+    def dominators(self, f_pair, number_only=False):
+        """return the list of all `f_pair`-dominating elements in `self`,
 
-        ``len(...xdominators(...))`` is hence the number of dominating
-        elements.
+        including an equal element. ``len(...dominators(...))`` is
+        hence the number of dominating elements which can also be obtained
+        without creating the list with ``number_only=True``.
+
+        >>> from moarchiving import BiobjectiveNondominatedSortedList as NDA
+        >>> a = NDA([[1.2, 0.1], [0.5, 1]])
+        >>> len(a)
+        2
+        >>> a.dominators([2, 3]) == a
+        True
+        >>> a.dominators([0.5, 1])
+        [[0.5, 1]]
+        >>> len(a.dominators([0.6, 3])), a.dominators([0.6, 3], number_only=True)
+        (1, 1)
+        >>> a.dominators([0.5, 0.9])
+        []
+
         """
-        raise NotImplementedError()
+        idx = self.bisect_left(f_pair)
+        if idx < len(self) and self[idx] == f_pair:
+            res = 1 if number_only else [self[idx]]
+        else:
+            res = 0 if number_only else []
+        idx -= 1
+        while idx >= 0 and self[idx][1] <= f_pair[1]:
+            if number_only:
+                res += 1
+            else:
+                res.insert(0, self[idx])  # keep sorted
+            idx -= 1
+        return res
 
     def prune(self):
-        """remove dominated entries assuming that the list is sorted"""
+        """remove dominated entries assuming that the list is sorted.
+
+        Return number of dropped elements.
+        """
         nb = len(self)
         i = 0
         while i < len(self) - 1:
