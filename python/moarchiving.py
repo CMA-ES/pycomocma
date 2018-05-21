@@ -7,7 +7,7 @@ update in logarithmic time.
 from __future__ import division, print_function, unicode_literals
 __author__ = "Nikolaus Hansen and ..."
 __license__ = "BSD 3-clause"
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 del division, print_function, unicode_literals
 
 import bisect as _bisect # to find the insertion index efficiently
@@ -91,10 +91,14 @@ class BiobjectiveNondominatedSortedList(list):
             self.insert(idx, f_pair)
             return idx
         # here f_pair now dominates self[idx]
-        while idx < len(self) - 1 and f_pair[1] <= self[idx + 1][1]:
-            # f_pair also dominates self[idx + 1]
-            self.pop(idx)
         self[idx] = f_pair  # on long lists [.] is much cheaper than insert
+        idx2 = idx + 1
+        while idx2 < len(self) and f_pair[1] <= self[idx2][1]:
+            # f_pair also dominates self[idx2]
+            # self.pop(idx)  # slow
+            # del self[idx]  # slow
+            idx2 += 1  # delete later in a chunk
+        del self[idx + 1:idx2]  # can make `add` 20x faster
         return idx
 
     def add_list(self, list_of_f_pairs):
@@ -210,12 +214,14 @@ class BiobjectiveNondominatedSortedList(list):
         Return number of dropped elements.
         """
         nb = len(self)
-        i = 0
-        while i < len(self) - 1:
-            if self[i][1] <= self[i + 1][1]:
-                self.pop(i + 1)
-            else:
+        i = 1
+        while i < len(self):
+            i0 = i
+            while i < len(self) and self[i][1] >= self[i0 - 1][1]:
                 i += 1
+                # self.pop(i + 1)  # about 10x slower in notebook test
+            del self[i0:i]
+            i = i0 + 1
         return nb - len(self)
 
     def _asserts(self):
