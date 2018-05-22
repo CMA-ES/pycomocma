@@ -273,7 +273,7 @@ class BiobjectiveNondominatedSortedList(list):
             raise ValueError("to compute the hypervolume a reference"
                              " point is needed (was `None`)")
         raise NotImplementedError()
-s
+
     def _subtract_HV(self, idx0, idx1):
         """remove contributing hypervolumes of elements self[idx0] to self[idx1 - 1]
         """
