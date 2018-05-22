@@ -11,6 +11,7 @@ __version__ = "0.3.0"
 del division, print_function, unicode_literals
 
 import bisect as _bisect # to find the insertion index efficiently
+import warnings
 
 class BiobjectiveNondominatedSortedList(list):
     """A sorted list of non-dominated unique objective-pairs.
@@ -127,6 +128,8 @@ class BiobjectiveNondominatedSortedList(list):
         0
         >>> arch == sorted(list_of_f_pairs)  # both entries are nondominated
         True
+        >>> arch.compute_hypervolume([3, 4]) == 5.0
+        True
 
         Return number of actually inserted f-pairs.
 
@@ -235,16 +238,18 @@ class BiobjectiveNondominatedSortedList(list):
             idx -= 1
         return res
 
-    def in_domain(self, f_pair):
+    def in_domain(self, f_pair, reference_point=None):
         """TODO: improve name?
         return `True` if `f_pair` is "below" the reference point, `False` otherwise.
 
         This means `f_pair` contributes to the hypervolume.
         """
-        if self.reference_point is None:
+        if reference_point is None:
+            reference_point = self.reference_point
+        if reference_point is None:
             return True
-        if (f_pair[0] >= self.reference_point[0] or
-            f_pair[1] >= self.reference_point[1]):
+        if (f_pair[0] >= reference_point[0] or
+            f_pair[1] >= reference_point[1]):
             return False
         return True
 
@@ -254,6 +259,10 @@ class BiobjectiveNondominatedSortedList(list):
 
         Raise `ValueError` when no reference point was given initially.
         """
+        if self.reference_point is None:
+            raise ValueError("to compute the hypervolume a reference"
+                             " point is needed (must be given initially)")
+        return self.compute_hypervolume(self.reference_point)  # inefficient
         try:
             return self._hypervolume
         except AttributeError:
@@ -272,7 +281,18 @@ class BiobjectiveNondominatedSortedList(list):
         if reference_point is None:
             raise ValueError("to compute the hypervolume a reference"
                              " point is needed (was `None`)")
-        raise NotImplementedError()
+        warnings.warn("compute_hypervolume needs proof reading and more testing")
+        hv = 0.0
+        idx = 0
+        while idx < len(self) and not self.in_domain(self[idx], reference_point):
+            idx += 1
+        if idx < len(self):
+            hv += (reference_point[0] - self[idx][0]) * (reference_point[1] - self[idx][1])
+            idx += 1
+        while idx < len(self) and self.in_domain(self[idx], reference_point):
+            hv += (reference_point[0] - self[idx][0]) * (self[idx - 1][1] - self[idx][1])
+            idx += 1
+        return hv
 
     def _subtract_HV(self, idx0, idx1):
         """remove contributing hypervolumes of elements self[idx0] to self[idx1 - 1]
