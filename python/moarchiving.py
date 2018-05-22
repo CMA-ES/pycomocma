@@ -40,7 +40,7 @@ class BiobjectiveNondominatedSortedList(list):
     [[-1.146, -0.11], [-0.749, -1.188]]
     >>> a._asserts()  # consistency assertions
 
-    TODO: write more example doctest
+    TODO: write more example doctest (e.g. with given `reference_point`)
 
     Details: This list doesn't prevent the user to insert a new element
     anywhere and hence get into an inconsistent state. Inheriting from
@@ -55,6 +55,9 @@ class BiobjectiveNondominatedSortedList(list):
     """
     def __init__(self, list_of_f_pairs=None, reference_point=None, sort=sorted):
         """`list_of_f_pairs` does not need to be sorted.
+
+        f-pairs beyond the `reference_point` are pruned away. The
+        `reference_point` is also used to compute the hypervolume.
 
         ``sort=lambda x: x`` will prevent a sort, which
         can be useful if the list is already sorted.
