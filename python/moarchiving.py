@@ -248,20 +248,32 @@ class BiobjectiveNondominatedSortedList(list):
             return False
         return True
 
-    def hyper_volume(self, reference_point=None):
-        """return hypervolume.
+    @property
+    def hypervolume(self):
+        """return hypervolume w.r.t. the "initial" reference point.
 
-        If `reference_point` is not given, the "initial" reference point
-        is used by default. If neither is present, a `ValueError` is
-        raise.
+        Raise `ValueError` when no reference point was given initially.
         """
-        if reference_point is None:
-            reference_point = self.reference_point
-        if reference_point is None:
-            raise ValueError("to compute the hypervolume the reference"
-                             " point cannot be `None`")
-        raise NotImplementedError()
+        try:
+            return self._hypervolume
+        except AttributeError:
+            self._set_hypervolume()
+            return self._hypervolume
 
+    def _set_hypervolume(self):
+        """set current hypervolume value using `self.reference_point`.
+
+        Raise `ValueError` if `self.reference_point` is `None`.
+        """
+        self._hypervolume = self._compute_hypervolume(self.reference_point)
+
+    def compute_hypervolume(self, reference_point):
+        """return hypervolume w.r.t. reference_point"""
+        if reference_point is None:
+            raise ValueError("to compute the hypervolume a reference"
+                             " point is needed (was `None`)")
+        raise NotImplementedError()
+s
     def _subtract_HV(self, idx0, idx1):
         """remove contributing hypervolumes of elements self[idx0] to self[idx1 - 1]
         """
