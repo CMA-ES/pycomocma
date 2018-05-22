@@ -7,7 +7,7 @@ update in logarithmic time.
 from __future__ import division, print_function, unicode_literals
 __author__ = "Nikolaus Hansen and ..."
 __license__ = "BSD 3-clause"
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 del division, print_function, unicode_literals
 
 import bisect as _bisect # to find the insertion index efficiently
@@ -32,7 +32,7 @@ class BiobjectiveNondominatedSortedList(list):
     >>> a = BiobjectiveNondominatedSortedList([[1,0.9], [0,1], [0,2]])
     >>> a
     [[0, 1], [1, 0.9]]
-    >>> a.add([0, 1])  # doesn't change anything, [0, 1] is not dublicated
+    >>> a.add([0, 1])  # doesn't change anything, [0, 1] is not duplicated
     >>> BiobjectiveNondominatedSortedList(
     ...     [[-0.749, -1.188], [-0.557, 1.1076],
     ...     [0.2454, 0.4724], [-1.146, -0.110]])
@@ -52,12 +52,13 @@ class BiobjectiveNondominatedSortedList(list):
         https://pythontips.com/2016/04/24/python-sorted-collections/
 
     """
-    def __init__(self, list_of_f_pairs=None, sort=sorted):
+    def __init__(self, list_of_f_pairs=None, reference_point=None, sort=sorted):
         """`list_of_f_pairs` does not need to be sorted.
 
         ``sort=lambda x: x`` will prevent a sort, which
         can be useful if the list is already sorted.
         """
+        self.reference_point = reference_point
         if list_of_f_pairs is not None and len(list_of_f_pairs):
             try:
                 list_of_f_pairs = list_of_f_pairs.tolist()
@@ -70,7 +71,7 @@ class BiobjectiveNondominatedSortedList(list):
             self.prune()  # remove dominated entries
 
     def add(self, f_pair):
-        """insert f_pair in self if and only if it is nondominated.
+        """insert `f_pair` in `self` if and only if it is nondominated.
 
         Return index at which the insertion took place or `None`. The
         list remains to be sorted in the process.
@@ -79,30 +80,41 @@ class BiobjectiveNondominatedSortedList(list):
         of `__setitem__`, if possible.
         """
         f_pair = list(f_pair)  # convert array to list
+        if not self.in_domain(f_pair):
+            return None
         if not self:
             self.append(f_pair)
+            # TODO: update HV
             return 0
         idx = self.bisect_left(f_pair)
         if self.dominates_with(idx - 1, f_pair) or self.dominates_with(idx, f_pair):
-            return
+            return None
         assert idx == len(self) or not f_pair == self[idx]
         # here f_pair now is non-dominated
+        return self._add_at(idx, f_pair)
+
+    def _add_at(self, idx, f_pair):
+        """add `f_pair` at position `idx` iff it is nondominated by its neighbours
+        """
         if idx == len(self) or f_pair[1] > self[idx][1]:
             self.insert(idx, f_pair)
+            # TODO: add HV
             return idx
         # here f_pair now dominates self[idx]
-        self[idx] = f_pair  # on long lists [.] is much cheaper than insert
         idx2 = idx + 1
         while idx2 < len(self) and f_pair[1] <= self[idx2][1]:
             # f_pair also dominates self[idx2]
             # self.pop(idx)  # slow
             # del self[idx]  # slow
             idx2 += 1  # delete later in a chunk
+        # TODO: remove HV(idx, idx2)
         del self[idx + 1:idx2]  # can make `add` 20x faster
+        self[idx] = f_pair  # on long lists [.] is much cheaper than insert
+        # TODO: add HV(idx)
         return idx
 
     def add_list(self, list_of_f_pairs):
-        """insert a list of f-pairs, doesn't need to be sorted.
+        """insert a list of f-pairs which doesn't need to be sorted.
 
         This is just a shortcut for looping over `add`.
 
@@ -118,17 +130,32 @@ class BiobjectiveNondominatedSortedList(list):
 
         Return number of actually inserted f-pairs.
 
-        TODO: exploit when `list_of_pairs` is already sorted, but the
-        performance benefit should be rather small.
+        Details: when `list_of_pairs` is already sorted, `merge` may have
+        a small performance benefit.
         """
         nb = len(self)
         for f_pair in list_of_f_pairs:
             self.add(f_pair)
-            # TODO: if the list is sorted, we could be a little faster now
         return len(self) - nb
 
-    def bisect_left(self, f_pair):
-        """return index where f_pair may need to be inserted.
+    def merge(self, list_of_f_pairs):
+        """merge a sorted list of f-pairs which doesn't need to be nondominated.
+
+        Return number of actually inserted f-pairs.
+        """
+        raise NotImplementedError("TODO: proof read and test")
+        nb = len(self)
+        idx = 0
+        for f_pair in list_of_f_pairs:
+            if not self.in_domain(f_pair):
+                continue
+            f_pair = list(f_pair)  # convert array to list
+            idx = self.bisect_left(f_pair, idx)
+            self._add_at(idx, f_pair)
+        return len(self) - nb
+
+    def bisect_left(self, f_pair, lowest_index=0):
+        """return index where `f_pair` may need to be inserted.
 
         Smaller indices have a strictly better f1 value or equal f1 and better
         f2 value.
@@ -136,7 +163,7 @@ class BiobjectiveNondominatedSortedList(list):
         Details: This method does a binary search in `self` using
         `bisect.bisect_left`.
         """
-        return _bisect.bisect_left(self, f_pair)
+        return _bisect.bisect_left(self, f_pair, lowest_index)
 
     def dominates(self, f_pair):
         """return `True` if any element of `self` dominates or is equal to `f_pair`.
@@ -208,6 +235,46 @@ class BiobjectiveNondominatedSortedList(list):
             idx -= 1
         return res
 
+    def in_domain(self, f_pair):
+        """TODO: improve name?
+        return `True` if `f_pair` is "below" the reference point, `False` otherwise.
+
+        This means `f_pair` contributes to the hypervolume.
+        """
+        if self.reference_point is None:
+            return True
+        if (f_pair[0] >= self.reference_point[0] or
+            f_pair[1] >= self.reference_point[1]):
+            return False
+        return True
+
+    def hyper_volume(self, reference_point=None):
+        """return hypervolume.
+
+        If `reference_point` is not given, the "initial" reference point
+        is used by default. If neither is present, a `ValueError` is
+        raise.
+        """
+        if reference_point is None:
+            reference_point = self.reference_point
+        if reference_point is None:
+            raise ValueError("to compute the hypervolume the reference"
+                             " point cannot be `None`")
+        raise NotImplementedError()
+
+    def _subtract_HV(self, idx0, idx1):
+        """remove contributing hypervolumes of elements self[idx0] to self[idx1 - 1]
+        """
+        if self.reference_point is None:
+            return
+        raise NotImplementedError()
+
+    def _add_HV(self, idx):
+        """add contributing hypervolume of self[idx]"""
+        if self.reference_point is None:
+            return
+        raise NotImplementedError()
+
     def prune(self):
         """remove dominated entries assuming that the list is sorted.
 
@@ -217,7 +284,8 @@ class BiobjectiveNondominatedSortedList(list):
         i = 1
         while i < len(self):
             i0 = i
-            while i < len(self) and self[i][1] >= self[i0 - 1][1]:
+            while i < len(self) and (self[i][1] >= self[i0 - 1][1] or
+                                         not self.in_domain(self[i])):
                 i += 1
                 # self.pop(i + 1)  # about 10x slower in notebook test
             del self[i0:i]
