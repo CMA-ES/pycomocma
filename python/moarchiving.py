@@ -7,7 +7,7 @@ update in logarithmic time.
 from __future__ import division, print_function, unicode_literals
 __author__ = "Nikolaus Hansen and ..."
 __license__ = "BSD 3-clause"
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 del division, print_function, unicode_literals
 
 import bisect as _bisect # to find the insertion index efficiently
@@ -62,7 +62,7 @@ class BiobjectiveNondominatedSortedList(list):
         ``sort=lambda x: x`` will prevent a sort, which
         can be useful if the list is already sorted.
         """
-        self.reference_point = reference_point
+        self._make_expensive_asserts = True
         if list_of_f_pairs is not None and len(list_of_f_pairs):
             try:
                 list_of_f_pairs = list_of_f_pairs.tolist()
@@ -72,7 +72,15 @@ class BiobjectiveNondominatedSortedList(list):
                 raise ValueError("need elements of len 2, got %s"
                                  " as first element" % str(list_of_f_pairs[0]))
             list.__init__(self, sort(list_of_f_pairs))
-            self.prune()  # remove dominated entries
+        if reference_point is not None:
+            self.reference_point = list(reference_point)
+        else:
+            self.reference_point = reference_point
+        self.prune()  # remove dominated entries, uses in_domain, hence ref-point
+        self._set_hypervolume()
+        self._make_expensive_asserts and self._asserts()
+        # TODO: here we may want to set up a contributing _hypervolumes_list
+        # see compute_hypervolumes
 
     def add(self, f_pair):
         """insert `f_pair` in `self` if and only if it is nondominated.
@@ -86,10 +94,6 @@ class BiobjectiveNondominatedSortedList(list):
         f_pair = list(f_pair)  # convert array to list
         if not self.in_domain(f_pair):
             return None
-        if not self:
-            self.append(f_pair)
-            # TODO: update HV
-            return 0
         idx = self.bisect_left(f_pair)
         if self.dominates_with(idx - 1, f_pair) or self.dominates_with(idx, f_pair):
             return None
@@ -102,7 +106,7 @@ class BiobjectiveNondominatedSortedList(list):
         """
         if idx == len(self) or f_pair[1] > self[idx][1]:
             self.insert(idx, f_pair)
-            # TODO: add HV
+            self._add_HV(idx)
             return idx
         # here f_pair now dominates self[idx]
         idx2 = idx + 1
@@ -111,10 +115,10 @@ class BiobjectiveNondominatedSortedList(list):
             # self.pop(idx)  # slow
             # del self[idx]  # slow
             idx2 += 1  # delete later in a chunk
-        # TODO: remove HV(idx, idx2)
-        del self[idx + 1:idx2]  # can make `add` 20x faster
+        self._subtract_HV(idx, idx2)
         self[idx] = f_pair  # on long lists [.] is much cheaper than insert
-        # TODO: add HV(idx)
+        del self[idx + 1:idx2]  # can make `add` 20x faster
+        self._add_HV(idx)
         return idx
 
     def add_list(self, list_of_f_pairs):
@@ -149,7 +153,7 @@ class BiobjectiveNondominatedSortedList(list):
 
         Return number of actually inserted f-pairs.
         """
-        raise NotImplementedError("TODO: proof read and test")
+        raise NotImplementedError("TODO: proof read and test, use `add_list` for the time being")
         nb = len(self)
         idx = 0
         for f_pair in list_of_f_pairs:
@@ -158,6 +162,7 @@ class BiobjectiveNondominatedSortedList(list):
             f_pair = list(f_pair)  # convert array to list
             idx = self.bisect_left(f_pair, idx)
             self._add_at(idx, f_pair)
+        self._set_hypervolume()
         return len(self) - nb
 
     def bisect_left(self, f_pair, lowest_index=0):
@@ -242,10 +247,12 @@ class BiobjectiveNondominatedSortedList(list):
         return res
 
     def in_domain(self, f_pair, reference_point=None):
-        """TODO: improve name?
-        return `True` if `f_pair` is "below" the reference point, `False` otherwise.
+        """return `True` if `f_pair` is dominating the reference point,
 
-        This means `f_pair` contributes to the hypervolume.
+        `False` otherwise. `True` means that `f_pair` contributes to
+        the hypervolume.
+
+        TODO: improve name?
         """
         if reference_point is None:
             reference_point = self.reference_point
@@ -261,30 +268,53 @@ class BiobjectiveNondominatedSortedList(list):
         """return hypervolume w.r.t. the "initial" reference point.
 
         Raise `ValueError` when no reference point was given initially.
+
+        >>> from moarchiving import BiobjectiveNondominatedSortedList as NDA
+        >>> a = NDA([[0.5, 0.4], [0.3, 0.7]], [2, 2.1])
+        >>> a._asserts()
+        >>> a.reference_point == [2, 2.1]
+        True
+        >>> abs(a.hypervolume - a.compute_hypervolume(a.reference_point)) < 1e-11
+        True
+        >>> a.add([0.2, 0.8])
+        0
+        >>> a._asserts()
+        >>> abs(a.hypervolume - a.compute_hypervolume(a.reference_point)) < 1e-11
+        True
+        >>> a.add([0.3, 0.6])
+        1
+        >>> a._asserts()
+        >>> abs(a.hypervolume - a.compute_hypervolume(a.reference_point)) < 1e-11
+        True
+
         """
         if self.reference_point is None:
             raise ValueError("to compute the hypervolume a reference"
                              " point is needed (must be given initially)")
-        return self.compute_hypervolume(self.reference_point)  # inefficient
-        try:
-            return self._hypervolume
-        except AttributeError:
-            self._set_hypervolume()
-            return self._hypervolume
+        if self._make_expensive_asserts:
+            assert abs(self._hypervolume - self.compute_hypervolume(self.reference_point)) < 1e-12
+        return self._hypervolume
 
     def _set_hypervolume(self):
         """set current hypervolume value using `self.reference_point`.
 
         Raise `ValueError` if `self.reference_point` is `None`.
+
+        TODO: we may need to store the list of _contributing_ hypervolumes
+        to handle numerical rounding errors later.
         """
-        self._hypervolume = self._compute_hypervolume(self.reference_point)
+        if self.reference_point is None:
+            return None
+        if hasattr(self, '_hypervolumes_list'):
+            raise NotImplementedError("update list of hypervolumes")
+        self._hypervolume = self.compute_hypervolume(self.reference_point)
+        return self._hypervolume
 
     def compute_hypervolume(self, reference_point):
         """return hypervolume w.r.t. reference_point"""
         if reference_point is None:
             raise ValueError("to compute the hypervolume a reference"
                              " point is needed (was `None`)")
-        warnings.warn("compute_hypervolume needs proof reading and more testing")
         hv = 0.0
         idx = 0
         while idx < len(self) and not self.in_domain(self[idx], reference_point):
@@ -297,18 +327,69 @@ class BiobjectiveNondominatedSortedList(list):
             idx += 1
         return hv
 
+    def compute_hypervolumes(self, reference_point):
+        """return list of contributing hypervolumes w.r.t. reference_point
+        """
+        raise NotImplementedError()
+        # construct self._hypervolumes_list
+        # keep sum of different size elements separate,
+        # say, a dict of index lists as indices[1e12] indices[1e6], indices[1], indices[1e-6]...
+        hv = {}
+        for key in indices:
+            hv[key] = sum(_hypervolumes_list[i] for i in indices[key])
+        # we may use decimal.Decimal to compute the sum of hv
+        decimal.getcontext().prec = 88
+        hv_sum = sum([decimal.Decimal(hv[key]) for key in hv])
+
     def _subtract_HV(self, idx0, idx1):
         """remove contributing hypervolumes of elements self[idx0] to self[idx1 - 1]
         """
         if self.reference_point is None:
-            return
-        raise NotImplementedError()
+            return None
+        if idx0 == 0:
+            y = self.reference_point[1]
+        else:
+            y = self[idx0 - 1][1]
+        dHV = 0.0
+        for idx in range(idx0, idx1):
+            if idx == len(self) - 1:
+                assert idx < len(self)
+                x = self.reference_point[0]
+            else:
+                x = self[idx + 1][0]
+            dHV -= (x - self[idx][0]) * (y - self[idx][1])
+        assert dHV <= 0  # and without loss of precision strictly smaller
+        if self._hypervolume and abs(dHV) / self._hypervolume < 1e-9:
+            warnings.warn("_subtract_HV: %f + %f loses many digits of precision"
+                          % (dHV, self._hypervolume))
+        self._hypervolume += dHV
+        assert self._hypervolume >= 0
+        if hasattr(self, '_hypervolumes_list'):
+            raise NotImplementedError("update list of hypervolumes")
+        return dHV
 
     def _add_HV(self, idx):
         """add contributing hypervolume of self[idx]"""
         if self.reference_point is None:
-            return
-        raise NotImplementedError()
+            return None
+        assert 0 <= idx < len(self)  # idx is not a public interface, hence assert is fine
+        if idx == 0:
+            y = self.reference_point[1]
+        else:
+            y = self[idx - 1][1]
+        if idx == len(self) - 1:
+            x = self.reference_point[0]
+        else:
+            x = self[idx + 1][0]
+        dHV = (x - self[idx][0]) * (y - self[idx][1])
+        assert dHV >= 0
+        if self._hypervolume and dHV / self._hypervolume < 1e-9:
+            warnings.warn("_subtract_HV: %f + %f loses many digits of precision"
+                          % (dHV, self._hypervolume))
+        self._hypervolume += dHV
+        if hasattr(self, '_hypervolumes_list'):
+            raise NotImplementedError("update list of hypervolumes")
+        return dHV
 
     def prune(self):
         """remove dominated entries assuming that the list is sorted.
@@ -336,6 +417,8 @@ class BiobjectiveNondominatedSortedList(list):
         for pair in self:
             assert self.dominates(pair)
             assert not self.dominates([v - 0.001 for v in pair])
+        if self.reference_point is not None:
+            assert abs(self.hypervolume - self.compute_hypervolume(self.reference_point)) < 1e-11
 
 
 if __name__ == "__main__":
