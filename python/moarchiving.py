@@ -7,7 +7,7 @@ update in logarithmic time.
 from __future__ import division, print_function, unicode_literals
 __author__ = "Nikolaus Hansen and ..."
 __license__ = "BSD 3-clause"
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 del division, print_function, unicode_literals
 
 import bisect as _bisect # to find the insertion index efficiently
@@ -53,7 +53,11 @@ class BiobjectiveNondominatedSortedList(list):
         https://pythontips.com/2016/04/24/python-sorted-collections/
 
     """
-    def __init__(self, list_of_f_pairs=None, reference_point=None, sort=sorted):
+    def __init__(self,
+                 list_of_f_pairs=None,
+                 reference_point=None,
+                 sort=sorted,
+                 make_assertions=True):
         """`list_of_f_pairs` does not need to be sorted.
 
         f-pairs beyond the `reference_point` are pruned away. The
@@ -61,8 +65,11 @@ class BiobjectiveNondominatedSortedList(list):
 
         ``sort=lambda x: x`` will prevent a sort, which
         can be useful if the list is already sorted.
+
+        CAVEAT: the interface, in particular the positional interface
+        may change in future versions.
         """
-        self._make_expensive_asserts = True
+        self._make_expensive_asserts = make_assertions
         if list_of_f_pairs is not None and len(list_of_f_pairs):
             try:
                 list_of_f_pairs = list_of_f_pairs.tolist()
@@ -413,12 +420,12 @@ class BiobjectiveNondominatedSortedList(list):
         assert sorted(self) == self
         for pair in self:
             assert self.count(pair) == 1
-        assert BiobjectiveNondominatedSortedList(self) == self
+        assert BiobjectiveNondominatedSortedList(self, make_assertions=False) == self
         for pair in self:
             assert self.dominates(pair)
             assert not self.dominates([v - 0.001 for v in pair])
         if self.reference_point is not None:
-            assert abs(self.hypervolume - self.compute_hypervolume(self.reference_point)) < 1e-11
+            assert abs(self._hypervolume - self.compute_hypervolume(self.reference_point)) < 1e-11
 
 
 if __name__ == "__main__":
