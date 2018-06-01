@@ -31,8 +31,12 @@ class BiobjectiveNondominatedSortedList(list):
     nondominated sorted archive.
 
     Afterwards, the methods `add` and `add_list` keep the list always
-    in a consistent state. Removing elements with `pop` or `del` is
-    consistent too.
+    in a consistent state. If a reference point was given on initialization,
+    also the hypervolume of the archive is computed and updated.
+    
+    Removing elements with `pop` or `del` is consistent too, unless a reference
+    point was given on initialization. The hypervolume is not updated under
+    removal and hence becomes inconsistent.
 
     >>> a = BiobjectiveNondominatedSortedList([[1,0.9], [0,1], [0,2]])
     >>> a
@@ -53,6 +57,12 @@ class BiobjectiveNondominatedSortedList(list):
     https://pypi.org/project/sortedcontainers
     https://code.activestate.com/recipes/577197-sortedcollection/
     https://pythontips.com/2016/04/24/python-sorted-collections/
+
+    TODO: implement a `delete` method that also updates the hypervolume.
+    TODO: implement large-precision hypervolume computation.
+    TODO: currently points beyond the reference point (which do not contribute
+    to the hypervolume) are discarded. We may want to keep them, for simplicity
+    in a separate list?
 
     """
     make_expensive_asserts = False  # used as default value
