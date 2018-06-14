@@ -140,6 +140,12 @@ class BiobjectiveNondominatedSortedList(list):
         # self.make_expensive_asserts and self._asserts()
         return idx
 
+    def remove(self, idx):
+        """remove element idx"""
+        raise NotImplementedError
+        self._subtract_HV(idx)
+        del self[idx]
+
     def _add_at(self, idx, f_pair):
         """add `f_pair` at position `idx` and remove dominated elements.
 
@@ -418,11 +424,13 @@ class BiobjectiveNondominatedSortedList(list):
         decimal.getcontext().prec = 88
         hv_sum = sum([decimal.Decimal(hv[key]) for key in hv])
 
-    def _subtract_HV(self, idx0, idx1):
+    def _subtract_HV(self, idx0, idx1=None):
         """remove contributing hypervolumes of elements self[idx0] to self[idx1 - 1]
         """
         if self.reference_point is None:
             return None
+        if idx1 is None:
+            idx1 = idx0 + 1
         if idx0 == 0:
             y = self.reference_point[1]
         else:
