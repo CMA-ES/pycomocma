@@ -14,6 +14,7 @@ del division, print_function, unicode_literals
 # from collections import deque  # does not support deletion of slices!?
 import bisect as _bisect # to find the insertion index efficiently
 import warnings
+import fractions
 
 class BiobjectiveNondominatedSortedList(list):
     """A sorted list of non-dominated unique objective-pairs.
@@ -34,9 +35,9 @@ class BiobjectiveNondominatedSortedList(list):
     in a consistent state. If a reference point was given on initialization,
     also the hypervolume of the archive is computed and updated.
     
-    Removing elements with `pop` or `del` is consistent too, unless a reference
-    point was given on initialization. The hypervolume is not updated under
-    removal and hence becomes inconsistent.
+    Removing elements with `pop` or `del` keeps the archive sorted and
+    non-dominated but does not update the hypervolume, which hence
+    becomes inconsistent.
 
     >>> a = BiobjectiveNondominatedSortedList([[1,0.9], [0,1], [0,2]])
     >>> a
@@ -65,7 +66,13 @@ class BiobjectiveNondominatedSortedList(list):
     in a separate list?
 
     """
-    make_expensive_asserts = False  # used as default value
+    # Default Values for respective instance attributes
+    make_expensive_asserts = False
+    hypervolume_final_float_type = fractions.Fraction  # HV computation takes three times longer, precision may be more relevant here
+    hypervolume_computation_float_type = fractions.Fraction  # HV computation takes three times longer, precision may be less relevant here
+    # hypervolume_final_float_type = float  # lambda x: x is marginally faster
+    # hypervolume_computation_float_type = float  # may be a good compromise
+
     def __init__(self,
                  list_of_f_pairs=None,
                  reference_point=None,
@@ -82,6 +89,9 @@ class BiobjectiveNondominatedSortedList(list):
         may change in future versions.
         """
         self.make_expensive_asserts = BiobjectiveNondominatedSortedList.make_expensive_asserts
+        self.hypervolume_final_float_type = BiobjectiveNondominatedSortedList.hypervolume_final_float_type
+        self.hypervolume_computation_float_type = BiobjectiveNondominatedSortedList.hypervolume_computation_float_type
+
         if list_of_f_pairs is not None and len(list_of_f_pairs):
             try:
                 list_of_f_pairs = list_of_f_pairs.tolist()
@@ -380,15 +390,17 @@ class BiobjectiveNondominatedSortedList(list):
         if reference_point is None:
             raise ValueError("to compute the hypervolume a reference"
                              " point is needed (was `None`)")
-        hv = 0.0
+        Fc = self.hypervolume_computation_float_type
+        Ff = self.hypervolume_final_float_type
+        hv = Ff(0.0)
         idx = 0
         while idx < len(self) and not self.in_domain(self[idx], reference_point):
             idx += 1
         if idx < len(self):
-            hv += (reference_point[0] - self[idx][0]) * (reference_point[1] - self[idx][1])
+            hv += Ff((Fc(reference_point[0]) - Fc(self[idx][0])) * (Fc(reference_point[1]) - Fc(self[idx][1])))
             idx += 1
         while idx < len(self) and self.in_domain(self[idx], reference_point):
-            hv += (reference_point[0] - self[idx][0]) * (self[idx - 1][1] - self[idx][1])
+            hv += Ff((Fc(reference_point[0]) - Fc(self[idx][0])) * (Fc(self[idx - 1][1]) - Fc(self[idx][1])))
             idx += 1
         return hv
 
@@ -415,20 +427,27 @@ class BiobjectiveNondominatedSortedList(list):
             y = self.reference_point[1]
         else:
             y = self[idx0 - 1][1]
-        dHV = 0.0
+        Fc = self.hypervolume_computation_float_type
+        Ff = self.hypervolume_final_float_type
+        dHV = Fc(0.0)
         for idx in range(idx0, idx1):
             if idx == len(self) - 1:
                 assert idx < len(self)
                 x = self.reference_point[0]
             else:
                 x = self[idx + 1][0]
-            dHV -= (x - self[idx][0]) * (y - self[idx][1])
+            dHV -= (Fc(x) - Fc(self[idx][0])) * (Fc(y) - Fc(self[idx][1]))
         assert dHV <= 0  # and without loss of precision strictly smaller
-        if self._hypervolume and abs(dHV) / self._hypervolume < 1e-9:
+        if (Ff is not fractions.Fraction or not isinstance(self._hypervolume, Ff)) \
+                and self._hypervolume and abs(dHV) / self._hypervolume < 1e-9:
             warnings.warn("_subtract_HV: %f + %f loses many digits of precision"
                           % (dHV, self._hypervolume))
-        self._hypervolume += dHV
-        assert self._hypervolume >= 0
+        self._hypervolume += Ff(dHV)
+        if self._hypervolume < 0:
+            warnings.warn("adding %.16e to the hypervolume lead to a"
+                          " negative hypervolume value of %.16e" %
+                          (dHV, self._hypervolume))
+        # assert self._hypervolume >= 0
         if hasattr(self, '_hypervolumes_list'):
             raise NotImplementedError("update list of hypervolumes")
         return dHV
@@ -446,12 +465,16 @@ class BiobjectiveNondominatedSortedList(list):
             x = self.reference_point[0]
         else:
             x = self[idx + 1][0]
-        dHV = (x - self[idx][0]) * (y - self[idx][1])
+        Fc = self.hypervolume_computation_float_type
+        Ff = self.hypervolume_final_float_type
+        dHV = (Fc(x) - Fc(self[idx][0])) * (Fc(y) - Fc(self[idx][1]))
         assert dHV >= 0
-        if self._hypervolume and dHV / self._hypervolume < 1e-9:
+        if self._hypervolume and (
+                        Ff is not fractions.Fraction or not isinstance(self._hypervolume, Ff)) \
+                and dHV / self._hypervolume < 1e-9:
             warnings.warn("_subtract_HV: %f + %f loses many digits of precision"
                           % (dHV, self._hypervolume))
-        self._hypervolume += dHV
+        self._hypervolume += Ff(dHV)
         if hasattr(self, '_hypervolumes_list'):
             raise NotImplementedError("update list of hypervolumes")
         return dHV
