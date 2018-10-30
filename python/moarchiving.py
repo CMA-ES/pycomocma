@@ -136,9 +136,11 @@ class BiobjectiveNondominatedSortedList(list):
             raise ValueError("argument `f_pair` must be of length 2, was"
                              " ``%s``" % str(f_pair))
         if not self.in_domain(f_pair):
+            self._removed = [f_pair]
             return None
         idx = self.bisect_left(f_pair)
         if self.dominates_with(idx - 1, f_pair) or self.dominates_with(idx, f_pair):
+            self._removed = [f_pair]
             return None
         assert idx == len(self) or not f_pair == self[idx]
         # here f_pair now is non-dominated
@@ -150,6 +152,7 @@ class BiobjectiveNondominatedSortedList(list):
         """remove element idx"""
         raise NotImplementedError
         self._subtract_HV(idx)
+        self._removed = [self[idx]]
         del self[idx]
 
     def _add_at(self, idx, f_pair):
@@ -173,6 +176,7 @@ class BiobjectiveNondominatedSortedList(list):
             idx2 += 1  # delete later in a chunk
         self._subtract_HV(idx, idx2)
         self[idx] = f_pair  # on long lists [.] is much cheaper than insert
+        self._removed = self[idx + 1:idx2]
         del self[idx + 1:idx2]  # can make `add` 20x faster
         self._add_HV(idx)
         assert len(self) >= 1
@@ -201,8 +205,11 @@ class BiobjectiveNondominatedSortedList(list):
         a small performance benefit.
         """
         nb = len(self)
+        removed = []
         for f_pair in list_of_f_pairs:
             self.add(f_pair)
+            removed += [self._removed]  # slightly faster than .extend
+        self._removed = removed
         self.make_expensive_asserts and self._asserts()
         return len(self) - nb
 
@@ -490,6 +497,7 @@ class BiobjectiveNondominatedSortedList(list):
         """
         if self.maintain_contributing_hypervolumes:
             raise NotImplementedError("update list of hypervolumes")
+            del self._contributing_hypervolumes[idx]
             # we also need to update the contributing HVs of the neighbors
         if self.reference_point is None:
             return None
@@ -563,20 +571,62 @@ class BiobjectiveNondominatedSortedList(list):
         """
         nb = len(self)
         i = 1
+        removed = []
         while i < len(self):
             i0 = i
             while i < len(self) and (self[i][1] >= self[i0 - 1][1] or
                                          not self.in_domain(self[i])):
                 i += 1
                 # self.pop(i + 1)  # about 10x slower in notebook test
+            removed += self[i0:i]
             del self[i0:i]
             i = i0 + 1
+        self._removed = removed
         if self.maintain_contributing_hypervolumes:
             raise NotImplementedError
             self._contributing_hypervolumes = [  # simple solution
                 self.contributing_hypervolume(i)
                 for i in range(len(self))]
         return nb - len(self)
+
+    @property
+    def discarded(self):
+        """`list` of f-pairs discarded in the last relevant method call.
+
+        Methods covered are `__init__`, `prune`, `add`, and `add_list`.
+        When discarded also the input argument(s) show(s) up in
+        `discarded`.
+
+        CAVEAT: extra equal pairs are moved in the discarded list but are
+        not dominated, which leads to undesired results when used directly
+        for non-dominated sorting like in the following example.
+
+        Example:
+
+        >>> from moarchiving import BiobjectiveNondominatedSortedList as NDA
+        >>> pairs = [[0.1, 1], [-2, 3], [-4, 5], [-4, 5], [-4, 4.9]]
+        >>> nda_list = []
+        >>> while pairs:
+        ...     nda_list += [NDA(pairs)]
+        ...     pairs = nda_list[-1].discarded
+        >>> assert [len(p) for p in nda_list] == [3, 1, 1]
+
+        Example with removing equal pairs beforehand:
+
+        >>> pairs = sorted([[0.1, 1], [-2, 3], [-4, 5], [-4, 5], [-4, 4.9]])
+        >>> for i in range(len(pairs) - 2, -1, -1):
+        ...     if pairs[i + 1] == pairs[i]:
+        ...         del pairs[i]
+        >>> nda_list = [NDA(pairs, sort=lambda x: x)]
+        >>> while nda_list[-1].discarded:
+        ...     nda_list += [NDA(nda_list[-1].discarded)]
+        >>> assert [len(p) for p in nda_list] == [3, 1]
+
+        """
+        try:
+            return self._removed
+        except AttributeError:
+            return []
 
     def _asserts(self):
         """make all kind of consistency assertions.
