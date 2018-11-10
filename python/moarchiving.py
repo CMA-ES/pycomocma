@@ -140,7 +140,8 @@ class BiobjectiveNondominatedSortedList(list):
             return None
         idx = self.bisect_left(f_pair)
         if self.dominates_with(idx - 1, f_pair) or self.dominates_with(idx, f_pair):
-            self._removed = [f_pair]
+            if f_pair not in self[idx - 1:idx + 1]:
+                self._removed = [f_pair]
             return None
         assert idx == len(self) or not f_pair == self[idx]
         # here f_pair now is non-dominated
@@ -578,10 +579,25 @@ class BiobjectiveNondominatedSortedList(list):
                                          not self.in_domain(self[i])):
                 i += 1
                 # self.pop(i + 1)  # about 10x slower in notebook test
-            removed += self[i0:i]
+            # prepare indices for the removed list
+            i0r = i0
+            if i0 > 0:
+                while i0r < i:
+                    if self[i0r] == self[i0 - 1]:
+                        i0r += 1  # skip self[i0r] as removed because it is still in self
+                    else:
+                        break
+            ir = i
+            if i + 1 < len(self):
+                while ir > i0r:
+                    if self[ir] == self[i + 1]:
+                        ir -= 1  # skip self[ir] as removed as it is in self
+                    else:
+                        break
+            removed += self[i0r:ir]
             del self[i0:i]
             i = i0 + 1
-        self._removed = removed
+        self._removed = removed  # [p for p in removed if p not in self]
         if self.maintain_contributing_hypervolumes:
             raise NotImplementedError
             self._contributing_hypervolumes = [  # simple solution
@@ -594,30 +610,15 @@ class BiobjectiveNondominatedSortedList(list):
         """`list` of f-pairs discarded in the last relevant method call.
 
         Methods covered are `__init__`, `prune`, `add`, and `add_list`.
-        When discarded also the input argument(s) show(s) up in
-        `discarded`.
+        Removed duplicates are not element of the discarded list.
+        When not inserted and not already in `self` also the input
+        argument(s) show(s) up in `discarded`.
 
-        CAVEAT: extra equal pairs are moved in the discarded list but are
-        not dominated, which leads to undesired results when used directly
-        for non-dominated sorting like in the following example.
-
-        Example:
+        Example to create a list of rank-k-non-dominated fronts:
 
         >>> from moarchiving import BiobjectiveNondominatedSortedList as NDA
-        >>> pairs = [[0.1, 1], [-2, 3], [-4, 5], [-4, 5], [-4, 4.9]]
-        >>> nda_list = []
-        >>> while pairs:
-        ...     nda_list += [NDA(pairs)]
-        ...     pairs = nda_list[-1].discarded
-        >>> assert [len(p) for p in nda_list] == [3, 1, 1]
-
-        Example with removing equal pairs beforehand:
-
-        >>> pairs = sorted([[0.1, 1], [-2, 3], [-4, 5], [-4, 5], [-4, 4.9]])
-        >>> for i in range(len(pairs) - 2, -1, -1):
-        ...     if pairs[i + 1] == pairs[i]:
-        ...         del pairs[i]
-        >>> nda_list = [NDA(pairs, sort=lambda x: x)]
+        >>> all_ = [[0.1, 1], [-2, 3], [-4, 5], [-4, 5], [-4, 4.9]]
+        >>> nda_list = [NDA(all_)]  # rank-0-non-dominated
         >>> while nda_list[-1].discarded:
         ...     nda_list += [NDA(nda_list[-1].discarded)]
         >>> assert [len(p) for p in nda_list] == [3, 1]
