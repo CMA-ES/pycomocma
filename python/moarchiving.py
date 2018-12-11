@@ -170,8 +170,8 @@ class BiobjectiveNondominatedSortedList(list):
             # del self[idx]  # slow
             idx2 += 1  # delete later in a chunk
         self._subtract_HV(idx, idx2)
+        self._removed = self[idx:idx2]
         self[idx] = f_pair  # on long lists [.] is much cheaper than insert
-        self._removed = self[idx + 1:idx2]
         del self[idx + 1:idx2]  # can make `add` 20x faster
         self._add_HV(idx)
         assert len(self) >= 1
@@ -524,17 +524,24 @@ class BiobjectiveNondominatedSortedList(list):
             return -self.distance_to_pareto_front(f_pair) - penalty
         if not self.in_domain(f_pair):
             return -penalty
-        hv0 = self.hypervolume
+        len_, len_dis, hv0 = len(self), len(self.discarded), self.hypervolume
         removed = self.discarded  # to get back previous state
-        self.add(f_pair)
-        add_back = self.discarded
+        added = self.add(f_pair) is not None
+        if added and self.discarded is not removed:
+            add_back = self.discarded
+        else: add_back = []
+        assert len(add_back) + len(self) - added == len_
         hv1 = self.hypervolume
         self.remove(f_pair)
         if add_back:
             # print(add_back)
             self.add_list(add_back)
         self._removed = removed
-        return self.hypervolume_computation_float_type(hv1) - hv0
+        assert len(self) == len_
+        assert len(self.discarded) == len_dis
+        import numpy as np
+        assert np.isclose(float(self.hypervolume), float(hv0))
+        return self.hypervolume_computation_float_type(hv1) - self.hypervolume
 
     def _set_HV(self):
         """set current hypervolume value using `self.reference_point`.
@@ -722,6 +729,9 @@ class BiobjectiveNondominatedSortedList(list):
             return self._removed
         except AttributeError:
             return []
+
+    def _state(self):
+        return len(self), len(self.discarded), self.hypervolume
 
     def _asserts(self):
         """make all kind of consistency assertions.
