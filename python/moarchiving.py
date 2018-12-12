@@ -492,6 +492,9 @@ class BiobjectiveNondominatedSortedList(list):
         ref_dxy = (ref_factor * max((0, f_pair[0] - self.reference_point[0])),
                    ref_factor * max((0, f_pair[1] - self.reference_point[1]))) \
                         if self.reference_point else [0, 0]
+        if len(self) == 0:  # otherwise we get an index error below
+            return sum(x**2 for x in ref_dxy)**0.5
+
         # distances to the front boundary given by the extreme points:
         squared_distances = [max((0, f_pair[0] - self[0][0]))**2 + ref_dxy[1]**2,
                              ref_dxy[0]**2 + max((0, f_pair[1] - self[-1][1]))**2]
