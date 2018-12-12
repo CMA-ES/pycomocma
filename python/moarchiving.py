@@ -191,6 +191,7 @@ class BiobjectiveNondominatedSortedList(list):
         >>> if f_pair in nda:
         ...     nda.remove(f_pair)
 
+        Return `None` (like `list.remove`).
         """
         if not hasattr(self, '_remove_test_warning'):
             _warnings.warn("BiobjectiveNondominatedSortedList.remove has never been tested")
@@ -297,6 +298,8 @@ class BiobjectiveNondominatedSortedList(list):
 
         See also `bisect_left` to find the closest index.
         """
+        if len(self) == 0:
+            return False
         idx = self.bisect_left(f_pair)
         if self.dominates_with(idx - 1, f_pair) or self.dominates_with(idx, f_pair):
             return True
@@ -475,20 +478,23 @@ class BiobjectiveNondominatedSortedList(list):
         assert dHV >= 0
         return dHV
 
-    def distance_to_pareto_front(self, f_pair):
-        """of a dominated `f_pair` without considering the reference domain.
+    def distance_to_pareto_front(self, f_pair, ref_factor=3):
+        """of a dominated `f_pair` also considering the reference domain.
 
         Non-dominated points have (by definition) a distance of zero.
 
         Details: the distance is computed by iterating over some kink
         points ``(self[i+1][0], self[i][1])``.
         """
-        if len(self) == 0:  # f_pair is not dominated
+        if self.in_domain(f_pair) and not self.dominates(f_pair):
             return 0  # return minimum distance
 
+        ref_dxy = (ref_factor * max((0, f_pair[0] - self.reference_point[0])),
+                   ref_factor * max((0, f_pair[1] - self.reference_point[1]))) \
+                        if self.reference_point else [0, 0]
         # distances to the front boundary given by the extreme points:
-        squared_distances = [max((0, f_pair[0] - self[0][0]))**2,
-                             max((0, f_pair[1] - self[-1][1]))**2]
+        squared_distances = [max((0, f_pair[0] - self[0][0]))**2 + ref_dxy[1]**2,
+                             ref_dxy[0]**2 + max((0, f_pair[1] - self[-1][1]))**2]
         if len(self) == 1:
             return min(squared_distances)**0.5
         for idx in range(self.bisect_left(f_pair), 0, -1):
@@ -506,41 +512,40 @@ class BiobjectiveNondominatedSortedList(list):
                          for i in range(len(self) - 1)])
         return min(squared_distances)**0.5
 
+    def distance_to_hypervolume_area(self, f_pair):
+        return (max((0, f_pair[0] - self.reference_point[0]))**2
+                + max((0, f_pair[1] - self.reference_point[1]))**2)**0.5 \
+               if self.reference_point else 0
+
     def hypervolume_improvement(self, f_pair):
         """return how much `f_pair` would improve the hypervolumen.
 
-        If dominated, return the distance to the empirical
-        pareto front times -1.
+        If dominated, return the distance to the empirical pareto front
+        multiplied by -1.
+        Else if not in domain, return distance to the reference point
+        dominating area times -1.
         """
         if not hasattr(self, '_hypervolume_improvement_test_warning'):
             self._hypervolume_improvement_test_warning = True
             _warnings.warn("BiobjectiveNondominatedSortedList.hypervolume_"
                            "improvement has never been tested")
 
-        penalty = max((0, f_pair[0] - self.reference_point[0]))**2 + \
-                  max((0, f_pair[1] - self.reference_point[1]))**2 \
-                  if self.reference_point else 0
-        if self.dominates(f_pair):
-            return -self.distance_to_pareto_front(f_pair) - penalty
-        if not self.in_domain(f_pair):
-            return -penalty
-        len_, len_dis, hv0 = len(self), len(self.discarded), self.hypervolume
+        dist = self.distance_to_pareto_front(f_pair)
+        if dist:
+            return -dist
+        state = self._state()
         removed = self.discarded  # to get back previous state
         added = self.add(f_pair) is not None
         if added and self.discarded is not removed:
             add_back = self.discarded
         else: add_back = []
-        assert len(add_back) + len(self) - added == len_
+        assert len(add_back) + len(self) - added == state[0]
         hv1 = self.hypervolume
         self.remove(f_pair)
         if add_back:
-            # print(add_back)
             self.add_list(add_back)
         self._removed = removed
-        assert len(self) == len_
-        assert len(self.discarded) == len_dis
-        import numpy as np
-        assert np.isclose(float(self.hypervolume), float(hv0))
+        assert state == self._state()
         return self.hypervolume_computation_float_type(hv1) - self.hypervolume
 
     def _set_HV(self):
@@ -731,7 +736,7 @@ class BiobjectiveNondominatedSortedList(list):
             return []
 
     def _state(self):
-        return len(self), len(self.discarded), self.hypervolume
+        return len(self), self.discarded, self.hypervolume, self.reference_point
 
     def _asserts(self):
         """make all kind of consistency assertions.
@@ -755,7 +760,9 @@ class BiobjectiveNondominatedSortedList(list):
         ...                                                   reference_point=[2, 2])
         >>> a.make_expensive_asserts = True
         >>> for f_pair in rand(30, 2):
+        ...     h0 = a.hypervolume
         ...     hi = a.hypervolume_improvement(list(f_pair))
+        ...     assert a.hypervolume == h0  # works OK with Fraction
 
 
         """
