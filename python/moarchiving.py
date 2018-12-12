@@ -677,8 +677,13 @@ class BiobjectiveNondominatedSortedList(list):
         from `list`, but `deque` seems not to support deletion of slices.
         """
         nb = len(self)
-        i = 1
         removed = []
+        i = 0
+        while i < len(self) and not self.in_domain(self[i]):
+            i += 1
+        removed += self[0:i]
+        del self[0:i]
+        i = 1
         while i < len(self):
             i0 = i
             while i < len(self) and (self[i][1] >= self[i0 - 1][1] or
