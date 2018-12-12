@@ -679,7 +679,9 @@ class BiobjectiveNondominatedSortedList(list):
         nb = len(self)
         removed = []
         i = 0
-        while i < len(self) and not self.in_domain(self[i]):
+        while i < len(self):
+            if self.in_domain(self[i]):
+                break
             i += 1
         removed += self[0:i]
         del self[0:i]
