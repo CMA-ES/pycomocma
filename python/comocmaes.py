@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Nov 27 11:17:28 2018
 
 @author: Cheikh and ...
 """
@@ -18,7 +17,7 @@ import matplotlib.pyplot as plt
 import os
 from math import inf
 
-class Mocmaes(object):
+class CoMoCmaes(object):
     
     """ 
     
@@ -117,36 +116,37 @@ class Mocmaes(object):
         for kernel in self.kernels:
             kernel.logger.plot()
             
+if __name__ == "__main__":
     
-dim = 10
-num_kernels = 9
-b = np.zeros(dim)
-b[1] = 1
-fun = lambda x: cma.ff.cigtab(x)/cma.ff.cigtab(b),lambda x: cma.ff.cigtab(x-b)/cma.ff.cigtab(b)
-sigma0 = 0.5
-refpoint = [1.1, 1.1]
-max_evaluations = 8*10**4
-for __ in range(1):    
-    mymo = Mocmaes(fun,dim,sigma0,num_kernels,refpoint,max_evaluations,
-                   lambda x: np.random.permutation(x),inner_iterations = 1)
-    mymo.run()
-    plt.figure(18472)
-    f1 = np.array([fun[0](mycma.mean) for mycma in mymo.kernels])
-    f2 = np.array([fun[1](mycma.mean) for mycma in mymo.kernels])
-    plt.plot(f1,f2,'o')
-    plt.xlabel('first objective function')
-    plt.ylabel('second objective function')
-    plt.axes().set_aspect('equal')
-    plt.title("Pareto front")
-                
-    plt.figure(417283)
-    maxiter = (mymo.max_evaluations-mymo.num_kernels)//(mymo.num_kernels*mymo.inner_iterations*(mymo.num_offsprings+1))
-    myaxis = np.linspace(mymo.num_kernels*(
-            mymo.kernels[0].popsize+1),maxiter*mymo.num_kernels*(mymo.kernels[0].popsize+1),maxiter)
-    plt.semilogy(myaxis,[float(max(mymo.hv))-float(u) for u in mymo.hv],'-')
-    plt.xlabel('function evaluations')
-    plt.ylabel('log scale hypervolume gap with the new algorithm')
-    
+    dim = 10
+    num_kernels = 9
+    b = np.zeros(dim)
+    b[1] = 1
+    fun = lambda x: cma.ff.cigtab(x)/cma.ff.cigtab(b),lambda x: cma.ff.cigtab(x-b)/cma.ff.cigtab(b)
+    sigma0 = 0.5
+    refpoint = [1.1, 1.1]
+    max_evaluations = 7*10**4
+    for __ in range(1):    
+        mymo = CoMoCmaes(fun,dim,sigma0,num_kernels,refpoint,max_evaluations,
+                       lambda x: np.random.permutation(x),inner_iterations = 1)
+        mymo.run()
+        plt.figure(18472)
+        f1 = np.array([fun[0](mycma.mean) for mycma in mymo.kernels])
+        f2 = np.array([fun[1](mycma.mean) for mycma in mymo.kernels])
+        plt.plot(f1,f2,'o')
+        plt.xlabel('first objective function')
+        plt.ylabel('second objective function')
+        plt.axes().set_aspect('equal')
+        plt.title("Pareto front")
+                    
+        plt.figure(417283)
+        maxiter = (mymo.max_evaluations-mymo.num_kernels)//(mymo.num_kernels*mymo.inner_iterations*(mymo.num_offsprings+1))
+        myaxis = np.linspace(mymo.num_kernels*(
+                mymo.kernels[0].popsize+1),maxiter*mymo.num_kernels*(mymo.kernels[0].popsize+1),maxiter)
+        plt.semilogy(myaxis,[float(max(mymo.hv))-float(u) for u in mymo.hv],'-')
+        plt.xlabel('function evaluations')
+        plt.ylabel('log scale hypervolume gap with the Como algorithm')
+        
             
             
             
