@@ -481,7 +481,11 @@ class BiobjectiveNondominatedSortedList(list):
     def distance_to_pareto_front(self, f_pair, ref_factor=3):
         """of a dominated `f_pair` also considering the reference domain.
 
-        Non-dominated points have (by definition) a distance of zero.
+        Non-dominated points have (by definition) a distance of zero,
+        unless the archive is empty and the point does not dominate the
+        reference point.
+
+        Assumes that extreme points are in the reference domain.
 
         Details: the distance is computed by iterating over some kink
         points ``(self[i+1][0], self[i][1])``.
@@ -496,8 +500,8 @@ class BiobjectiveNondominatedSortedList(list):
             return sum(x**2 for x in ref_dxy)**0.5
 
         # distances to the front boundary given by the extreme points:
-        squared_distances = [max((0, f_pair[0] - self[0][0]))**2 + ref_dxy[1]**2,
-                             ref_dxy[0]**2 + max((0, f_pair[1] - self[-1][1]))**2]
+        squared_distances = [max((0, f_pair[0] - self[-1][0]))**2 + ref_dxy[1]**2,
+                             ref_dxy[0]**2 + max((0, f_pair[1] - self[0][1]))**2]
         if len(self) == 1:
             return min(squared_distances)**0.5
         for idx in range(self.bisect_left(f_pair), 0, -1):
@@ -508,7 +512,7 @@ class BiobjectiveNondominatedSortedList(list):
                 max((0, f_pair[0] - self[idx][0]))**2)
             if self[idx][1] >= f_pair[1] or idx == 1:
                 break
-        if self.make_expensive_asserts:
+        if self.make_expensive_asserts and len(squared_distances) > 2:
             assert min(squared_distances[2:]) == min(
                         [max((0, f_pair[0] - self[i + 1][0]))**2 +
                          max((0, f_pair[1] - self[i][1]))**2
@@ -544,7 +548,8 @@ class BiobjectiveNondominatedSortedList(list):
         else: add_back = []
         assert len(add_back) + len(self) - added == state[0]
         hv1 = self.hypervolume
-        self.remove(f_pair)
+        if added:
+            self.remove(f_pair)
         if add_back:
             self.add_list(add_back)
         self._removed = removed
@@ -748,6 +753,16 @@ class BiobjectiveNondominatedSortedList(list):
     def _state(self):
         return len(self), self.discarded, self.hypervolume, self.reference_point
 
+    @staticmethod
+    def _random_archive(max_size=500):
+        from numpy import random as npr
+        N = npr.randint(max_size)
+        ref_point = None if npr.rand() < 0.5 else list(npr.randn(2) + 1)
+        return BiobjectiveNondominatedSortedList(
+            [list(0.01 * npr.randn(2) + npr.rand(1) * [i, -i])
+             for i in range(N)],
+            reference_point=ref_point)
+
     def _asserts(self):
         """make all kind of consistency assertions.
 
@@ -766,13 +781,14 @@ class BiobjectiveNondominatedSortedList(list):
         >>> assert len(a) == 0
 
         >>> from numpy.random import rand
-        >>> a = moarchiving.BiobjectiveNondominatedSortedList([list(r) for r in rand(30, 2)],
-        ...                                                   reference_point=[2, 2])
-        >>> a.make_expensive_asserts = True
-        >>> for f_pair in rand(30, 2):
-        ...     h0 = a.hypervolume
-        ...     hi = a.hypervolume_improvement(list(f_pair))
-        ...     assert a.hypervolume == h0  # works OK with Fraction
+        >>> for _ in range(120):
+        ...     a = moarchiving.BiobjectiveNondominatedSortedList._random_archive()
+        ...     a.make_expensive_asserts = True
+        ...     if a.reference_point:
+        ...         for f_pair in rand(10, 2):
+        ...             h0 = a.hypervolume
+        ...             hi = a.hypervolume_improvement(list(f_pair))
+        ...             assert a.hypervolume == h0  # works OK with Fraction
 
 
         """
@@ -795,7 +811,12 @@ class BiobjectiveNondominatedSortedList(list):
         # for i in range(len(self)):
         #     assert self.contributing_hypervolume(i) == self.contributing_hypervolumes[i]
 
-        # asserts that use numpy for convenience
+        if self.reference_point:
+            tmp, self.make_expensive_asserts = self.make_expensive_asserts, False
+            self.hypervolume_improvement([0, 0])  # does state assert
+            self.make_expensive_asserts = tmp
+
+        # asserts using numpy for convenience
         try:
             import numpy as np
         except ImportError:
