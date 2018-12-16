@@ -190,12 +190,18 @@ class BiobjectiveNondominatedSortedList(list):
         >>> assert [2, 3] in nda and f_pair not in nda
         >>> if f_pair in nda:
         ...     nda.remove(f_pair)
+        >>> nda = BiobjectiveNondominatedSortedList._random_archive(p_ref_point=1)
+        >>> for pair in list(nda):
+        ...     len_ = len(nda)
+        ...     state = nda._state()
+        ...     nda.remove(pair)
+        ...     assert len(nda) == len_ - 1
+        ...     if 100 * pair[0] - int(100 * pair[0]) < 0.7:
+        ...         res = nda.add(pair)
+        ...         assert all(state[i] == nda._state()[i] for i in [0, 2, 3])
 
         Return `None` (like `list.remove`).
         """
-        if not hasattr(self, '_remove_test_warning'):
-            _warnings.warn("BiobjectiveNondominatedSortedList.remove has never been tested")
-            self._remove_test_warning = True
         idx = self.index(f_pair)
         self._subtract_HV(idx)
         self._removed = [self[idx]]
@@ -754,10 +760,10 @@ class BiobjectiveNondominatedSortedList(list):
         return len(self), self.discarded, self.hypervolume, self.reference_point
 
     @staticmethod
-    def _random_archive(max_size=500):
+    def _random_archive(max_size=500, p_ref_point=0.5):
         from numpy import random as npr
         N = npr.randint(max_size)
-        ref_point = None if npr.rand() < 0.5 else list(npr.randn(2) + 1)
+        ref_point = list(npr.randn(2) + 1) if npr.rand() < p_ref_point else None
         return BiobjectiveNondominatedSortedList(
             [list(0.01 * npr.randn(2) + npr.rand(1) * [i, -i])
              for i in range(N)],
@@ -779,6 +785,9 @@ class BiobjectiveNondominatedSortedList(list):
         >>> for p in list(a):
         ...     a.remove(p)
         >>> assert len(a) == 0
+        >>> try: a.remove([0, 0])
+        ... except ValueError: pass
+        ... else: raise AssertionError("remove did not raise ValueError")
 
         >>> from numpy.random import rand
         >>> for _ in range(120):
