@@ -35,7 +35,7 @@ class BiobjectiveNondominatedSortedList(list):
     Afterwards, the methods `add` and `add_list` keep the list always
     in a consistent state. If a reference point was given on initialization,
     also the hypervolume of the archive is computed and updated.
-    
+
     Removing elements with `pop` or `del` keeps the archive sorted and
     non-dominated but does not update the hypervolume, which hence
     becomes inconsistent.
@@ -63,7 +63,12 @@ class BiobjectiveNondominatedSortedList(list):
     DONE: implement large-precision hypervolume computation.
     DONE (method remove): implement a `delete` method that also updates the hypervolume.
     TODO (DONE): implement a copy method
-    TODO: currently, points beyond the reference point (which do not contribute
+    TODO: compute a hypervolume also without a reference point. Using the
+          two extreme points as reference should just work fine also for
+          hypervolume improvement, as making them more extreme improves
+          the volume. This is not equivalent with putting the reference
+          to infty, as the contribution from a new extreme could be small.
+    TODO (discarded): currently, points beyond the reference point (which do not contribute
     to the hypervolume) are discarded. We may want to keep them, for simplicity
     in a separate list?
 
@@ -491,23 +496,49 @@ class BiobjectiveNondominatedSortedList(list):
         unless the archive is empty and the point does not dominate the
         reference point.
 
-        Assumes that extreme points are in the reference domain.
+        Assumes that extreme points in the archive are in the reference
+        domain.
 
-        Details: the distance is computed by iterating over some kink
-        points ``(self[i+1][0], self[i][1])``.
+        Details: the distance for dominated points is computed by
+        iterating over the relevant kink points ``(self[i+1][0],
+        self[i][1])``. In case of minimization, the boundary with two
+        non-dominated points can be depicted like::
+
+            ...______.      . <- reference point
+                     |
+                     x__. <- kink point
+                        |
+                        x___. <- kink point
+                            |
+                            |
+                            :
+                            :
+
+        The three kink points which are possibly used for the computations
+        are denoted by a dot. The outer kink points use one coordinate of
+        the reference point.
         """
         if self.in_domain(f_pair) and not self.dominates(f_pair):
             return 0  # return minimum distance
 
-        ref_dxy = (ref_factor * max((0, f_pair[0] - self.reference_point[0])),
-                   ref_factor * max((0, f_pair[1] - self.reference_point[1]))) \
-                        if self.reference_point else [0, 0]
-        if len(self) == 0:  # otherwise we get an index error below
-            return sum(x**2 for x in ref_dxy)**0.5
+        if self.reference_point:
+            ref_d0 = ref_factor * max((0, f_pair[0] - self.reference_point[0]))
+            ref_d1 = ref_factor * max((0, f_pair[1] - self.reference_point[1]))
+        else:
+            ref_d0 = 0
+            ref_d1 = 0
 
-        # distances to the front boundary given by the extreme points:
-        squared_distances = [max((0, f_pair[0] - self[-1][0]))**2 + ref_dxy[1]**2,
-                             ref_dxy[0]**2 + max((0, f_pair[1] - self[0][1]))**2]
+        if len(self) == 0:  # otherwise we get an index error below
+            return (ref_d0**2 + ref_d1**2)**0.5
+
+        # distances to the two outer kink points, given by the extreme
+        # points and the respective the reference point coordinate, for
+        # the left (and up) most point:
+        squared_distances = [max((0, f_pair[0] - self[0][0]))**2 +
+                              ref_d1**2]
+        # and the right most (and lowest) point
+        squared_distances += [ref_d0**2 +
+                             max((0, f_pair[1] - self[-1][1]))**2]
         if len(self) == 1:
             return min(squared_distances)**0.5
         for idx in range(self.bisect_left(f_pair), 0, -1):
@@ -538,11 +569,6 @@ class BiobjectiveNondominatedSortedList(list):
         Else if not in domain, return distance to the reference point
         dominating area times -1.
         """
-        if not hasattr(self, '_hypervolume_improvement_test_warning'):
-            self._hypervolume_improvement_test_warning = True
-            _warnings.warn("BiobjectiveNondominatedSortedList.hypervolume_"
-                           "improvement has never been tested")
-
         dist = self.distance_to_pareto_front(f_pair)
         if dist:
             return -dist
