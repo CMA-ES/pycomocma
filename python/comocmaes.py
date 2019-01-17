@@ -120,13 +120,15 @@ if __name__ == "__main__":
     
     dim = 10
     num_kernels = 9
+    b = np.ones(dim)
     b = np.zeros(dim)
-    b[1] = 1
-    fun = lambda x: cma.ff.cigtab(x)/cma.ff.cigtab(b),lambda x: cma.ff.cigtab(x-b)/cma.ff.cigtab(b)
+    b[0] = 1
+    scaling = cma.ff.cigtab(b)
+    fun = lambda x: cma.ff.cigtab(x)/scaling, lambda x: cma.ff.cigtab(x-b)/scaling
     sigma0 = 0.5
     refpoint = [1.1, 1.1]
-    max_evaluations = 7*10**4
-    for __ in range(1):    
+    max_evaluations = 8*10**4
+    for _ in range(1):    
         mymo = CoMoCmaes(fun,dim,sigma0,num_kernels,refpoint,max_evaluations,
                        lambda x: np.random.permutation(x),inner_iterations = 1)
         mymo.run()
@@ -136,7 +138,7 @@ if __name__ == "__main__":
         plt.plot(f1,f2,'o')
         plt.xlabel('first objective function')
         plt.ylabel('second objective function')
-        plt.axes().set_aspect('equal')
+    #    plt.axes().set_aspect('equal')
         plt.title("Pareto front")
                     
         plt.figure(417283)
