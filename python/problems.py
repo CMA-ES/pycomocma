@@ -20,8 +20,8 @@ class BiobjectiveConvexQuadraticProblem(object):
                  scaling_second = None,
                  name = None):
         self.dim = dim
-        self.optimum_first = optimum_first if optimum_first else np.random.rand(self.dim)
-        self.optimum_second = optimum_second if optimum_second else np.random.rand(self.dim)
+        self.optimum_first = optimum_first if optimum_first else np.zeros(self.dim)
+        self.optimum_second = optimum_second if optimum_second else np.ones(self.dim)
         
         if hessian_first:
             self.hessian_first = hessian_first
@@ -31,7 +31,8 @@ class BiobjectiveConvexQuadraticProblem(object):
         if name == "sphere":
             self.hessian_first = np.eye(self.dim,self.dim)
             self.hessian_second = np.eye(self.dim,self.dim)
-        if name == "elli":
+            
+        elif name == "elli":
             self.hessian_first = np.eye(self.dim,self.dim)
             self.hessian_second = np.eye(self.dim,self.dim)
             if self.dim > 1:
@@ -39,7 +40,7 @@ class BiobjectiveConvexQuadraticProblem(object):
                     self.hessian_first[i,i] = 1e6**(i/self.dim-1)
                     self.hessian_second[i,i] = 1e6**(i/self.dim-1)
                 
-        if name == "cigtab":
+        elif name == "cigtab":
             self.hessian_first = np.eye(self.dim,self.dim)
             self.hessian_second = np.eye(self.dim,self.dim)
             self.hessian_first[0,0] = 10**-4
@@ -60,12 +61,13 @@ class BiobjectiveConvexQuadraticProblem(object):
         Q1,Q2 = self.hessian_first, self.hessian_second
         x1,x2 = self.optimum_first, self.optimum_second
       
-        scale = max(np.dot((x2-x1).T, np.dot(Q1,x2-x1)),
-                                     np.dot((x1-x2).T, np.dot(Q2,x1-x2)) )
+        scale = max(np.dot((x2-x1).T, np.dot(Q1,x2-x1)), np.dot(
+                (x1-x2).T, np.dot(Q2,x1-x2)) )
 
         self.scaling_first = scaling_first if scaling_first else scale
         self.scaling_second = scaling_second if scaling_second else scale
-            
+        
+        self.name = name
 
 
     def objective_functions(self):
@@ -92,10 +94,12 @@ class BiobjectiveConvexQuadraticProblem(object):
         if Two_O = True, then sep-Two-O
         """
         self.optimum_first = np.zeros(self.dim)
+     #   self.name = self.name + "_sep{}".format(k)
         if not O:
             self.optimum_second = np.zeros(self.dim)
             self.optimum_second[k] = 1
         else:
+    #        self.name = self.name + "_o"
             B = np.random.randn(self.dim, self.dim)
             for i in range(self.dim):
                 for j in range(0, i):
@@ -103,6 +107,7 @@ class BiobjectiveConvexQuadraticProblem(object):
                 B[i] /= sum(B[i]**2)**0.5
             self.optimum_second = np.dot(B,np.ones(self.dim))
             if Two_O:
+       #         self.name = self.name + "_Two_o"                
                 C = np.random.randn(self.dim, self.dim)
                 for i in range(self.dim):
                     for j in range(0, i):
@@ -110,20 +115,34 @@ class BiobjectiveConvexQuadraticProblem(object):
                     C[i] /= sum(C[i]**2)**0.5
                 self.hessian_second = np.dot(C.T, np.dot(self.hessian_second, C))
             
+            
+        Q1,Q2 = self.hessian_first, self.hessian_second
+        x1,x2 = self.optimum_first, self.optimum_second
+      
+        scale = max(np.dot((x2-x1).T, np.dot(Q1,x2-x1)), np.dot(
+                (x1-x2).T, np.dot(Q2,x1-x2)) )
+
+        self.scaling_first = scale
+        self.scaling_second = scale
         
     def one(self,O = False):
         """
         """
         self.optimum_first = np.zeros(self.dim)
+   #     self.name = self.name + "_one"
+
         if not O:
             self.optimum_second = np.ones(self.dim)            
         else:
+    #        self.name = self.name + "_o"            
             B = np.random.randn(self.dim, self.dim)
             for i in range(self.dim):
                 for j in range(0, i):
                     B[i] -= np.dot(B[i], B[j]) * B[j]
                 B[i] /= sum(B[i]**2)**0.5
             self.optimum_second = np.dot(B,np.ones(self.dim))
+        
+  
             
    
         C = np.random.randn(self.dim, self.dim)
@@ -133,7 +152,18 @@ class BiobjectiveConvexQuadraticProblem(object):
             C[i] /= sum(C[i]**2)**0.5
         self.hessian_first = np.dot(C.T, np.dot(self.hessian_first, C))
         self.hessian_second = np.dot(C.T, np.dot(self.hessian_second, C))
-            
+  
+       
+        Q1,Q2 = self.hessian_first, self.hessian_second
+        x1,x2 = self.optimum_first, self.optimum_second
+      
+        scale = max(np.dot((x2-x1).T, np.dot(Q1,x2-x1)), np.dot(
+                (x1-x2).T, np.dot(Q2,x1-x2)) )
+
+        self.scaling_first = scale
+        self.scaling_second = scale
+   
+          
       
     def two(self,O = False):
         """
@@ -163,4 +193,14 @@ class BiobjectiveConvexQuadraticProblem(object):
             
         self.hessian_first = np.dot(C.T, np.dot(self.hessian_first, C))
         self.hessian_second = np.dot(D.T, np.dot(self.hessian_second, D))
- 
+        
+        Q1,Q2 = self.hessian_first, self.hessian_second
+        x1,x2 = self.optimum_first, self.optimum_second
+      
+        scale = max(np.dot((x2-x1).T, np.dot(Q1,x2-x1)), np.dot(
+                (x1-x2).T, np.dot(Q2,x1-x2)) )
+
+        self.scaling_first = scale
+        self.scaling_second = scale
+   
+     
