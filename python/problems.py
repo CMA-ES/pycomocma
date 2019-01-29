@@ -4,8 +4,74 @@
 
 @author: Cheikh
 """
-
+from __future__ import print_function
+try:
+    xrange
+except NameError:
+    xrange = range
+import warnings
 import numpy as np
+from math import floor as floor
+
+### Function definitions###
+def unif(N, inseed):
+    """Generates N uniform numbers with starting seed."""
+
+    # initialization
+    inseed = np.abs(inseed)
+    if inseed < 1.:
+        inseed = 1.
+
+    rgrand = 32 * [0.]
+    aktseed = inseed
+    for i in xrange(39, -1, -1):
+        tmp = floor(aktseed / 127773.)
+        aktseed = 16807. * (aktseed - tmp * 127773.) - 2836. * tmp
+        if aktseed < 0:
+            aktseed = aktseed + 2147483647.
+        if i < 32:
+            rgrand[i] = aktseed
+    aktrand = rgrand[0]
+
+    # sample numbers
+    r = int(N) * [0.]
+    for i in xrange(int(N)):
+        tmp = floor(aktseed / 127773.)
+        aktseed = 16807. * (aktseed - tmp * 127773.) - 2836. * tmp
+        if aktseed < 0:
+            aktseed = aktseed + 2147483647.
+        tmp = int(floor(aktrand / 67108865.))
+        aktrand = rgrand[tmp]
+        rgrand[tmp] = aktseed
+        r[i] = aktrand / 2.147483647e9
+    r = np.asarray(r)
+    if (r == 0).any():
+        warnings.warn('zero sampled(?), set to 1e-99')
+        r[r == 0] = 1e-99
+    return r
+
+def gauss(N, seed):
+    """Samples N standard normally distributed numbers
+    being the same for a given seed
+    """
+    r = unif(2 * N, seed)
+    g = np.sqrt(-2 * np.log(r[:N])) * np.cos(2 * np.pi * r[N:2*N])
+    if np.any(g == 0.):
+        g[g == 0] = 1e-99
+    return g
+    
+    
+def compute_rotation(seed, dim):
+    """Returns an orthogonal basis."""
+
+    B = np.reshape(gauss(dim * dim, seed), (dim, dim))
+    for i in range(dim):
+        for j in range(0, i):
+            B[i] = B[i] - dot(B[i], B[j]) * B[j]
+        B[i] = B[i] / (np.sum(B[i]**2) ** .5)
+    return B
+
+### CLASS definition###
 
 class BiobjectiveConvexQuadraticProblem(object):
     """
@@ -37,8 +103,8 @@ class BiobjectiveConvexQuadraticProblem(object):
             self.hessian_second = np.eye(self.dim,self.dim)
             if self.dim > 1:
                 for i in range(self.dim):
-                    self.hessian_first[i,i] = 1e6**(i/self.dim-1)
-                    self.hessian_second[i,i] = 1e6**(i/self.dim-1)
+                    self.hessian_first[i,i] = 1e6**(i/(self.dim-1))
+                    self.hessian_second[i,i] = 1e6**(i/(self.dim-1))
                 
         elif name == "cigtab":
             self.hessian_first = np.eye(self.dim,self.dim)
@@ -99,20 +165,20 @@ class BiobjectiveConvexQuadraticProblem(object):
             self.optimum_second = np.zeros(self.dim)
             self.optimum_second[k] = 1
         else:
-    #        self.name = self.name + "_o"
-            B = np.random.randn(self.dim, self.dim)
-            for i in range(self.dim):
-                for j in range(0, i):
-                    B[i] -= np.dot(B[i], B[j]) * B[j]
-                B[i] /= sum(B[i]**2)**0.5
+            B = compute_rotation(1,self.dim)
+#            B = np.random.randn(self.dim, self.dim)
+ #           for i in range(self.dim):
+  #              for j in range(0, i):
+   #                 B[i] -= np.dot(B[i], B[j]) * B[j]
+    #            B[i] /= sum(B[i]**2)**0.5
             self.optimum_second = np.dot(B,np.ones(self.dim))
             if Two_O:
-       #         self.name = self.name + "_Two_o"                
-                C = np.random.randn(self.dim, self.dim)
-                for i in range(self.dim):
-                    for j in range(0, i):
-                        C[i] -= np.dot(C[i], C[j]) * C[j]
-                    C[i] /= sum(C[i]**2)**0.5
+                C = compute_rotation(2,self.dim)
+#                C = np.random.randn(self.dim, self.dim)
+ #               for i in range(self.dim):
+  #                  for j in range(0, i):
+   #                     C[i] -= np.dot(C[i], C[j]) * C[j]
+    #                C[i] /= sum(C[i]**2)**0.5
                 self.hessian_second = np.dot(C.T, np.dot(self.hessian_second, C))
             
             
@@ -124,7 +190,7 @@ class BiobjectiveConvexQuadraticProblem(object):
 
         self.scaling_first = scale
         self.scaling_second = scale
-        
+
     def one(self,O = False):
         """
         """
@@ -134,22 +200,24 @@ class BiobjectiveConvexQuadraticProblem(object):
         if not O:
             self.optimum_second = np.ones(self.dim)            
         else:
-    #        self.name = self.name + "_o"            
-            B = np.random.randn(self.dim, self.dim)
-            for i in range(self.dim):
-                for j in range(0, i):
-                    B[i] -= np.dot(B[i], B[j]) * B[j]
-                B[i] /= sum(B[i]**2)**0.5
+            B = compute_rotation(1, self.dim)
+
+       #     B = np.random.randn(self.dim, self.dim)
+        #    for i in range(self.dim):
+        #        for j in range(0, i):
+         #           B[i] -= np.dot(B[i], B[j]) * B[j]
+          #      B[i] /= sum(B[i]**2)**0.5
             self.optimum_second = np.dot(B,np.ones(self.dim))
         
   
             
    
-        C = np.random.randn(self.dim, self.dim)
-        for i in range(self.dim):
-            for j in range(0, i):
-                C[i] -= np.dot(C[i], C[j]) * C[j]
-            C[i] /= sum(C[i]**2)**0.5
+     #   C = np.random.randn(self.dim, self.dim)
+     #   for i in range(self.dim):
+     #       for j in range(0, i):
+     #           C[i] -= np.dot(C[i], C[j]) * C[j]
+     #       C[i] /= sum(C[i]**2)**0.5
+        C = compute_rotation(2,self.dim)
         self.hessian_first = np.dot(C.T, np.dot(self.hessian_first, C))
         self.hessian_second = np.dot(C.T, np.dot(self.hessian_second, C))
   
@@ -172,24 +240,27 @@ class BiobjectiveConvexQuadraticProblem(object):
         if not O:
             self.optimum_second = np.ones(self.dim)            
         else:
-            B = np.random.randn(self.dim, self.dim)
-            for i in range(self.dim):
-                for j in range(0, i):
-                    B[i] -= np.dot(B[i], B[j]) * B[j]
-                B[i] /= sum(B[i]**2)**0.5
+            B = compute_rotation(1,self.dim)
+     #       B = np.random.randn(self.dim, self.dim)
+      #      for i in range(self.dim):
+      #          for j in range(0, i):
+      #              B[i] -= np.dot(B[i], B[j]) * B[j]
+      #          B[i] /= sum(B[i]**2)**0.5
             self.optimum_second = np.dot(B,np.ones(self.dim))
    
-        C = np.random.randn(self.dim, self.dim)
-        for i in range(self.dim):
-            for j in range(0, i):
-                C[i] -= np.dot(C[i], C[j]) * C[j]
-            C[i] /= sum(C[i]**2)**0.5
+        C = compute_rotation(2,self.dim)
+  #      C = np.random.randn(self.dim, self.dim)
+   #     for i in range(self.dim):
+    #        for j in range(0, i):
+     #           C[i] -= np.dot(C[i], C[j]) * C[j]
+      #      C[i] /= sum(C[i]**2)**0.5
 
-        D = np.random.randn(self.dim, self.dim)
-        for i in range(self.dim):
-            for j in range(0, i):
-                D[i] -= np.dot(D[i], D[j]) * D[j]
-            D[i] /= sum(D[i]**2)**0.5
+        D = compute_rotation(3,self.dim)
+#        D = np.random.randn(self.dim, self.dim)
+ #       for i in range(self.dim):
+  #          for j in range(0, i):
+   #             D[i] -= np.dot(D[i], D[j]) * D[j]
+    #        D[i] /= sum(D[i]**2)**0.5
             
         self.hessian_first = np.dot(C.T, np.dot(self.hessian_first, C))
         self.hessian_second = np.dot(D.T, np.dot(self.hessian_second, D))
@@ -202,5 +273,4 @@ class BiobjectiveConvexQuadraticProblem(object):
 
         self.scaling_first = scale
         self.scaling_second = scale
-   
      
