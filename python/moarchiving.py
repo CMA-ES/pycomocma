@@ -8,14 +8,15 @@ update in logarithmic time.
 from __future__ import division, print_function, unicode_literals
 __author__ = "Nikolaus Hansen and ..."
 __license__ = "BSD 3-clause"
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 del division, print_function, unicode_literals
 
 # from collections import deque  # does not support deletion of slices!?
 import bisect as _bisect # to find the insertion index efficiently
 import fractions
-from math import inf
 import warnings as _warnings
+
+inf = float('inf')
 
 class BiobjectiveNondominatedSortedList(list):
     """A sorted list of non-dominated unique objective-pairs.
@@ -570,6 +571,7 @@ class BiobjectiveNondominatedSortedList(list):
         dominating area times -1.
         """
         dist = self.distance_to_pareto_front(f_pair)
+        assert dist >= 0
         if dist:
             return -dist
         state = self._state()
