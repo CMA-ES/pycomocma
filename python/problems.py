@@ -67,7 +67,7 @@ def compute_rotation(seed, dim):
     B = np.reshape(gauss(dim * dim, seed), (dim, dim))
     for i in range(dim):
         for j in range(0, i):
-            B[i] = B[i] - dot(B[i], B[j]) * B[j]
+            B[i] = B[i] - np.dot(B[i], B[j]) * B[j]
         B[i] = B[i] / (np.sum(B[i]**2) ** .5)
     return B
 
@@ -160,7 +160,7 @@ class BiobjectiveConvexQuadraticProblem(object):
         if Two_O = True, then sep-Two-O
         """
         self.optimum_first = np.zeros(self.dim)
-     #   self.name = self.name + "_sep{}".format(k)
+        self.name += "-sep-{}".format(k)
         if not O:
             self.optimum_second = np.zeros(self.dim)
             self.optimum_second[k] = 1
@@ -172,6 +172,8 @@ class BiobjectiveConvexQuadraticProblem(object):
    #                 B[i] -= np.dot(B[i], B[j]) * B[j]
     #            B[i] /= sum(B[i]**2)**0.5
             self.optimum_second = np.dot(B,np.ones(self.dim))
+            self.name += "O"
+
             if Two_O:
                 C = compute_rotation(2,self.dim)
 #                C = np.random.randn(self.dim, self.dim)
@@ -180,7 +182,7 @@ class BiobjectiveConvexQuadraticProblem(object):
    #                     C[i] -= np.dot(C[i], C[j]) * C[j]
     #                C[i] /= sum(C[i]**2)**0.5
                 self.hessian_second = np.dot(C.T, np.dot(self.hessian_second, C))
-            
+                self.name += "Two_O"
             
         Q1,Q2 = self.hessian_first, self.hessian_second
         x1,x2 = self.optimum_first, self.optimum_second
@@ -195,10 +197,11 @@ class BiobjectiveConvexQuadraticProblem(object):
         """
         """
         self.optimum_first = np.zeros(self.dim)
-   #     self.name = self.name + "_one"
+        self.name += "-one"
 
         if not O:
-            self.optimum_second = np.ones(self.dim)            
+            self.optimum_second = np.ones(self.dim)       
+            
         else:
             B = compute_rotation(1, self.dim)
 
@@ -208,6 +211,7 @@ class BiobjectiveConvexQuadraticProblem(object):
          #           B[i] -= np.dot(B[i], B[j]) * B[j]
           #      B[i] /= sum(B[i]**2)**0.5
             self.optimum_second = np.dot(B,np.ones(self.dim))
+            self.name += "O"
         
   
             
@@ -237,6 +241,8 @@ class BiobjectiveConvexQuadraticProblem(object):
         """
         """
         self.optimum_first = np.zeros(self.dim)
+        self.name += "-two"
+
         if not O:
             self.optimum_second = np.ones(self.dim)            
         else:
@@ -247,6 +253,7 @@ class BiobjectiveConvexQuadraticProblem(object):
       #              B[i] -= np.dot(B[i], B[j]) * B[j]
       #          B[i] /= sum(B[i]**2)**0.5
             self.optimum_second = np.dot(B,np.ones(self.dim))
+            self.name += "O"
    
         C = compute_rotation(2,self.dim)
   #      C = np.random.randn(self.dim, self.dim)
