@@ -62,6 +62,8 @@ class CoMoCmaes(object):
                         i),'conditioncov_alleviate':[np.inf, np.inf],
     'CMA_const_trace': 'True'})]#,'verbose':-9})]#,'AdaptSigma':cma.sigma_adaptation.CMAAdaptSigmaTPA})]
         
+    # TODO: assign self.num_offspring and incorporate it into the definition of each kernel
+    
         self.kernels = kernels
         self.max_evaluations = max_evaluations
 
@@ -69,9 +71,15 @@ class CoMoCmaes(object):
         #once and for all, without creating a new structure. 
         #Note that the fit class is currently "blanc":
         for kernel in self.kernels:
-            kernel.fit.fitnesses = self.evaluate(kernel.mean)
-            kernel.ratio_nondominated_offspring = []
+            # store the bi-objective values of each kernel's mean
+            kernel.fit.fitnesses = self.evaluate(kernel.mean) 
+            
+            # storing the ratio of non-dominated points among a kernel + its offspring:
+            kernel.ratio_nondominated_offspring = []  
+
         if not self.num_offspring:
+            # taking the number of offspring assigned to each kernel 
+            # be aware that modifying self.num_offspring is ineffective
             self.num_offspring = self.kernels[0].popsize
             
         self.inner_iterations = inner_iterations
@@ -86,7 +94,7 @@ class CoMoCmaes(object):
         self.ratio_nondominated_first_quartile_offspring = []
         self.ratio_nondominated_median_offspring = []
         self.ratio_nondominated_third_quartile_offspring = []    
-        self.name = name
+        self.name = name # name of the optimized problem
         
     def evaluate(self,x_var):
         """
