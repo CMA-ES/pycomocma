@@ -107,13 +107,14 @@ class CoMoCmaes(object):
         return np.random.permutation(x)
 
     def step(self):
-        """Makes one step through all the kernels."""
+        """Makes one step through all the kernels and store the data."""
         order = self.update_order(len(self.kernels))
-        for idx in range(len(self.kernels)):
+        for idx in range(self.num_kernels):
             kernel = self.kernels[order[idx]]
-            
+
             for _ in range(self.inner_iterations):
                fit = kernel.fit.fitnesses
+               self.archive.add(fit)
 
               # if lazy, we do not remove the current observed kernel
               # in this case it does not converge
@@ -122,34 +123,42 @@ class CoMoCmaes(object):
                        self.layer.remove(fit)
 
                try:
+                   # use the ask and tell interface to do an iteration of the
+                   # kernel and store the values
                    offspring = kernel.ask()
-
                    offspring_values = [self.evaluate(child) for child in offspring]
+                   # hypervolume_improvement corresponds to uhvi (u for
+                   # uncrowded)
                    hypervolume_improvements = [self.layer.hypervolume_improvement(
                         point) for point in offspring_values]
                    self.archive.add_list(offspring_values)
                    kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
-                 #   if self.counteval < 3000*self.num_kernels or (len(
-                  #          self.hv) > 1 and abs(self.hv[-1] - self.hv[-2]) > 10**-16):
+
+                   # allows to plot all the cma
                    if 1 > 0:
                        kernel.logger.add()
 
+                   # compute the ratio of non dominated [offspring + mean] and
+                   # store it
                    temp_archive = NDA(offspring_values, self.reference_point)
                    temp_archive.add(fit)
                    kernel.ratio_nondominated_offspring += [
                         len(temp_archive) / (1+self.num_offspring)]
                except:
                    continue
-            # removing the "soon to be old" parent
-            if fit in self.layer:
-                self.layer.remove(fit)
-    # updating the fitness:
-            kernel.fit.fitnesses = self.evaluate(kernel.mean)
-            self.layer.add(kernel.fit.fitnesses)
+
+                # removing the "soon to be old" parent in the lazy case
+                if fit in self.layer:
+                    self.layer.remove(fit)
+
+                # updating the fitness and add it to self.layer
+                kernel.fit.fitnesses = self.evaluate(kernel.mean)
+                self.layer.add(kernel.fit.fitnesses)
+
+        # store the data
         self.hv += [self.layer.hypervolume]
         self.hv_archive += [self.archive.hypervolume]
         self.ratio_nondominated_kernels += [len(self.layer)/self.num_kernels]
-
         tab = [kernel.ratio_nondominated_offspring[-1]
                for kernel in self.kernels]
         percentile_tab = np.percentile(tab, [25, 50, 75])
@@ -163,16 +172,19 @@ class CoMoCmaes(object):
         tab = np.random.randint(0, self.num_kernels, numbers)
 
         for i in range(numbers):
+            # compute randomly the initial mean of the new kernel
             kernel = self.kernels[tab[i]]
-            lbounds = kernel.mean - 1/2
-            rbounds = kernel.mean + 1/2
-            x0 = lbounds + np.random.rand()*(rbounds-lbounds)
-  #          sigma0 = 0.1
+            lbounds = kernel.mean - 1/2 * kernel.sigma
+            rbounds = kernel.mean + 1/2 * kernel.sigma
+            x0 = lbounds + np.random.rand(self.dim)*(rbounds-lbounds)
+
+            # create the kernel and add it to the kernels
             new_kernel = cma.CMAEvolutionStrategy(x0, sigma0, {'verb_filenameprefix': str(
                 self.num_kernels+1), 'verbose': -9})
             new_kernel.fit.fitnesses = self.evaluate(new_kernel.mean)
             self.kernels += [new_kernel]
 
+        # update the number of kernels
         self.num_kernels += numbers
 
     def run(self, budget):
