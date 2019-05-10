@@ -22,14 +22,14 @@ import random
 
 class CoMoCmaes(object):
 
-    """ 
+    """
 
     """
 
     def __init__(self,
                  objective_functions,
                  dim,
-                 sigma0,
+                 sigma0, 
                  lbounds,
                  rbounds,
                  num_kernels,
@@ -43,68 +43,83 @@ class CoMoCmaes(object):
                  name=None
                  ):
         """
+        Parameters :
+        ==========
+        - 'tuple of functions' objective_functions
+        - 'positive integer' dim : dimension
+        - 'positive float' sigma0 : initial stepsize for all the kernels
+        - 'np.array(self.dim) float' lbounds, rbounds : left and right bounds
+        between which the initial means of the kernels are picked randomly with
+        uniform distribution
+        - 'positive integer' num_kernels : number of kernels
+        - 'list of floats of size len(objective_functions)' reference_point
+        - 'positive integer' max_evaluations
+        - 'fun' update_order : gives the update order of the kernels
+        - 'list of num_kernels CMA-ES' kernels : initialization of the kernels
+        - 'positive integer' num_offspring : population size of the single
+        CMAES
+        - 'positive integer' inner_iterations : number of iterations of each
+        CMAES in one step
+        - 'bool' lazy : if true, the kernel objective value is not removed
+        during its update
+        - 'string' name : the name of the objective function
         """
         self.objective_functions = objective_functions
         self.dim = dim
         self.num_kernels = num_kernels
         self.sigma0 = sigma0
-        self.num_offspring = num_offspring
         self.reference_point = reference_point
         self.counteval = 0
-        self.descendants = 0
-        self.ascendants = 0
         self.lazy = lazy
-        if not kernels:
+        # initialization of kernels
+        if kernels is None:
             kernels = []
             for i in range(num_kernels):
-                x0 = lbounds + np.random.rand()*(rbounds-lbounds)
-        #        x0 = np.random.rand(dim)
+                x0 = lbounds + np.random.rand(self.dim)*(rbounds-lbounds)
                 kernels += [cma.CMAEvolutionStrategy(x0, sigma0, {'verb_filenameprefix': str(
                     i), 'conditioncov_alleviate': [np.inf, np.inf],
                     'CMA_const_trace': 'True'})]  # ,'verbose':-9})]#,'AdaptSigma':cma.sigma_adaptation.CMAAdaptSigmaTPA})]
-
-    # TODO: assign self.num_offspring and incorporate it into the definition of each kernel
-
         self.kernels = kernels
+        # initialization of num_offspring
+        if num_offspring is None:
+            num_offspring = self.kernels[0].popsize
+        self.num_offspring = num_offspring
         self.max_evaluations = max_evaluations
+        self.inner_iterations = inner_iterations
+        self.update_order = update_order
+        self.name = name
 
         # Here we try a way to store the objective values of the cma means
         # once and for all, without creating a new structure.
-        # Note that the fit class is currently "blanc":
+        # Note that the fit class is currently "blank":
         for kernel in self.kernels:
             # store the bi-objective values of each kernel's mean
             kernel.fit.fitnesses = self.evaluate(kernel.mean)
-
             # storing the ratio of non-dominated points among a kernel + its offspring:
             kernel.ratio_nondominated_offspring = []
 
-        if not self.num_offspring:
-            # taking the number of offspring assigned to each kernel
-            # be aware that modifying self.num_offspring is ineffective
-            self.num_offspring = self.kernels[0].popsize
-
-        self.inner_iterations = inner_iterations
-        self.update_order = update_order
+        # self.layer is the list of the objective values of the non-dominated kernel means 
+        # by non-dominated, we mean non-dominated by other current kernels means
         self.layer = NDA([kernel.fit.fitnesses for kernel in self.kernels],
                          reference_point)
+        # self.archive is the list of the non-dominated objective values among
+        # everything evaluated
         self.archive = NDA([kernel.fit.fitnesses for kernel in self.kernels],
                            reference_point)
+
+        # storage attributes
         self.hv = []
         self.hv_archive = []
         self.ratio_nondominated_kernels = []
         self.ratio_nondominated_first_quartile_offspring = []
         self.ratio_nondominated_median_offspring = []
         self.ratio_nondominated_third_quartile_offspring = []
-        self.name = name  # name of the optimized problem
 
     def evaluate(self, x_var):
-        """
-        """
+        """Evaluate the objective function in x_var and increment the number of
+        evaluations."""
         self.counteval += 1
         return [fun(x_var) for fun in self.objective_functions]
-
-    def update(self, x):
-        return np.random.permutation(x)
 
     def step(self):
         """Makes one step through all the kernels and store the data."""
@@ -197,44 +212,16 @@ class CoMoCmaes(object):
             if not (l % (max(1, maxiter//10))) and budget > 2000:
                 print("{}".format(l/maxiter), end=' ')
 
-    def iterative_runs(self, budget, sigma0):
+        def incremental_runs(self, budget, sigma0):
+        """
+        An algorithm with increasing kernels.
+
+        We first run the algorithm until all kernels become non dominated, then
+        we do two iterations and we add another kernel. We start another loop
+        until the budget is consumed.
+        """
 
         while budget - self.counteval > 0:
-            #    maxevals = 75*(np.sqrt(self.num_kernels) * (self.num_offspring + 1))
-            maxevals = 500
-            self.run(maxevals)
-            self.plot_front()
-            plt.show()
-            self.plot_archive()
-            plt.show()
-            print("{} kernels, {}/{} evals".format(self.num_kernels,
-                                                   self.counteval, budget))
-            self.add_kernels(1, sigma0)
-
-    def iterative_runs_bis(self, budget, sigma0):
-
-        while budget - self.counteval > 0:
-            #            while len(self.layer) < 1 + np.int(self.num_kernels/2):
-            # - np.log(self.num_kernels):
-            while len(self.layer) < self.num_kernels:
-                self.step()
-       #     maxevals = np.int(25 * (np.log(1+self.num_kernels) * (self.num_offspring + 1)))
-        #    self.run(maxevals)
-#            self.add_kernels(np.int(np.ceil(self.num_kernels/2)),sigma0)
-            self.add_kernels(1, sigma0)
-
-            self.plot_front()
-            plt.show()
-            self.plot_archive()
-            plt.show()
-            print("{} kernels, {}/{} evals".format(self.num_kernels,
-                                                   self.counteval, budget))
-
-    def incremental_runs(self, budget, sigma0):
-        """An algorithm with increasing kernels."""
-
-        while budget - self.counteval > 0:
-            # ??
             maxevals = 2 * self.num_kernels * (self.num_offspring + 1)
             # the first condition corresponds to having at least one mean of a
             # kernel dominated by the others
@@ -248,93 +235,6 @@ class CoMoCmaes(object):
 
             print("{} kernels, {}/{} evals".format(self.num_kernels,
                                                    self.counteval, budget))
-
-    def run_archive(self):
-
-        assert self.num_kernels == 1
-        budget = min(1000, self.max_evaluations)
-        self.run(budget)
-        if self.max_evaluations - self.counteval < 2:
-            pass
-        else:
-            half_budget1 = np.int(self.max_evaluations//2)
-            half_budget2 = self.max_evaluations - half_budget1
-            kernel = self.kernels[0]
-            fit = kernel.fit.fitnesses
-            lbounds = kernel.mean
-            rbounds = kernel.mean
-            sigma0 = 100*self.kernels[0].sigma
-            fun = self.objective_functions
-            num_kernels = 1
-            refpoint1 = [self.reference_point[0], fit[1]]
-            refpoint2 = [fit[0], self.reference_point[1]]
-            print("ascendant level: {}".format(self.ascendants))
-
-            mo_offspring1 = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint1, half_budget1,
-                                      lambda x: np.random.permutation(x))
-            mo_offspring2 = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint2, half_budget2,
-                                      lambda x: np.random.permutation(x))
-            mo_offspring1.ascendants = 1 + self.ascendants
-            mo_offspring2.ascendants = 1 + self.ascendants
-
-            mo_offspring1.run_archive()
-            mo_offspring2.run_archive()
-            self.archive.add_list(mo_offspring1.archive)
-            self.archive.add_list(mo_offspring2.archive)
-            self.descendants = 2 + mo_offspring1.descendants + mo_offspring2.descendants
-         #   print("remaining evals: {}".format(self.max_evaluations-self.counteval))
-
-    def successive_runs(self):
-
-        assert self.num_kernels == 1
-        self.run(2000)
-
-        kernel = self.kernels[0]
-        lbounds = kernel.mean - 1/2
-        rbounds = kernel.mean + 1/2
-        sigma0 = 0.1
-        num_kernels = 100
-        max_evaluations = 2000*num_kernels
-        mo100 = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint, max_evaluations,
-                          inner_iterations=1)
-        self.num_kernels += num_kernels
-        self.kernels += mo100.kernels
-        assert self.num_kernels == 201
-        self.run(2000 * self.num_kernels)
-        print("{} kernels".format(self.num_kernels))
-        kernel_list = []
-        for kernel in self.kernels:
-            lbounds = kernel.mean - 1/2
-            rbounds = kernel.mean + 1/2
-            sigma0 = 0.1
-            num_kernels = 2
-            max_evaluations = 2000*num_kernels
-            mo2 = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint, max_evaluations,
-                            inner_iterations=1)
-            self.num_kernels += num_kernels
-            kernel_list += mo2.kernels
-        self.kernels += kernel_list
-
-        assert self.num_kernels == 303
-        self.run(2000*self.num_kernels)
-        print("{} kernels".format(self.num_kernels))
-
-        for kernel in self.kernels:
-            lbounds = kernel.mean - 1/2
-            rbounds = kernel.mean + 1/2
-            sigma0 = 0.1
-            num_kernels = 2
-            max_evaluations = 2000*num_kernels
-            mo2 = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint, max_evaluations,
-                            inner_iterations=1)
-            self.num_kernels += num_kernels
-            kernel_list += mo2.kernels
-
-        self.kernels += kernel_list
-
-        assert self.num_kernels == 909
-        self.run(2000*self.num_kernels)
-        print("{} kernels".format(self.num_kernels))
 
     def plot_front(self, titlelabelsize=18, axislabelsize=16):
         if self.hv != []:
@@ -371,7 +271,7 @@ class CoMoCmaes(object):
             plt.title("archive of {}, {}D, {} kernels".format(self.name,
                                                               self.dim, self.num_kernels), fontsize=titlelabelsize)
 
-    def convergence_gap(self, length=None, titlelabelsize=18, axislabelsize=16):
+    def plot_convergence_gap(self, length=None, titlelabelsize=18, axislabelsize=16):
 
         plt.figure()
         maxiter = (self.counteval-self.num_kernels)//(
@@ -400,7 +300,7 @@ class CoMoCmaes(object):
         plt.title("COMO-CMA-ES, {}, {}D,{} kernels".format(self.name,
                                                            self.dim, self.num_kernels), fontsize=titlelabelsize-2)
 
-    def archive_gap(self, length=None,  titlelabelsize=18, axislabelsize=16):
+    def plot_archive_gap(self, length=None,  titlelabelsize=18, axislabelsize=16):
 
         plt.figure()
         maxiter = (self.counteval-self.num_kernels)//(
@@ -490,16 +390,6 @@ class CoMoCmaes(object):
         for i in range(len(tab)):
             data = cma.CMADataLogger("{}".format(tab[i])).load()
             data.plot_axes_scaling()
-
-
-def incrComo(fun, dim, refpoint, sigma0, lbounds, rbounds, budget, num_kernels):
-    """ COMO-CMA-ES with increasing number of kernels """
-
-    mo = CoMoCmaes(fun, dim, np.sqrt(dim), lbounds, rbounds, num_kernels,
-                   refpoint, budget)  # , num_offsprings = 2 + np.int(np.ceil(1.5*np.log(dim))))
-    mo.incremental_runs(budget, sigma0)
-    return mo
-
 
 if __name__ == "__main__":
 
