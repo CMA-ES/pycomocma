@@ -107,26 +107,27 @@ class CoMoCmaes(object):
         return np.random.permutation(x)
 
     def step(self):
-        """
-        """
+        """Makes one step through all the kernels."""
         order = self.update_order(len(self.kernels))
         for idx in range(len(self.kernels)):
             kernel = self.kernels[order[idx]]
-            fit = kernel.fit.fitnesses
-            if not self.lazy:
-                if fit in self.layer:
-                    self.layer.remove(fit)
-
+            
             for _ in range(self.inner_iterations):
-                try:
+               fit = kernel.fit.fitnesses
+
+                # if lazy, we do not remove the current observed kernel
+                # in this case it does not converge
+                if not self.lazy:
+                    if fit in self.layer:
+                        self.layer.remove(fit)
+
+                 try:
                     offspring = kernel.ask()
 
-                    offspring_values = [self.evaluate(
-                        child) for child in offspring]
+                    offspring_values = [self.evaluate(child) for child in offspring]
                     hypervolume_improvements = [self.layer.hypervolume_improvement(
                         point) for point in offspring_values]
                     self.archive.add_list(offspring_values)
-                    self.archive.add(fit)
                     kernel.tell(offspring, [-float(u)
                                             for u in hypervolume_improvements])
                  #   if self.counteval < 3000*self.num_kernels or (len(
@@ -177,24 +178,14 @@ class CoMoCmaes(object):
         self.num_kernels += numbers
 
     def run(self, budget):
-        """
-        """
-        # maxiter is the number of iterations based on the maximum budget which is max_evaluations
-
+        """Do as many steps as possible within the allocated budget."""
+        # maxiter is the maximum number of iterations based on the budget 
         maxiter = np.int((budget-self.num_kernels)//(self.num_kernels *
                                                      self.inner_iterations*(self.num_offspring+1)))
-       # maxiter = 1
-        if 1 > 0:
-
-            for l in range(maxiter):
-                self.step()
-                if not (l % (max(1, maxiter//10))) and budget > 2000:
-                    print("{}".format(l/maxiter), end=' ')
-        else:
-            pass
-
-   #     for kernel in self.kernels:
-    #        kernel.logger.plot()
+        for l in range(maxiter):
+            self.step()
+            if not (l % (max(1, maxiter//10))) and budget > 2000:
+                print("{}".format(l/maxiter), end=' ')
 
     def iterative_runs(self, budget, sigma0):
 
@@ -240,6 +231,8 @@ class CoMoCmaes(object):
             while self.num_kernels > len(self.layer) and budget > self.counteval:
                 self.step()
             if budget > self.counteval:
+                # maxevals makes the algorithm to run twice when possible, when
+                # the kernels are not dominated 
                 self.run(min(maxevals, budget - self.counteval))
                 self.add_kernels(1, sigma0)
 
