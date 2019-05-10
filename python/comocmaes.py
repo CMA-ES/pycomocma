@@ -115,34 +115,32 @@ class CoMoCmaes(object):
             for _ in range(self.inner_iterations):
                fit = kernel.fit.fitnesses
 
-                # if lazy, we do not remove the current observed kernel
-                # in this case it does not converge
-                if not self.lazy:
-                    if fit in self.layer:
-                        self.layer.remove(fit)
+              # if lazy, we do not remove the current observed kernel
+              # in this case it does not converge
+               if not self.lazy:
+                   if fit in self.layer:
+                       self.layer.remove(fit)
 
-                 try:
-                    offspring = kernel.ask()
+               try:
+                   offspring = kernel.ask()
 
-                    offspring_values = [self.evaluate(child) for child in offspring]
-                    hypervolume_improvements = [self.layer.hypervolume_improvement(
+                   offspring_values = [self.evaluate(child) for child in offspring]
+                   hypervolume_improvements = [self.layer.hypervolume_improvement(
                         point) for point in offspring_values]
-                    self.archive.add_list(offspring_values)
-                    kernel.tell(offspring, [-float(u)
-                                            for u in hypervolume_improvements])
+                   self.archive.add_list(offspring_values)
+                   kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
                  #   if self.counteval < 3000*self.num_kernels or (len(
                   #          self.hv) > 1 and abs(self.hv[-1] - self.hv[-2]) > 10**-16):
-                    if 1 > 0:
-                        kernel.logger.add()
+                   if 1 > 0:
+                       kernel.logger.add()
 
-                    temp_archive = NDA(offspring_values, self.reference_point)
-                    temp_archive.add(fit)
-                    kernel.ratio_nondominated_offspring += [
+                   temp_archive = NDA(offspring_values, self.reference_point)
+                   temp_archive.add(fit)
+                   kernel.ratio_nondominated_offspring += [
                         len(temp_archive) / (1+self.num_offspring)]
-        # removing the "soon to be old" parent
-                except:
-                    continue
-
+               except:
+                   continue
+            # removing the "soon to be old" parent
             if fit in self.layer:
                 self.layer.remove(fit)
     # updating the fitness:
@@ -239,7 +237,7 @@ class CoMoCmaes(object):
             print("{} kernels, {}/{} evals".format(self.num_kernels,
                                                    self.counteval, budget))
 
-        def run_archive(self):
+    def run_archive(self):
 
         assert self.num_kernels == 1
         budget = min(1000, self.max_evaluations)
