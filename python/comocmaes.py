@@ -163,12 +163,12 @@ class CoMoCmaes(object):
                    continue
 
                 # removing the "soon to be old" parent in the lazy case
-                if fit in self.layer:
-                    self.layer.remove(fit)
+               if fit in self.layer:
+                   self.layer.remove(fit)
 
                 # updating the fitness and add it to self.layer
-                kernel.fit.fitnesses = self.evaluate(kernel.mean)
-                self.layer.add(kernel.fit.fitnesses)
+               kernel.fit.fitnesses = self.evaluate(kernel.mean)
+               self.layer.add(kernel.fit.fitnesses)
 
         # store the data
         self.hv += [self.layer.hypervolume]
@@ -212,7 +212,7 @@ class CoMoCmaes(object):
             if not (l % (max(1, maxiter//10))) and budget > 2000:
                 print("{}".format(l/maxiter), end=' ')
 
-        def incremental_runs(self, budget, sigma0):
+    def incremental_runs(self, budget, sigma0):
         """
         An algorithm with increasing kernels.
 
