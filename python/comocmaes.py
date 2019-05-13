@@ -306,7 +306,7 @@ class CoMoCmaes(object):
         axlen = len(myaxis)
         plt.semilogy(myaxis, [float(max(self.hv))-float(u)
                               for u in self.hv[:axlen]], '-')
-        # print the value of the offset hv_max = max(self.hv):
+        # print the value of the offset hv_max = max(self.hv) somewhere likely to be visible:
         plt.text(axlen/7, float(max(self.hv))-float(self.hv[0]), 'hv_max = {}'.format(
             float(max(self.hv))), fontsize=axislabelsize-2)
         
@@ -339,7 +339,8 @@ class CoMoCmaes(object):
         axlen = len(myaxis)
         plt.semilogy(myaxis, [float(max(self.hv_archive))-float(u)
                               for u in self.hv_archive[:axlen]], '-')
-        # print the value of the offset hvarchive_max = max(self.hv_archive):
+        # print the value of the offset hvarchive_max = max(self.hv_archive)
+        # somewhere likely to be visible:
         plt.text(axlen/7, float(max(self.hv_archive))-float(self.hv_archive[0]), 'hvarchive_max = {}'.format(
             float(max(self.hv_archive))), fontsize=axislabelsize-2)
         
@@ -350,29 +351,26 @@ class CoMoCmaes(object):
                                                            self.dim, self.num_kernels), fontsize=titlelabelsize-2)
 
     def plot_ratios(self, length=None, titlelabelsize=18, axislabelsize=16):
+        """
+        Plot the statistics of the ratios of non-dominated offspring + incumbent,
+        and the ratio of non-dominated incumbents.
+        """
 
         plt.figure()
         maxiter = (self.counteval-self.num_kernels)//(
             self.num_kernels*self.inner_iterations*(self.num_offspring+1))
-    #        axis_offspring = np.linspace(self.num_offspring+1,maxiter*self.num_kernels*(
-    #                self.num_offspring+1),maxiter*self.num_kernels)/self.num_kernels
         axis = np.linspace(self.num_kernels*(
             self.kernels[0].popsize+1), maxiter*self.num_kernels*(
             self.num_offspring+1), maxiter)/self.num_kernels
-       #       plt.grid(which = "major")
         plt.grid(which="minor")
         if not length:
             length = max(axis) + 1
         myaxis = [u for u in axis if u < length]
         axlen = len(myaxis)
 
-       #     newaxis = [u for u in myaxis if u < 2780]
-
         plt.plot(myaxis, self.ratio_nondominated_kernels[:axlen], 'r--',
                  label="ratio of non-dominated parents")
 
-    #        for kernel in self.kernels:
-    #        plt.plot(axis_offspring, kernel.ratio_nondominated_offspring,'g-')
         plt.plot(myaxis, self.ratio_nondominated_first_quartile_offspring[:axlen],
                  'b--', label="first quartile ratio of non-dom offspring")
         plt.plot(myaxis, self.ratio_nondominated_median_offspring[:axlen],
@@ -387,55 +385,74 @@ class CoMoCmaes(object):
         plt.legend()
 
     def plot_kernels(self, numbers=3, font=plt.rcParams['font.size']):
+        """
+        Choose uniformly at random 'numbers' kernels and plot them using the CMA logger tools.
+        - font is the font size of the plots.
+        """
         assert numbers < self.num_kernels + 1
         plt.figure()
-        plt.rcParams['font.size'] = font
+        plt.rcParams['font.size'] = font 
 
-        tab = random.sample(range(self.num_kernels), numbers)
+        # sample randomly at uniform 'numbers' points in {0,...,self.num_kernels-1}:
+        tab = random.sample(range(self.num_kernels), numbers) 
 
         for i in range(len(tab)):
             kernel = self.kernels[tab[i]]
-            kernel.logger.plot()
+            kernel.logger.plot() # plot 'kernel'
 
     def plot_stds(self, numbers, font=plt.rcParams['font.size']):
+        """
+        Choose uniformly at random 'numbers' kernels and plot their standards deviations
+        divided by the step-size in all coordinates, using the CMADataLogger tools.
+        - font is the font size of the plots.
+        """
         assert numbers < self.num_kernels + 1
         plt.figure()
         plt.rcParams['font.size'] = font
+        
+        # sample randomly at uniform 'numbers' points in {0,...,self.num_kernels-1}:
         tab = random.sample(range(self.num_kernels), numbers)
+        
         for i in range(len(tab)):
-            data = cma.CMADataLogger("{}".format(tab[i])).load()
-            data.plot_stds()
-#            data.plot_axes_scaling()
+            data = cma.CMADataLogger("{}".format(tab[i])).load() # load the data to be plotted
+            data.plot_stds() # plot the data
 
     def plot_axes_lengths(self, numbers, font=plt.rcParams['font.size']):
+        """
+        Choose uniformly at random 'numbers' kernels and plot their covariance matrices 
+        square root eigenvalues using the CMADataLogger tools.
+        - font is the font size of the plots.
+        """
         assert numbers < self.num_kernels + 1
         plt.figure()
         plt.rcParams['font.size'] = font
+        
+        # sample randomly at uniform 'numbers' points in {0,...,self.num_kernels-1}:
         tab = random.sample(range(self.num_kernels), numbers)
+        
         for i in range(len(tab)):
-            data = cma.CMADataLogger("{}".format(tab[i])).load()
-            data.plot_axes_scaling()
+            data = cma.CMADataLogger("{}".format(tab[i])).load() # load the data to be plotted
+            data.plot_axes_scaling() # plot the data
 
 if __name__ == "__main__":
 
     dim = 10
-#    num_kernels = np.int(10**3)
-    num_kernels = 3
+    num_kernels = 11
 
+    # problem is a class of bi-objective convex quadratic problems
+    # from the module 'problems'.
     myproblem = problem(dim, name="cigtab")
-    myproblem.sep(0)
+    myproblem.sep(0) # we are in the 'sep-0' case
   #  myproblem.two()
     fun = myproblem.objective_functions()
     lbounds = -0*np.ones(dim)
     rbounds = 1*np.ones(dim)
     sigma0 = 0.2
-#    sigma0 = np.sqrt(dim)
-  #  refpoint = [1, 1]
     refpoint = [1.1, 1.1]
     budget = 3000*num_kernels
 
     if 1 > 0:
         mymo = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint, budget,
-                         num_offspring=None, name=myproblem.name,
+                         name=myproblem.name,
                          update_order=lambda x: np.random.permutation(x), inner_iterations=1)
     #    mymo.run(budget)
