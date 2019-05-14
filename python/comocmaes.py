@@ -201,6 +201,22 @@ class CoMoCmaes(object):
         # update the number of kernels
         self.num_kernels += numbers
 
+    def add_kernels_middle(self):
+        """Add kernels with mean in the middle of already existing
+        kernel means, ordered by fitnesses and stepsize in the middle of the
+        corresponding stepsizes."""
+        new_kernels = sorted(self.kernels, key = lambda kernel:
+                             kernel.fit.fitnesses)
+
+        for i in range(len(kernels) - 1):
+            x0 = (new_kernels[i].mean + new_kernels[i+1].mean) / 2
+            sigma0 = (new_kernels[i].sigma + new_kernels[i+1].sigma) / 2
+            new_kernel = cma.CMAEvolutionStrategy(x0, sigma0, {'verb_filenameprefix': str(
+                self.num_kernels+1), 'verbose': -9})
+            new_kernel.fit.fitnesses = self.evaluate(new_kernel.mean)
+            self.kernels += [new_kernel]
+        self.num_kernels += len(means) - 1
+
     def run(self, budget):
         """Do as many steps as possible within the allocated budget."""
         # maxiter is the maximum number of iterations based on the budget 
@@ -234,6 +250,30 @@ class CoMoCmaes(object):
 
             print("{} kernels, {}/{} evals".format(self.num_kernels,
                                                    self.counteval, budget))
+
+    def incremental_runs_v2(self, budget, sigma0):
+        """
+        An algorithm with increasing kernels.
+
+        We first run the algorithm until all kernels become non dominated, then
+        we do an iteration and add kernels in the middle of the non-dominated
+        set. We start another loop until the budget is consumed.
+        """
+        # TODO : is it the good criterion to decide whether we are on the
+        # Pareto front ? all the offsprings being non-dominated by the mean is
+        # not the good criterion ?
+
+        # lim_eval is the maximum number of evaluations such that you can still make a
+        # step without overpassing the budget
+        lim_eval = budget - self.num_offspring * self.num_kernels
+        while lim_eval >= self.counteval :
+            while self.num_kernels > len(self.layer) and lim_eval >= self.counteval:
+                self.step()
+            # now, we are near the Pareto set
+            if lim_eval > self.counteval:
+                self.step()
+                self.add_kernels_middle()
+                lim_eval = budget - self.num_offspring * self.num_kernels
 
     def plot_front(self, titlelabelsize=18, axislabelsize=16):
         """
