@@ -12,7 +12,7 @@ import numpy as np
 import cma
 from moarchiving import BiobjectiveNondominatedSortedList as NDA
 #import sys
-#import matplotlib as mpl
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 #import os
 #from math import inf
@@ -179,6 +179,17 @@ class CoMoCmaes(object):
         self.ratio_nondominated_median_offspring += [percentile_tab[1]]
         self.ratio_nondominated_third_quartile_offspring += [percentile_tab[2]]
 
+    def add_kernel(self, x0, sigma0):
+        "Add a kernel of mean x0 and initial stepsize sigma0 to self."""
+        new_kernel = cma.CMAEvolutionStrategy(x0, sigma0,
+                                              {'verb_filenameprefix':
+                                               str(self.num_kernels+1),
+                                               'verbose': -9})
+        new_kernel.fit.fitnesses = self.evaluate(new_kernel.mean)
+        new_kernel.ratio_nondominated_offspring = []
+        self.kernels += [new_kernel]
+        self.num_kernels += 1
+
     def add_kernels(self, numbers, sigma0):
         """Add 'numbers' kernels with initial mean chosen randomly around a kernel
         chosen randomly and initial sigma 'sigma0'.
@@ -191,31 +202,19 @@ class CoMoCmaes(object):
             lbounds = kernel.mean - 1/2 * kernel.sigma
             rbounds = kernel.mean + 1/2 * kernel.sigma
             x0 = lbounds + np.random.rand(self.dim)*(rbounds-lbounds)
-
-            # create the kernel and add it to the kernels
-            new_kernel = cma.CMAEvolutionStrategy(x0, sigma0, {'verb_filenameprefix': str(
-                self.num_kernels+1), 'verbose': -9})
-            new_kernel.fit.fitnesses = self.evaluate(new_kernel.mean)
-            self.kernels += [new_kernel]
-
-        # update the number of kernels
-        self.num_kernels += numbers
+            self.add_kernel(x0, sigma0)
 
     def add_kernels_middle(self):
         """Add kernels with mean in the middle of already existing
         kernel means, ordered by fitnesses and stepsize in the middle of the
         corresponding stepsizes."""
-        new_kernels = sorted(self.kernels, key = lambda kernel:
+        new_kernels = sorted(self.kernels, key=lambda kernel:
                              kernel.fit.fitnesses)
 
-        for i in range(len(kernels) - 1):
+        for i in range(len(self.kernels) - 1):
             x0 = (new_kernels[i].mean + new_kernels[i+1].mean) / 2
             sigma0 = (new_kernels[i].sigma + new_kernels[i+1].sigma) / 2
-            new_kernel = cma.CMAEvolutionStrategy(x0, sigma0, {'verb_filenameprefix': str(
-                self.num_kernels+1), 'verbose': -9})
-            new_kernel.fit.fitnesses = self.evaluate(new_kernel.mean)
-            self.kernels += [new_kernel]
-        self.num_kernels += len(means) - 1
+            self.add_kernel(x0, sigma0)
 
     def run(self, budget):
         """Do as many steps as possible within the allocated budget."""
@@ -265,15 +264,15 @@ class CoMoCmaes(object):
 
         # lim_eval is the maximum number of evaluations such that you can still make a
         # step without overpassing the budget
-        lim_eval = budget - self.num_offspring * self.num_kernels
-        while lim_eval >= self.counteval :
-            while self.num_kernels > len(self.layer) and lim_eval >= self.counteval:
+        while budget >= self.counteval :
+            while self.num_kernels > len(self.layer) and budget >= self.counteval:
                 self.step()
             # now, we are near the Pareto set
-            if lim_eval > self.counteval:
+            if budget > self.counteval:
                 self.step()
                 self.add_kernels_middle()
-                lim_eval = budget - self.num_offspring * self.num_kernels
+            print("{} kernels, {}/{} evals".format(self.num_kernels,
+                                                   self.counteval, budget))
 
     def plot_front(self, titlelabelsize=18, axislabelsize=16):
         """
@@ -475,24 +474,43 @@ class CoMoCmaes(object):
             data.plot_axes_scaling() # plot the data
 
 if __name__ == "__main__":
-
     dim = 10
-    num_kernels = 11
+    def sphere(x, x0):
+        # for simplicity, x0 is a scalar
+        return(sum([(elt - x0)**2 for elt in x]))
 
-    # problem is a class of bi-objective convex quadratic problems
-    # from the module 'problems'.
-    myproblem = problem(dim, name="cigtab")
-    myproblem.sep(0) # we are in the 'sep-0' case
-  #  myproblem.two()
-    fun = myproblem.objective_functions()
-    lbounds = -0*np.ones(dim)
-    rbounds = 1*np.ones(dim)
-    sigma0 = 0.2
-    refpoint = [1.1, 1.1]
-    budget = 3000*num_kernels
+    fun = (lambda x: sphere(x,0) , lambda x: sphere(x,1))
+    name = "double-sphere"
+    sigma0 = 0.1
+    lbounds, rbounds = -1, 3
+    num_kernels = 10
+    refpoint = [10, 10]
+    budget = 100000
+    inner_iterations = 1
+    mymo = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint,
+                     budget, name=name, update_order=lambda x: np.random.permutation(x),
+                     inner_iterations=inner_iterations)
+    mymo.incremental_runs_v2(budget, sigma0)
+    mymo.plot_convergence_gap(100)
+    mpl.pyplot.show(block=True)
 
-    if 1 > 0:
-        mymo = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint, budget,
-                         name=myproblem.name,
-                         update_order=lambda x: np.random.permutation(x), inner_iterations=1)
-    #    mymo.run(budget)
+#    dim = 10
+#    num_kernels = 11
+#
+#    # problem is a class of bi-objective convex quadratic problems
+#    # from the module 'problems'.
+#    myproblem = problem(dim, name="cigtab")
+#    myproblem.sep(0) # we are in the 'sep-0' case
+#  #  myproblem.two()
+#    fun = myproblem.objective_functions()
+#    lbounds = -0*np.ones(dim)
+#    rbounds = 1*np.ones(dim)
+#    sigma0 = 0.2
+#    refpoint = [1.1, 1.1]
+#    budget = 3000*num_kernels
+#
+#    if 1 > 0:
+#        mymo = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint, budget,
+#                         name=myproblem.name,
+#                         update_order=lambda x: np.random.permutation(x), inner_iterations=1)
+#    #    mymo.run(budget)
