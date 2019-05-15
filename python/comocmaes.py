@@ -6,16 +6,16 @@
 """
 
 
-#import warnings
-#import fractions
+import warnings
+import fractions
 import numpy as np
 import cma
-from moarchiving import BiobjectiveNondominatedSortedList as NDA
-#import sys
-#import matplotlib as mpl
+from moarchiving import NondominatedSortedList as NDA
+import sys
+import matplotlib as mpl
 import matplotlib.pyplot as plt
-#import os
-#from math import inf
+import os
+from math import inf
 from problems import BiobjectiveConvexQuadraticProblem as problem
 import random
 
@@ -37,6 +37,7 @@ class CoMoCmaes(object):
                  max_evaluations=np.inf,
                  update_order=lambda x: np.arange(x),
                  kernels=None,
+                 num_offspring=None,
                  inner_iterations=1,
                  lazy=False,
                  name=None
@@ -55,6 +56,8 @@ class CoMoCmaes(object):
         - 'positive integer' max_evaluations
         - 'fun' update_order : gives the update order of the kernels
         - 'list of num_kernels CMA-ES' kernels : initialization of the kernels
+        - 'positive integer' num_offspring : population size of the single
+        CMAES
         - 'positive integer' inner_iterations : number of iterations of each
         CMAES in one step
         - 'bool' lazy : if true, the kernel objective value is not removed
@@ -77,10 +80,10 @@ class CoMoCmaes(object):
                     i), 'conditioncov_alleviate': [np.inf, np.inf],
                     'CMA_const_trace': 'True'})]  # ,'verbose':-9})]#,'AdaptSigma':cma.sigma_adaptation.CMAAdaptSigmaTPA})]
         self.kernels = kernels
-        
-        # definition of num_offspring: number of offspring for each kernel
-        self.num_offspring = self.kernels[0].popsize
-        
+        # initialization of num_offspring
+        if num_offspring is None:
+            num_offspring = self.kernels[0].popsize
+        self.num_offspring = num_offspring
         self.max_evaluations = max_evaluations
         self.inner_iterations = inner_iterations
         self.update_order = update_order
@@ -113,9 +116,8 @@ class CoMoCmaes(object):
         self.ratio_nondominated_third_quartile_offspring = []
 
     def evaluate(self, x_var):
-        """Evaluate the objective functions on the decision variable x_var and 
-        increment the number of evaluations.
-        """
+        """Evaluate the objective function in x_var and increment the number of
+        evaluations."""
         self.counteval += 1
         return [fun(x_var) for fun in self.objective_functions]
 
@@ -181,8 +183,7 @@ class CoMoCmaes(object):
 
     def add_kernels(self, numbers, sigma0):
         """Add 'numbers' kernels with initial mean chosen randomly around a kernel
-        chosen randomly and initial sigma 'sigma0'.
-        """
+        chosen randomly and initial sigma 'sigma0'."""
         tab = np.random.randint(0, self.num_kernels, numbers)
 
         for i in range(numbers):
@@ -200,22 +201,6 @@ class CoMoCmaes(object):
 
         # update the number of kernels
         self.num_kernels += numbers
-
-    def add_kernels_middle(self):
-        """Add kernels with mean in the middle of already existing
-        kernel means, ordered by fitnesses and stepsize in the middle of the
-        corresponding stepsizes."""
-        new_kernels = sorted(self.kernels, key = lambda kernel:
-                             kernel.fit.fitnesses)
-
-        for i in range(len(kernels) - 1):
-            x0 = (new_kernels[i].mean + new_kernels[i+1].mean) / 2
-            sigma0 = (new_kernels[i].sigma + new_kernels[i+1].sigma) / 2
-            new_kernel = cma.CMAEvolutionStrategy(x0, sigma0, {'verb_filenameprefix': str(
-                self.num_kernels+1), 'verbose': -9})
-            new_kernel.fit.fitnesses = self.evaluate(new_kernel.mean)
-            self.kernels += [new_kernel]
-        self.num_kernels += len(means) - 1
 
     def run(self, budget):
         """Do as many steps as possible within the allocated budget."""
@@ -239,11 +224,11 @@ class CoMoCmaes(object):
         while budget - self.counteval > 0:
             maxevals = 2 * self.num_kernels * (self.num_offspring + 1)
             # the first condition corresponds to having at least one mean of a
-            # kernel dominated by the others or not dominating the reference point
+            # kernel dominated by the others
             while self.num_kernels > len(self.layer) and budget > self.counteval:
                 self.step()
             if budget > self.counteval:
-                # maxevals makes the algorithm run twice when possible, when
+                # maxevals makes the algorithm to run twice when possible, when
                 # the kernels are not dominated 
                 self.run(min(maxevals, budget - self.counteval))
                 self.add_kernels(1, sigma0)
@@ -251,55 +236,26 @@ class CoMoCmaes(object):
             print("{} kernels, {}/{} evals".format(self.num_kernels,
                                                    self.counteval, budget))
 
-    def incremental_runs_v2(self, budget, sigma0):
-        """
-        An algorithm with increasing kernels.
-
-        We first run the algorithm until all kernels become non dominated, then
-        we do an iteration and add kernels in the middle of the non-dominated
-        set. We start another loop until the budget is consumed.
-        """
-        # TODO : is it the good criterion to decide whether we are on the
-        # Pareto front ? all the offsprings being non-dominated by the mean is
-        # not the good criterion ?
-
-        # lim_eval is the maximum number of evaluations such that you can still make a
-        # step without overpassing the budget
-        lim_eval = budget - self.num_offspring * self.num_kernels
-        while lim_eval >= self.counteval :
-            while self.num_kernels > len(self.layer) and lim_eval >= self.counteval:
-                self.step()
-            # now, we are near the Pareto set
-            if lim_eval > self.counteval:
-                self.step()
-                self.add_kernels_middle()
-                lim_eval = budget - self.num_offspring * self.num_kernels
-
     def plot_front(self, titlelabelsize=18, axislabelsize=16):
-        """
-        Plot the objective values of the incumbents of the kernels.
-        """
-        fun = self.objective_functions
-        plt.figure()
-        # defining the x-values (f1) and the y-values (f2)
-        f1 = np.array([fun[0](mycma.mean) for mycma in self.kernels])
-        f2 = np.array([fun[1](mycma.mean) for mycma in self.kernels])
-        
-        plt.grid(which="major")
-        plt.grid(which="minor")
+        if self.hv != []:
 
-        plt.plot(f1, f2, 'o')
-        plt.xlabel('first objective function', fontsize=axislabelsize)
-        plt.ylabel('second objective function', fontsize=axislabelsize)
-        plt.title("front of {}, {}D, {} kernels".format(self.name,
-                                                        self.dim, self.num_kernels), fontsize=titlelabelsize)
+            fun = self.objective_functions
+            plt.figure()
+            f1 = np.array([fun[0](mycma.mean) for mycma in self.kernels])
+            f2 = np.array([fun[1](mycma.mean) for mycma in self.kernels])
+            plt.grid(which="major")
+            plt.grid(which="minor")
 
+            plt.plot(f1, f2, 'o')
+        #    plt.text(0.1,0.6,'hv_max = {}'.format(10**(-16)+float(max(self.hv))), fontsize=axislabelsize-2)
+            plt.xlabel('first objective function', fontsize=axislabelsize)
+            plt.ylabel('second objective function', fontsize=axislabelsize)
+        #    plt.axes().set_aspect('equal')
+            plt.title("front of {}, {}D, {} kernels".format(self.name,
+                                                            self.dim, self.num_kernels), fontsize=titlelabelsize)
 
     def plot_archive(self, titlelabelsize=18, axislabelsize=16):
-        """
-        Plot the objective values of all non-dominated points evaluated so far.
-        """
-        if self.hv_archive != []: # at least one step is done to the CoMoCmaes instance
+        if self.hv_archive != []:
             plt.figure()
             f1 = np.array([vec[0] for vec in self.archive])
             f2 = np.array([vec[1] for vec in self.archive])
@@ -307,83 +263,61 @@ class CoMoCmaes(object):
             plt.grid(which="minor")
 
             plt.plot(f1, f2, 'o')
-            
-            # we print 'max(self.hv_archive)' where 'self.hv_archive' is nonempty:
             plt.text(0.1, 0.6, 'hvarchive_max = {}'.format(
                 float(max(self.hv_archive))), fontsize=axislabelsize-2)
-            
             plt.xlabel('first objective function', fontsize=axislabelsize)
             plt.ylabel('second objective function', fontsize=axislabelsize)
+        #    plt.axes().set_aspect('equal')
             plt.title("archive of {}, {}D, {} kernels".format(self.name,
                                                               self.dim, self.num_kernels), fontsize=titlelabelsize)
-        else:
-            print("No step is done on {}.".format(self.name))
 
     def plot_convergence_gap(self, length=None, titlelabelsize=18, axislabelsize=16):
-        """
-        Plot the convergence gap (in log scale): 'max(self.hv))-self.hv[k]' for
-        k = 0,...,length-1.
-        """
 
         plt.figure()
-        # maxiter is the number of iterations done so far based on consumed evaluations (self.counteval):
         maxiter = (self.counteval-self.num_kernels)//(
             self.num_kernels*self.inner_iterations*(self.num_offspring+1))
-        # we define for each iteration, the number of evaluations divided by the number of kernels:
         axis = np.linspace(self.num_kernels*(
             self.kernels[0].popsize+1), maxiter*self.num_kernels*(
             self.kernels[0].popsize+1), maxiter)/self.num_kernels
-                
         plt.grid(which="major")
         plt.grid(which="minor")
         plt.xticks(fontsize=12)
         plt.yticks(fontsize=12)
+    #    newaxis = [u for u in myaxis if u < 3000]
+     #   plt.semilogy(newaxis,[float(max(self.hv))-float(u)+10**(-16) for u in self.hv[:len(newaxis)]],'-')
 
         if not length:
             length = max(axis) + 1
-        # myaxis is the portion of the axis to be plotted:
         myaxis = [u for u in axis if u < length]
         axlen = len(myaxis)
         plt.semilogy(myaxis, [float(max(self.hv))-float(u)
                               for u in self.hv[:axlen]], '-')
-        # print the value of the offset hv_max = max(self.hv) somewhere likely to be visible:
         plt.text(axlen/7, float(max(self.hv))-float(self.hv[0]), 'hv_max = {}'.format(
             float(max(self.hv))), fontsize=axislabelsize-2)
-        
-        plt.xlabel('function evaluations / number of kernels', fontsize=axislabelsize)
+        plt.xlabel('function evaluations / number of kernels',
+                   fontsize=axislabelsize)
         plt.ylabel('hv_max - hv', fontsize=axislabelsize)
         plt.title("COMO-CMA-ES, {}, {}D,{} kernels".format(self.name,
                                                            self.dim, self.num_kernels), fontsize=titlelabelsize-2)
 
     def plot_archive_gap(self, length=None,  titlelabelsize=18, axislabelsize=16):
-        """
-        Plot the archive gap (in log scale): 'max(self.hv_archive))-self.hv_archive[k]' for
-        k = 0,...,length-1.
-        """
+
         plt.figure()
-        # maxiter is the number of iterations done so far based on consumed evaluations (self.counteval):
         maxiter = (self.counteval-self.num_kernels)//(
             self.num_kernels*self.inner_iterations*(self.num_offspring+1))
-        # we define for each iteration, the number of evaluations divided by the number of kernels:
         axis = np.linspace(self.num_kernels*(
             self.kernels[0].popsize+1), maxiter*self.num_kernels*(
             self.kernels[0].popsize+1), maxiter)/self.num_kernels
-                
         plt.grid(which="major")
         plt.grid(which="minor")
-        
         if not length:
             length = max(axis) + 1
-        # myaxis is the portion of the axis to be plotted:
         myaxis = [u for u in axis if u < length]
         axlen = len(myaxis)
         plt.semilogy(myaxis, [float(max(self.hv_archive))-float(u)
                               for u in self.hv_archive[:axlen]], '-')
-        # print the value of the offset hvarchive_max = max(self.hv_archive)
-        # somewhere likely to be visible:
         plt.text(axlen/7, float(max(self.hv_archive))-float(self.hv_archive[0]), 'hvarchive_max = {}'.format(
             float(max(self.hv_archive))), fontsize=axislabelsize-2)
-        
         plt.xlabel('function evaluations / number of kernels',
                    fontsize=axislabelsize)
         plt.ylabel('hvarchive_max - hv_archive', fontsize=axislabelsize)
@@ -391,26 +325,29 @@ class CoMoCmaes(object):
                                                            self.dim, self.num_kernels), fontsize=titlelabelsize-2)
 
     def plot_ratios(self, length=None, titlelabelsize=18, axislabelsize=16):
-        """
-        Plot the statistics of the ratios of non-dominated offspring + incumbent,
-        and the ratio of non-dominated incumbents.
-        """
 
         plt.figure()
         maxiter = (self.counteval-self.num_kernels)//(
             self.num_kernels*self.inner_iterations*(self.num_offspring+1))
+    #        axis_offspring = np.linspace(self.num_offspring+1,maxiter*self.num_kernels*(
+    #                self.num_offspring+1),maxiter*self.num_kernels)/self.num_kernels
         axis = np.linspace(self.num_kernels*(
             self.kernels[0].popsize+1), maxiter*self.num_kernels*(
             self.num_offspring+1), maxiter)/self.num_kernels
+       #       plt.grid(which = "major")
         plt.grid(which="minor")
         if not length:
             length = max(axis) + 1
         myaxis = [u for u in axis if u < length]
         axlen = len(myaxis)
 
+       #     newaxis = [u for u in myaxis if u < 2780]
+
         plt.plot(myaxis, self.ratio_nondominated_kernels[:axlen], 'r--',
                  label="ratio of non-dominated parents")
 
+    #        for kernel in self.kernels:
+    #        plt.plot(axis_offspring, kernel.ratio_nondominated_offspring,'g-')
         plt.plot(myaxis, self.ratio_nondominated_first_quartile_offspring[:axlen],
                  'b--', label="first quartile ratio of non-dom offspring")
         plt.plot(myaxis, self.ratio_nondominated_median_offspring[:axlen],
@@ -425,74 +362,55 @@ class CoMoCmaes(object):
         plt.legend()
 
     def plot_kernels(self, numbers=3, font=plt.rcParams['font.size']):
-        """
-        Choose uniformly at random 'numbers' kernels and plot them using the CMA logger tools.
-        - font is the font size of the plots.
-        """
         assert numbers < self.num_kernels + 1
         plt.figure()
-        plt.rcParams['font.size'] = font 
+        plt.rcParams['font.size'] = font
 
-        # sample randomly at uniform 'numbers' points in {0,...,self.num_kernels-1}:
-        tab = random.sample(range(self.num_kernels), numbers) 
+        tab = random.sample(range(self.num_kernels), numbers)
 
         for i in range(len(tab)):
             kernel = self.kernels[tab[i]]
-            kernel.logger.plot() # plot 'kernel'
+            kernel.logger.plot()
 
     def plot_stds(self, numbers, font=plt.rcParams['font.size']):
-        """
-        Choose uniformly at random 'numbers' kernels and plot their standards deviations
-        divided by the step-size in all coordinates, using the CMADataLogger tools.
-        - font is the font size of the plots.
-        """
         assert numbers < self.num_kernels + 1
         plt.figure()
         plt.rcParams['font.size'] = font
-        
-        # sample randomly at uniform 'numbers' points in {0,...,self.num_kernels-1}:
         tab = random.sample(range(self.num_kernels), numbers)
-        
         for i in range(len(tab)):
-            data = cma.CMADataLogger("{}".format(tab[i])).load() # load the data to be plotted
-            data.plot_stds() # plot the data
+            data = cma.CMADataLogger("{}".format(tab[i])).load()
+            data.plot_stds()
+#            data.plot_axes_scaling()
 
     def plot_axes_lengths(self, numbers, font=plt.rcParams['font.size']):
-        """
-        Choose uniformly at random 'numbers' kernels and plot their covariance matrices 
-        square root eigenvalues using the CMADataLogger tools.
-        - font is the font size of the plots.
-        """
         assert numbers < self.num_kernels + 1
         plt.figure()
         plt.rcParams['font.size'] = font
-        
-        # sample randomly at uniform 'numbers' points in {0,...,self.num_kernels-1}:
         tab = random.sample(range(self.num_kernels), numbers)
-        
         for i in range(len(tab)):
-            data = cma.CMADataLogger("{}".format(tab[i])).load() # load the data to be plotted
-            data.plot_axes_scaling() # plot the data
+            data = cma.CMADataLogger("{}".format(tab[i])).load()
+            data.plot_axes_scaling()
 
 if __name__ == "__main__":
 
     dim = 10
-    num_kernels = 11
+#    num_kernels = np.int(10**3)
+    num_kernels = 3
 
-    # problem is a class of bi-objective convex quadratic problems
-    # from the module 'problems'.
-    myproblem = problem(dim, name="cigtab")
-    myproblem.sep(0) # we are in the 'sep-0' case
+    myproblem = problem(dim, name="sphere")
+    myproblem.sep(0)
   #  myproblem.two()
     fun = myproblem.objective_functions()
     lbounds = -0*np.ones(dim)
     rbounds = 1*np.ones(dim)
     sigma0 = 0.2
+#    sigma0 = np.sqrt(dim)
+  #  refpoint = [1, 1]
     refpoint = [1.1, 1.1]
     budget = 3000*num_kernels
 
     if 1 > 0:
         mymo = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint, budget,
-                         name=myproblem.name,
+                         num_offspring=None, name=myproblem.name,
                          update_order=lambda x: np.random.permutation(x), inner_iterations=1)
     #    mymo.run(budget)

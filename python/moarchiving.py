@@ -15,11 +15,12 @@ del division, print_function, unicode_literals
 import bisect as _bisect # to find the insertion index efficiently
 import fractions
 import warnings as _warnings
+from hv import HyperVolume
 
 inf = float('inf')
 
-class BiobjectiveNondominatedSortedList(list):
-    """A sorted list of non-dominated unique objective-pairs.
+class NondominatedSortedList(list):
+    """A sorted list of non-dominated unique objective values.
 
     Non-domination here means smaller in at least one objective. The list is
     sorted (naturally) by the first objective. No equal entries in either
@@ -27,8 +28,8 @@ class BiobjectiveNondominatedSortedList(list):
 
     The operation
 
-    >>> from moarchiving import BiobjectiveNondominatedSortedList
-    >>> any_list = BiobjectiveNondominatedSortedList(any_list)  # doctest:+SKIP
+    >>> from moarchiving import NondominatedSortedList
+    >>> any_list = NondominatedSortedList(any_list)  # doctest:+SKIP
 
     sorts and prunes the pair list `any_list` to become a consistent
     nondominated sorted archive.
@@ -41,11 +42,11 @@ class BiobjectiveNondominatedSortedList(list):
     non-dominated but does not update the hypervolume, which hence
     becomes inconsistent.
 
-    >>> a = BiobjectiveNondominatedSortedList([[1,0.9], [0,1], [0,2]])
+    >>> a = NondominatedSortedList([[1,0.9], [0,1], [0,2]])
     >>> a
     [[0, 1], [1, 0.9]]
     >>> a.add([0, 1])  # doesn't change anything, [0, 1] is not duplicated
-    >>> BiobjectiveNondominatedSortedList(
+    >>> NondominatedSortedList(
     ...     [[-0.749, -1.188], [-0.557, 1.1076],
     ...     [0.2454, 0.4724], [-1.146, -0.110]])
     [[-1.146, -0.11], [-0.749, -1.188]]
@@ -83,37 +84,45 @@ class BiobjectiveNondominatedSortedList(list):
     maintain_contributing_hypervolumes = False
 
     def __init__(self,
-                 list_of_f_pairs=None,
+                 list_of_f_tuples=None,
                  reference_point=None,
-                 sort=sorted):
-        """`list_of_f_pairs` does not need to be sorted.
+                     sort=sorted):
+        """`list_of_f_tuples` does not need to be sorted.
 
         f-pairs beyond the `reference_point` are pruned away. The
         `reference_point` is also used to compute the hypervolume.
-
+        'dim' is the dimension of the archive, and is 0 for empty archive with None
+        'reference_point'
         ``sort=lambda x: x`` will prevent a sort, which
         can be useful if the list is already sorted.
 
         CAVEAT: the interface, in particular the positional interface
         may change in future versions.
         """
-        self.make_expensive_asserts = BiobjectiveNondominatedSortedList.make_expensive_asserts
-        self.hypervolume_final_float_type = BiobjectiveNondominatedSortedList.hypervolume_final_float_type
-        self.hypervolume_computation_float_type = BiobjectiveNondominatedSortedList.hypervolume_computation_float_type
-        self.maintain_contributing_hypervolumes = BiobjectiveNondominatedSortedList.maintain_contributing_hypervolumes
-
-        if list_of_f_pairs is not None and len(list_of_f_pairs):
+        self.make_expensive_asserts = NondominatedSortedList.make_expensive_asserts
+        self.hypervolume_final_float_type = NondominatedSortedList.hypervolume_final_float_type
+        self.hypervolume_computation_float_type = NondominatedSortedList.hypervolume_computation_float_type
+        self.maintain_contributing_hypervolumes = NondominatedSortedList.maintain_contributing_hypervolumes
+        
+        self.dim = dim
+        if list_of_f_tuples is not None and len(list_of_f_tuples):
             try:
-                list_of_f_pairs = list_of_f_pairs.tolist()
+                list_of_f_tuples = list_of_f_tuples.tolist()
+                if not self.dim:
+                    self.dim = len(list_of_f_tuples[0])
             except:
                 pass
-            if len(list_of_f_pairs[0]) != 2:
-                raise ValueError("need elements of len 2, got %s"
-                                 " as first element" % str(list_of_f_pairs[0]))
-            list.__init__(self, sort(list_of_f_pairs))
-            # super(BiobjectiveNondominatedSortedList, self).__init__(sort(list_of_f_pairs))
+
+  #          if len(list_of_f_tuples[0]) != 2:
+   #             raise ValueError("need elements of len 2, got %s"
+    #                             " as first element" % str(list_of_f_tuples[0]))
+
+            list.__init__(self, sort(list_of_f_tuples))    
+            # super(NondominatedSortedList, self).__init__(sort(list_of_f_tuples))
         if reference_point is not None:
             self.reference_point = list(reference_point)
+            if not self.dim:
+                self.dim = len(reference_point)
         else:
             self.reference_point = reference_point
         self.prune()  # remove dominated entries, uses in_domain, hence ref-point
@@ -125,8 +134,8 @@ class BiobjectiveNondominatedSortedList(list):
         self._set_HV()
         self.make_expensive_asserts and self._asserts()
 
-    def add(self, f_pair):
-        """insert `f_pair` in `self` if it is not (weakly) dominated.
+    def add(self, f_tuple):
+        """insert `f_tuple` in `self` if it is not (weakly) dominated.
 
         Return index at which the insertion took place or `None`. The
         list remains sorted in the process.
@@ -138,65 +147,70 @@ class BiobjectiveNondominatedSortedList(list):
         Implementation detail: For performance reasons, `insert` is
         avoided in favor of `__setitem__`, if possible.
         """
-        f_pair = list(f_pair)  # convert array to list
-        if len(f_pair) != 2:
-            raise ValueError("argument `f_pair` must be of length 2, was"
-                             " ``%s``" % str(f_pair))
-        if not self.in_domain(f_pair):
-            self._removed = [f_pair]
+        f_tuple = list(f_tuple)  # convert array to list
+    #    if len(f_tuple) != 2:
+     #       raise ValueError("argument `f_tuple` must be of length 2, was"
+      #                       " ``%s``" % str(f_tuple))
+        # TODO: assert here to check consistency of len(f_tuple) and self.dimension
+      
+        if self.dimension != len(f_tuple) and self.dimension:
+            raise ValueError
+        if not self.in_domain(f_tuple):
+            self._removed = [f_tuple]
             return None
-        idx = self.bisect_left(f_pair)
-        if self.dominates_with(idx - 1, f_pair) or self.dominates_with(idx, f_pair):
-            if f_pair not in self[idx - 1:idx + 1]:
-                self._removed = [f_pair]
+        idx = self.bisect_left(f_tuple)
+        if self.dominates_with(idx - 1, f_tuple) or self.dominates_with(idx, f_tuple):
+            if f_tuple not in self[idx - 1:idx + 1]:
+                self._removed = [f_tuple]
             return None
-        assert idx == len(self) or not f_pair == self[idx]
-        # here f_pair now is non-dominated
-        self._add_at(idx, f_pair)
+        assert idx == len(self) or not f_tuple == self[idx]
+        # here f_tuple now is non-dominated
+        self._add_at(idx, f_tuple)
         # self.make_expensive_asserts and self._asserts()
         return idx
 
-    def _add_at(self, idx, f_pair):
-        """add `f_pair` at position `idx` and remove dominated elements.
+    def _add_at(self, idx, f_tuple):
+        """add `f_tuple` at position `idx` and remove dominated elements.
 
-        This method assumes that `f_pair` is not weakly dominated by
+        This method assumes that `f_tuple` is not weakly dominated by
         `self` and that `idx` is the correct insertion place e.g.
         acquired by `bisect_left`.
         """
-        if idx == len(self) or f_pair[1] > self[idx][1]:
-            self.insert(idx, f_pair)
+        # the following condition is valid for more than 2 objectives 
+        if idx == len(self) or any(f_tuple[k] > self[idx][k] for k in range(1,len(f_tuple))):
+            self.insert(idx, f_tuple)
             self._add_HV(idx)
             # self.make_expensive_asserts and self._asserts()
             return
-        # here f_pair now dominates self[idx]
+        # here f_tuple now dominates self[idx]
         idx2 = idx + 1
-        while idx2 < len(self) and f_pair[1] <= self[idx2][1]:
-            # f_pair also dominates self[idx2]
+        while idx2 < len(self) and all(f_tuple[k] <= self[idx2][k] for k in range(1,len(f_tuple))):
+            # f_tuple also dominates self[idx2]
             # self.pop(idx)  # slow
             # del self[idx]  # slow
             idx2 += 1  # delete later in a chunk
         self._subtract_HV(idx, idx2)
         self._removed = self[idx:idx2]
-        self[idx] = f_pair  # on long lists [.] is much cheaper than insert
+        self[idx] = f_tuple  # on long lists [.] is much cheaper than insert
         del self[idx + 1:idx2]  # can make `add` 20x faster
         self._add_HV(idx)
         assert len(self) >= 1
         # self.make_expensive_asserts and self._asserts()
 
-    def remove(self, f_pair):
-        """remove element `f_pair`.
+    def remove(self, f_tuple):
+        """remove element `f_tuple`.
 
-        Raises a `ValueError` (like `list`) if ``f_pair is not in self``.
-        To avoid the error, checking ``if f_pair is in self`` first is a
+        Raises a `ValueError` (like `list`) if ``f_tuple is not in self``.
+        To avoid the error, checking ``if f_tuple is in self`` first is a
         possible coding solution, like
 
-        >>> from moarchiving import BiobjectiveNondominatedSortedList
-        >>> nda = BiobjectiveNondominatedSortedList([[2, 3]])
-        >>> f_pair = [1, 2]
-        >>> assert [2, 3] in nda and f_pair not in nda
-        >>> if f_pair in nda:
-        ...     nda.remove(f_pair)
-        >>> nda = BiobjectiveNondominatedSortedList._random_archive(p_ref_point=1)
+        >>> from moarchiving import NondominatedSortedList
+        >>> nda = NondominatedSortedList([[2, 3]])
+        >>> f_tuple = [1, 2]
+        >>> assert [2, 3] in nda and f_tuple not in nda
+        >>> if f_tuple in nda:
+        ...     nda.remove(f_tuple)
+        >>> nda = NondominatedSortedList._random_archive(p_ref_point=1)
         >>> for pair in list(nda):
         ...     len_ = len(nda)
         ...     state = nda._state()
@@ -208,45 +222,44 @@ class BiobjectiveNondominatedSortedList(list):
 
         Return `None` (like `list.remove`).
         """
-        idx = self.index(f_pair)
+        idx = self.index(f_tuple)
         self._subtract_HV(idx)
         self._removed = [self[idx]]
-        del self[idx]  # == list.remove(self, f_pair)
+        del self[idx]  # == list.remove(self, f_tuple)
 
-    def add_list(self, list_of_f_pairs):
+    def add_list(self, list_of_f_tuples):
         """insert a list of f-pairs which doesn't need to be sorted.
 
         This is just a shortcut for looping over `add`, but `discarded`
         now contains the discarded elements from all `add` operations.
 
-        >>> from moarchiving import BiobjectiveNondominatedSortedList
-        >>> arch = BiobjectiveNondominatedSortedList()
-        >>> list_of_f_pairs = [[1, 2], [0, 3]]
-        >>> for f_pair in list_of_f_pairs:
-        ...     arch.add(f_pair)  # return insert index or None
+        >>> from moarchiving import NondominatedSortedList
+        >>> arch = NondominatedSortedList()
+        >>> list_of_f_tuples = [[1, 2], [0, 3]]
+        >>> for f_tuple in list_of_f_tuples:
+        ...     arch.add(f_tuple)  # return insert index or None
         0
         0
-        >>> arch == sorted(list_of_f_pairs)  # both entries are nondominated
+        >>> arch == sorted(list_of_f_tuples)  # both entries are nondominated
         True
         >>> arch.compute_hypervolume([3, 4]) == 5.0
         True
 
         Return `None`.
 
-        Details: discarded does not contain elements of `list_of_f_pairs`.
-        When `list_of_pairs` is already sorted, `merge` may have
+        Details: discarded does not contain elements of `list_of_f_tuples`.
+        When `list_of_tuples` is already sorted, `merge` may have
         a small performance benefit.
         """
-        nb = len(self)
         removed = []
         # should we better create a non-dominated list and do a merge?
-        for f_pair in list_of_f_pairs:
-            if self.add(f_pair) is not None:
+        for f_tuple in list_of_f_tuples:
+            if self.add(f_tuple) is not None:
                 removed += [self._removed]  # slightly faster than .extend
-        self._removed = removed  # could contain elements of `list_of_f_pairs`
+        self._removed = removed  # could contain elements of `list_of_f_tuples`
         self.make_expensive_asserts and self._asserts()
 
-    def merge(self, list_of_f_pairs):
+    def merge(self, list_of_f_tuples):
         """merge in a sorted list of f-pairs.
 
         The list can contain dominated pairs, which are discarded during
@@ -259,20 +272,20 @@ class BiobjectiveNondominatedSortedList(list):
         overall merge.
         """
         # _warnings.warn("merge was never thoroughly tested, use `add_list`")
-        for f_pair in list_of_f_pairs:
-            if not self.in_domain(f_pair):
+        for f_tuple in list_of_f_tuples:
+            if not self.in_domain(f_tuple):
                 continue
-            f_pair = list(f_pair)  # convert array to list
-            idx = self.bisect_left(f_pair, idx)
-            if self.dominates_with(idx - 1, f_pair) or self.dominates_with(idx, f_pair):
+            f_tuple = list(f_tuple)  # convert array to list
+            idx = self.bisect_left(f_tuple)
+            if self.dominates_with(idx - 1, f_tuple) or self.dominates_with(idx, f_tuple):
                 continue
-            self._add_at(idx, f_pair)
+            self._add_at(idx, f_tuple)
         self.make_expensive_asserts and self._asserts()
 
     def copy(self):
         """return a "deep" copy of `self`"""
-        _warnings.warn('BiobjectiveNondominatedSortedList.copy has never been tested')
-        nda = BiobjectiveNondominatedSortedList()
+        _warnings.warn('NondominatedSortedList.copy has never been tested')
+        nda = NondominatedSortedList()
         for d in self.__dict__:
             nda[d] = self[d]
         # now fix all mutable references as a true copy
@@ -282,8 +295,8 @@ class BiobjectiveNondominatedSortedList(list):
         nda._contributing_hypervolumes = [hv for hv in self._contributing_hypervolumes]
         return nda
 
-    def bisect_left(self, f_pair, lowest_index=0):
-        """return index where `f_pair` may need to be inserted.
+    def bisect_left(self, f_tuple, lowest_index=0):
+        """return index where `f_tuple` may need to be inserted.
 
         Smaller indices have a strictly better f1 value or they have
         equal f1 and better f2 value.
@@ -293,14 +306,14 @@ class BiobjectiveNondominatedSortedList(list):
         Details: This method does a binary search in `self` using
         `bisect.bisect_left`.
         """
-        return _bisect.bisect_left(self, f_pair, lowest_index)
+        return _bisect.bisect_left(self, f_tuple, lowest_index)
 
-    def dominates(self, f_pair):
-        """return `True` if any element of `self` dominates or is equal to `f_pair`.
+    def dominates(self, f_tuple):
+        """return `True` if any element of `self` dominates or is equal to `f_tuple`.
 
         Otherwise return `False`.
 
-        >>> from moarchiving import BiobjectiveNondominatedSortedList as NDA
+        >>> from moarchiving import NondominatedSortedList as NDA
         >>> a = NDA([[0.39, 0.075], [0.0087, 0.14]])
         >>> a.dominates(a[0])  # is always True if `a` is not empty
         True
@@ -312,35 +325,35 @@ class BiobjectiveNondominatedSortedList(list):
         """
         if len(self) == 0:
             return False
-        idx = self.bisect_left(f_pair)
-        if self.dominates_with(idx - 1, f_pair) or self.dominates_with(idx, f_pair):
+        idx = self.bisect_left(f_tuple)
+        if self.dominates_with(idx - 1, f_tuple) or self.dominates_with(idx, f_tuple):
             return True
         return False
 
-    def dominates_with(self, idx, f_pair):
-        """return `True` if ``self[idx]`` dominates or is equal to `f_pair`.
+    def dominates_with(self, idx, f_tuple):
+        """return `True` if ``self[idx]`` dominates or is equal to `f_tuple`.
 
         Otherwise return `False` or `None` if `idx` is out-of-range.
 
-        >>> from moarchiving import BiobjectiveNondominatedSortedList as NDA
+        >>> from moarchiving import NondominatedSortedList as NDA
         >>> NDA().dominates_with(0, [1, 2]) is None  # empty NDA
         True
 
         """
         if idx < 0 or idx >= len(self):
             return None
-        if self[idx][0] <= f_pair[0] and self[idx][1] <= f_pair[1]:
+        if all(self[idx][k] <= f_tuple[k] for k in range(self.dimension)):
             return True
         return False
 
-    def dominators(self, f_pair, number_only=False):
-        """return the list of all `f_pair`-dominating elements in `self`,
+    def dominators(self, f_tuple, number_only=False):
+        """return the list of all `f_tuple`-dominating elements in `self`,
 
         including an equal element. ``len(....dominators(...))`` is
         hence the number of dominating elements which can also be obtained
         without creating the list with ``number_only=True``.
 
-        >>> from moarchiving import BiobjectiveNondominatedSortedList as NDA
+        >>> from moarchiving import NondominatedSortedList as NDA
         >>> a = NDA([[1.2, 0.1], [0.5, 1]])
         >>> len(a)
         2
@@ -354,13 +367,13 @@ class BiobjectiveNondominatedSortedList(list):
         []
 
         """
-        idx = self.bisect_left(f_pair)
-        if idx < len(self) and self[idx] == f_pair:
+        idx = self.bisect_left(f_tuple)
+        if idx < len(self) and self[idx] == f_tuple:
             res = 1 if number_only else [self[idx]]
         else:
             res = 0 if number_only else []
         idx -= 1
-        while idx >= 0 and self[idx][1] <= f_pair[1]:
+        while idx >= 0 and all(self[idx][k] <= f_tuple[k] for k in range(1,len(f_tuple))):
             if number_only:
                 res += 1
             else:
@@ -368,16 +381,16 @@ class BiobjectiveNondominatedSortedList(list):
             idx -= 1
         return res
 
-    def in_domain(self, f_pair, reference_point=None):
-        """return `True` if `f_pair` is dominating the reference point,
+    def in_domain(self, f_tuple, reference_point=None):
+        """return `True` if `f_tuple` is dominating the reference point,
 
-        `False` otherwise. `True` means that `f_pair` contributes to
+        `False` otherwise. `True` means that `f_tuple` contributes to
         the hypervolume if not dominated by other elements.
 
-        `f_pair` may also be an index in `self` in which case
-        ``self[f_pair]`` is tested to be in-domain.
+        `f_tuple` may also be an index in `self` in which case
+        ``self[f_tuple]`` is tested to be in-domain.
 
-        >>> from moarchiving import BiobjectiveNondominatedSortedList as NDA
+        >>> from moarchiving import NondominatedSortedList as NDA
         >>> a = NDA([[2.2, 0.1], [0.5, 1]], reference_point=[2, 2])
         >>> assert len(a) == 1
         >>> a.in_domain([0, 0])
@@ -396,13 +409,12 @@ class BiobjectiveNondominatedSortedList(list):
         if reference_point is None:
             return True
         try:
-            f_pair = self[f_pair]
+            f_tuple = self[f_tuple]
         except TypeError:
             pass
         except IndexError:
             raise  # return None
-        if (f_pair[0] >= reference_point[0] or
-            f_pair[1] >= reference_point[1]):
+        if any(f_tuple[k] >= reference_point[k] for k in range(len(f_tuple))):
             return False
         return True
 
@@ -412,7 +424,7 @@ class BiobjectiveNondominatedSortedList(list):
 
         Raise `ValueError` when no reference point was given initially.
 
-        >>> from moarchiving import BiobjectiveNondominatedSortedList as NDA
+        >>> from moarchiving import NondominatedSortedList as NDA
         >>> a = NDA([[0.5, 0.4], [0.3, 0.7]], [2, 2.1])
         >>> a._asserts()
         >>> a.reference_point == [2, 2.1]
@@ -475,23 +487,36 @@ class BiobjectiveNondominatedSortedList(list):
         by default `fractions.Fraction`, which can be converted to `float`
         like ``float(....contributing_hypervolume(idx))``.
         """
-        if idx == 0:
-            y = self.reference_point[1] if self.reference_point else inf
-        else:
-            y = self[idx - 1][1]
-        if idx in (len(self) - 1, -1):
-            x = self.reference_point[0] if self.reference_point else inf
-        else:
-            x = self[idx + 1][0]
-        if inf in (x, y):
-            return inf
         Fc = self.hypervolume_computation_float_type
-        dHV = (Fc(x) - Fc(self[idx][0])) * (Fc(y) - Fc(self[idx][1]))
-        assert dHV >= 0
-        return dHV
+        Ff = self.hypervolume_final_float_type
+        if self.dim == 2:            
+            if idx == 0:
+                y = self.reference_point[1] if self.reference_point else inf
+            else:
+                y = self[idx - 1][1]
+            if idx in (len(self) - 1, -1):
+                x = self.reference_point[0] if self.reference_point else inf
+            else:
+                x = self[idx + 1][0]
+            if inf in (x, y):
+                return inf
+            Fc = self.hypervolume_computation_float_type
+            dHV = (Fc(x) - Fc(self[idx][0])) * (Fc(y) - Fc(self[idx][1]))
+            assert dHV >= 0
+            return dHV
+        else:
+            hv_float = HyperVolume(self.reference_point)
+            f_tuple = self[idx]
+            self.remove(f_tuple)
+            res1 = hv_float.compute(self)
+            self._add_at(idx, f_tuple)
+            res2 = hv_float.compute(self)
+            hv = Ff(res2 - res1)
+            return hv
+            
 
-    def distance_to_pareto_front(self, f_pair, ref_factor=3):
-        """of a dominated `f_pair` also considering the reference domain.
+    def distance_to_pareto_front(self, f_tuple, ref_factor=3):
+        """of a dominated `f_tuple` also considering the reference domain.
 
         Non-dominated points have (by definition) a distance of zero,
         unless the archive is empty and the point does not dominate the
@@ -519,12 +544,13 @@ class BiobjectiveNondominatedSortedList(list):
         are denoted by a dot. The outer kink points use one coordinate of
         the reference point.
         """
-        if self.in_domain(f_pair) and not self.dominates(f_pair):
+        if self.in_domain(f_tuple) and not self.dominates(f_tuple):
             return 0  # return minimum distance
-
+        if self.dim > 2:
+            return 0
         if self.reference_point:
-            ref_d0 = ref_factor * max((0, f_pair[0] - self.reference_point[0]))
-            ref_d1 = ref_factor * max((0, f_pair[1] - self.reference_point[1]))
+            ref_d0 = ref_factor * max((0, f_tuple[0] - self.reference_point[0]))
+            ref_d1 = ref_factor * max((0, f_tuple[1] - self.reference_point[1]))
         else:
             ref_d0 = 0
             ref_d1 = 0
@@ -535,55 +561,56 @@ class BiobjectiveNondominatedSortedList(list):
         # distances to the two outer kink points, given by the extreme
         # points and the respective the reference point coordinate, for
         # the left (and up) most point:
-        squared_distances = [max((0, f_pair[0] - self[0][0]))**2 +
+        squared_distances = [max((0, f_tuple[0] - self[0][0]))**2 +
                               ref_d1**2]
         # and the right most (and lowest) point
         squared_distances += [ref_d0**2 +
-                             max((0, f_pair[1] - self[-1][1]))**2]
+                             max((0, f_tuple[1] - self[-1][1]))**2]
         if len(self) == 1:
             return min(squared_distances)**0.5
-        for idx in range(self.bisect_left(f_pair), 0, -1):
+        for idx in range(self.bisect_left(f_tuple), 0, -1):
             if idx == len(self):
                 continue
             squared_distances.append(
-                max((0, f_pair[1] - self[idx - 1][1]))**2 +
-                max((0, f_pair[0] - self[idx][0]))**2)
-            if self[idx][1] >= f_pair[1] or idx == 1:
+                max((0, f_tuple[1] - self[idx - 1][1]))**2 +
+                max((0, f_tuple[0] - self[idx][0]))**2)
+            if self[idx][1] >= f_tuple[1] or idx == 1:
                 break
         if self.make_expensive_asserts and len(squared_distances) > 2:
             assert min(squared_distances[2:]) == min(
-                        [max((0, f_pair[0] - self[i + 1][0]))**2 +
-                         max((0, f_pair[1] - self[i][1]))**2
+                        [max((0, f_tuple[0] - self[i + 1][0]))**2 +
+                         max((0, f_tuple[1] - self[i][1]))**2
                          for i in range(len(self) - 1)])
         return min(squared_distances)**0.5
 
-    def distance_to_hypervolume_area(self, f_pair):
-        return (max((0, f_pair[0] - self.reference_point[0]))**2
-                + max((0, f_pair[1] - self.reference_point[1]))**2)**0.5 \
+
+    def distance_to_hypervolume_area(self, f_tuple):
+        return (sum(max((0, f_tuple[k] - self.reference_point[k]))**2
+                for k in range(self.dim)))**0.5 \
                if self.reference_point else 0
 
-    def hypervolume_improvement(self, f_pair):
-        """return how much `f_pair` would improve the hypervolumen.
+    def hypervolume_improvement(self, f_tuple):
+        """return how much `f_tuple` would improve the hypervolumen.
 
         If dominated, return the distance to the empirical pareto front
         multiplied by -1.
         Else if not in domain, return distance to the reference point
         dominating area times -1.
         """
-        dist = self.distance_to_pareto_front(f_pair)
+        dist = self.distance_to_pareto_front(f_tuple)
         assert dist >= 0
         if dist:
             return -dist
         state = self._state()
         removed = self.discarded  # to get back previous state
-        added = self.add(f_pair) is not None
+        added = self.add(f_tuple) is not None
         if added and self.discarded is not removed:
             add_back = self.discarded
         else: add_back = []
         assert len(add_back) + len(self) - added == state[0]
         hv1 = self.hypervolume
         if added:
-            self.remove(f_pair)
+            self.remove(f_tuple)
         if add_back:
             self.add_list(add_back)
         self._removed = removed
@@ -612,15 +639,24 @@ class BiobjectiveNondominatedSortedList(list):
         Ff = self.hypervolume_final_float_type
         hv = Ff(0.0)
         idx = 0
-        while idx < len(self) and not self.in_domain(self[idx], reference_point):
-            idx += 1
-        if idx < len(self):
-            hv += Ff((Fc(reference_point[0]) - Fc(self[idx][0])) * (Fc(reference_point[1]) - Fc(self[idx][1])))
-            idx += 1
-        while idx < len(self) and self.in_domain(self[idx], reference_point):
-            hv += Ff((Fc(reference_point[0]) - Fc(self[idx][0])) * (Fc(self[idx - 1][1]) - Fc(self[idx][1])))
-            idx += 1
-        return hv
+        if self.dim == 2:            
+
+            while idx < len(self) and not self.in_domain(self[idx], reference_point):
+                idx += 1
+            if idx < len(self):
+                hv += Ff((Fc(reference_point[0]) - Fc(self[idx][0])) * (Fc(reference_point[1]) - Fc(self[idx][1])))
+                idx += 1
+            while idx < len(self) and self.in_domain(self[idx], reference_point):
+                hv += Ff((Fc(reference_point[0]) - Fc(self[idx][0])) * (Fc(self[idx - 1][1]) - Fc(self[idx][1])))
+                idx += 1
+            return hv
+        else:
+            hv_float = HyperVolume(self.reference_point)
+            res = hv_float.compute(self)
+            hv = Ff(res)
+            return hv
+            
+            
 
     def compute_hypervolumes(self, reference_point):
         """depricated, subject to removal, see `compute_hypervolume` and `contributing_hypervolumes`.
@@ -730,8 +766,8 @@ class BiobjectiveNondominatedSortedList(list):
         i = 1
         while i < len(self):
             i0 = i
-            while i < len(self) and (self[i][1] >= self[i0 - 1][1] or
-                                         not self.in_domain(self[i])):
+            while i < len(self) and (all(self[i][k] >= self[i0 - 1][k] for k in range(1, self.dim))
+            or not self.in_domain(self[i])):
                 i += 1
                 # self.pop(i + 1)  # about 10x slower in notebook test
             # prepare indices for the removed list
@@ -771,7 +807,7 @@ class BiobjectiveNondominatedSortedList(list):
 
         Example to create a list of rank-k-non-dominated fronts:
 
-        >>> from moarchiving import BiobjectiveNondominatedSortedList as NDA
+        >>> from moarchiving import NondominatedSortedList as NDA
         >>> all_ = [[0.1, 1], [-2, 3], [-4, 5], [-4, 5], [-4, 4.9]]
         >>> nda_list = [NDA(all_)]  # rank-0-non-dominated
         >>> while nda_list[-1].discarded:
@@ -792,7 +828,7 @@ class BiobjectiveNondominatedSortedList(list):
         from numpy import random as npr
         N = npr.randint(max_size)
         ref_point = list(npr.randn(2) + 1) if npr.rand() < p_ref_point else None
-        return BiobjectiveNondominatedSortedList(
+        return NondominatedSortedList(
             [list(0.01 * npr.randn(2) + npr.rand(1) * [i, -i])
              for i in range(N)],
             reference_point=ref_point)
@@ -801,7 +837,7 @@ class BiobjectiveNondominatedSortedList(list):
         """make all kind of consistency assertions.
 
         >>> import moarchiving
-        >>> a = moarchiving.BiobjectiveNondominatedSortedList(
+        >>> a = moarchiving.NondominatedSortedList(
         ...    [[-0.749, -1.188], [-0.557, 1.1076],
         ...    [0.2454, 0.4724], [-1.146, -0.110]], [10, 10])
         >>> a._asserts()
@@ -819,12 +855,12 @@ class BiobjectiveNondominatedSortedList(list):
 
         >>> from numpy.random import rand
         >>> for _ in range(120):
-        ...     a = moarchiving.BiobjectiveNondominatedSortedList._random_archive()
+        ...     a = moarchiving.NondominatedSortedList._random_archive()
         ...     a.make_expensive_asserts = True
         ...     if a.reference_point:
-        ...         for f_pair in rand(10, 2):
+        ...         for f_tuple in rand(10, 2):
         ...             h0 = a.hypervolume
-        ...             hi = a.hypervolume_improvement(list(f_pair))
+        ...             hi = a.hypervolume_improvement(list(f_tuple))
         ...             assert a.hypervolume == h0  # works OK with Fraction
 
 
@@ -832,10 +868,10 @@ class BiobjectiveNondominatedSortedList(list):
         assert sorted(self) == self
         for pair in self:
             assert self.count(pair) == 1
-        tmp = BiobjectiveNondominatedSortedList.make_expensive_asserts
-        BiobjectiveNondominatedSortedList.make_expensive_asserts = False
-        assert BiobjectiveNondominatedSortedList(self) == self
-        BiobjectiveNondominatedSortedList.make_expensive_asserts = tmp
+        tmp = NondominatedSortedList.make_expensive_asserts
+        NondominatedSortedList.make_expensive_asserts = False
+        assert NondominatedSortedList(self) == self
+        NondominatedSortedList.make_expensive_asserts = tmp
         for pair in self:
             assert self.dominates(pair)
             assert not self.dominates([v - 0.001 for v in pair])
