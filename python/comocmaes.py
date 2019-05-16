@@ -77,7 +77,7 @@ class CoMoCmaes(object):
                 x0 = lbounds + np.random.rand(self.dim)*(rbounds-lbounds)
                 kernels += [cma.CMAEvolutionStrategy(x0, sigma0, {'verb_filenameprefix': str(
                     i), 'conditioncov_alleviate': [np.inf, np.inf],
-                    'CMA_const_trace': 'True'})]  # ,'verbose':-9})]#,'AdaptSigma':cma.sigma_adaptation.CMAAdaptSigmaTPA})]
+                    'CMA_const_trace': 'True', 'verbose':-1})]
         self.kernels = kernels
         
         # definition of num_offspring: number of offspring for each kernel
@@ -187,7 +187,7 @@ class CoMoCmaes(object):
         new_kernel = cma.CMAEvolutionStrategy(x0, sigma0,
                                               {'verb_filenameprefix':
                                                str(self.num_kernels+1),
-                                               'verbose': -9})
+                                               'verbose': -1})
         new_kernel.fit.fitnesses = self.evaluate(new_kernel.mean)
         new_kernel.ratio_nondominated_offspring = []
         self.kernels += [new_kernel]
@@ -296,7 +296,7 @@ class CoMoCmaes(object):
         # myaxis is the portion of the axis to be plotted:
         myaxis = [u for u in axis if u < length]
         axlen = len(myaxis)
-        plt.semilogy(myaxis, [10**-13+float(max(self.hv))-float(u)
+        plt.semilogy(myaxis, [10**-13 + float(max(self.hv)) - float(u)
                               for u in self.hv[:axlen]], '-')
         # print the value of the offset hv_max = max(self.hv) somewhere likely to be visible:
         plt.text(axlen/7, float(max(self.hv))-float(self.hv[0]), 'hv_max = {}'.format(
@@ -329,7 +329,7 @@ class CoMoCmaes(object):
         # myaxis is the portion of the axis to be plotted:
         myaxis = [u for u in axis if u < length]
         axlen = len(myaxis)
-        plt.semilogy(myaxis, [10**-13+float(max(self.hv_archive))-float(u)
+        plt.semilogy(myaxis, [10**-13 + float(max(self.hv_archive)) - float(u)
                               for u in self.hv_archive[:axlen]], '-')
         # print the value of the offset hvarchive_max = max(self.hv_archive)
         # somewhere likely to be visible:
@@ -480,7 +480,7 @@ if __name__ == "__main__":
         mymo.plot_front()
         mymo.plot_archive()
         mymo.plot_convergence_gap()
-        mymo.plot_archive_gap()
+ #       mymo.plot_archive_gap()
         mymo.plot_ratios()
         #mymo.plot_kernels() # pb
         #mymo.plot_stds(2) # pb
