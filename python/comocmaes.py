@@ -296,7 +296,7 @@ class CoMoCmaes(object):
         # myaxis is the portion of the axis to be plotted:
         myaxis = [u for u in axis if u < length]
         axlen = len(myaxis)
-        plt.semilogy(myaxis, [float(max(self.hv))-float(u)
+        plt.semilogy(myaxis, [10**-13+float(max(self.hv))-float(u)
                               for u in self.hv[:axlen]], '-')
         # print the value of the offset hv_max = max(self.hv) somewhere likely to be visible:
         plt.text(axlen/7, float(max(self.hv))-float(self.hv[0]), 'hv_max = {}'.format(
@@ -329,7 +329,7 @@ class CoMoCmaes(object):
         # myaxis is the portion of the axis to be plotted:
         myaxis = [u for u in axis if u < length]
         axlen = len(myaxis)
-        plt.semilogy(myaxis, [float(max(self.hv_archive))-float(u)
+        plt.semilogy(myaxis, [10**-13+float(max(self.hv_archive))-float(u)
                               for u in self.hv_archive[:axlen]], '-')
         # print the value of the offset hvarchive_max = max(self.hv_archive)
         # somewhere likely to be visible:
