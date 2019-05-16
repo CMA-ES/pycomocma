@@ -114,6 +114,7 @@ class CoMoCmaes(object):
         self.ratio_nondominated_first_quartile_offspring = []
         self.ratio_nondominated_median_offspring = []
         self.ratio_nondominated_third_quartile_offspring = []
+        self.counteval_increase = []
 
     def evaluate(self, x_var):
         """Evaluate the objective functions on the decision variable x_var and 
@@ -195,11 +196,14 @@ class CoMoCmaes(object):
 
     def run(self, budget):
         """Do as many steps as possible within the allocated budget."""
-        # maxiter is the maximum number of iterations based on the budget 
-        maxiter = np.int((budget-self.num_kernels)//(self.num_kernels *
-                                                     self.inner_iterations*(self.num_offspring+1)))
-        for l in range(maxiter):
+        bound = budget / 10
+        level = 0
+        while self.counteval < budget:
             self.step()
+            if self.counteval > (level + 1) * bound:
+                level = self.counteval / budget
+                print("We are at ", level)
+
 
     def incremental_runs(self, budget):
         """
@@ -221,6 +225,7 @@ class CoMoCmaes(object):
                 # the kernels are not dominated 
                 self.run(min(maxevals, budget - self.counteval))
                 self.add_method(self)
+                self.counteval_increase += [self.counteval]
 
             print("{} kernels, {}/{} evals".format(self.num_kernels,
                                                    self.counteval, budget))
@@ -426,6 +431,9 @@ class CoMoCmaes(object):
             data = cma.CMADataLogger("{}".format(tab[i])).load() # load the data to be plotted
             data.plot_axes_scaling() # plot the data
 
+    def plot_increase_crosses(self):
+        for eval in self.counteval_increase:
+            plt.scatter(eval/self.num_kernels, 0.1, color='r', marker='x')
 
 def add_kernel_close(self):
     """Add 'numbers' kernels with initial mean chosen randomly around a kernel
@@ -444,45 +452,79 @@ def add_kernels_middle(self, part):
     """Add kernels with mean in the middle of already existing
     kernel means, ordered by fitnesses and stepsize in the middle of the
     corresponding stepsizes."""
-    new_kernels = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
+    kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
     nb = max(int(part * (self.num_kernels - 1)), 1)
     tab = np.random.randint(0, self.num_kernels-1, nb)
 
     for idx in range(nb):
         i = tab[idx]
-        x0 = (new_kernels[i].mean + new_kernels[i+1].mean) / 2
-        sigma0 = (new_kernels[i].sigma + new_kernels[i+1].sigma) / 2
+        x0 = (kernels_sorted[i].mean + kernels_sorted[i+1].mean) / 2
+        sigma0 = (kernels_sorted[i].sigma + kernels_sorted[i+1].sigma) / 2
         self.add_kernel(x0, sigma0)
+
+def check_kernels_middle(self):
+    """Check the ratio of middle points which are non-dominated."""
+    kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
+
+    ratio = 0
+    test = 0
+    nb = self.num_kernels - 1
+    for idx in range(self.num_kernels - 1):
+        x0 = (kernels_sorted[idx].mean + kernels_sorted[idx+1].mean) / 2
+        if not self.layer.dominates(self.evaluate(x0)):
+            ratio += 1
+            sigma0 = (kernels_sorted[idx].sigma + kernels_sorted[idx+1].sigma) / 2
+            self.add_kernel(x0, sigma0)
+        test += 1 
+    ratio /= nb
+    print(ratio)
 
 if __name__ == "__main__":
     dim = 10
+
+    # def of the function
     def sphere(x, x0):
         # for simplicity, x0 is a scalar
         return(sum([(elt - x0)**2 for elt in x]))
 
-    fun = (lambda x: sphere(x,0) , lambda x: sphere(x,1))
-    name = "double-sphere"
+    mypb = problem(dim, name="cigtab")
+    mypb.sep(0)
+
+    b_simple = 1
+    if not b_simple:
+        fun = mypb.objective_functions()
+        name = mypb.name
+    if b_simple:
+        fun = (lambda x: sphere(x, 0), lambda x: sphere(x, 1))
+        name = "double-sphere"
+
+
     inner_iterations = 1
     sigma0 = 0.1
     lbounds, rbounds = -1, 3
     num_kernels = 10
     refpoint = [10, 10]
-    budget = 400000
-    add_method = lambda y: add_kernels_middle(y, 0.3)
+    budget = 1000000
+    #add_method = lambda y: add_kernels_middle(y, 0.3)
+    add_method = check_kernels_middle
     for i in range(1):
         mymo = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint,
                      budget, name=name, update_order=lambda x: np.random.permutation(x),
                      inner_iterations=inner_iterations, add_method=add_method)
-        mymo.run(budget)
-        #mymo.incremental_runs(budget)
-        mymo.plot_front()
-        mymo.plot_archive()
-        mymo.plot_convergence_gap()
-        mymo.plot_archive_gap()
-        mymo.plot_ratios()
-        mymo.plot_kernels() # pb
-        mymo.plot_stds(2) # pb
-        mymo.plot_axes_lengths(2) # pb
+        #mymo.run(budget)
+        mymo.incremental_runs(budget)
+        if 1 < 30:
+            mymo.plot_front()
+            mymo.plot_archive()
+            mymo.plot_convergence_gap()
+            mymo.plot_increase_crosses()
+            mymo.plot_archive_gap()
+            mymo.plot_increase_crosses()
+            mymo.plot_ratios()
+            mymo.plot_increase_crosses()
+            mymo.plot_kernels() # pb
+            mymo.plot_stds(2) # pb
+            mymo.plot_axes_lengths(2) # pb
     mpl.pyplot.show(block=True)
 
 #    dim = 10
