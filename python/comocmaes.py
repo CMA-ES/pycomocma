@@ -39,7 +39,8 @@ class CoMoCmaes(object):
                  kernels=None,
                  inner_iterations=1,
                  lazy=False,
-                 name=None
+                 name=None,
+                 add_method=lambda *args: None
                  ):
         """
         Parameters :
@@ -60,6 +61,7 @@ class CoMoCmaes(object):
         - 'bool' lazy : if true, the kernel objective value is not removed
         during its update
         - 'string' name : the name of the objective function
+        - 'fun' add_method : the function which is called when adding kernels
         """
         self.objective_functions = objective_functions
         self.dim = dim
@@ -85,6 +87,7 @@ class CoMoCmaes(object):
         self.inner_iterations = inner_iterations
         self.update_order = update_order
         self.name = name
+        self.add_method = add_method
 
         # Here we try a way to store the objective values of the cma means
         # once and for all, without creating a new structure.
@@ -190,32 +193,6 @@ class CoMoCmaes(object):
         self.kernels += [new_kernel]
         self.num_kernels += 1
 
-    def add_kernels(self, numbers, sigma0):
-        """Add 'numbers' kernels with initial mean chosen randomly around a kernel
-        chosen randomly and initial sigma 'sigma0'.
-        """
-        tab = np.random.randint(0, self.num_kernels, numbers)
-
-        for i in range(numbers):
-            # compute randomly the initial mean of the new kernel
-            kernel = self.kernels[tab[i]]
-            lbounds = kernel.mean - 1/2 * kernel.sigma
-            rbounds = kernel.mean + 1/2 * kernel.sigma
-            x0 = lbounds + np.random.rand(self.dim)*(rbounds-lbounds)
-            self.add_kernel(x0, sigma0)
-
-    def add_kernels_middle(self):
-        """Add kernels with mean in the middle of already existing
-        kernel means, ordered by fitnesses and stepsize in the middle of the
-        corresponding stepsizes."""
-        new_kernels = sorted(self.kernels, key=lambda kernel:
-                             kernel.fit.fitnesses)
-
-        for i in range(len(self.kernels) - 1):
-            x0 = (new_kernels[i].mean + new_kernels[i+1].mean) / 2
-            sigma0 = (new_kernels[i].sigma + new_kernels[i+1].sigma) / 2
-            self.add_kernel(x0, sigma0)
-
     def run(self, budget):
         """Do as many steps as possible within the allocated budget."""
         # maxiter is the maximum number of iterations based on the budget 
@@ -226,7 +203,7 @@ class CoMoCmaes(object):
             if not (l % (max(1, maxiter//10))) and budget > 2000:
                 print("{}".format(l/maxiter), end=' ')
 
-    def incremental_runs(self, budget, sigma0):
+    def incremental_runs(self, budget):
         """
         An algorithm with increasing kernels.
 
@@ -245,32 +222,8 @@ class CoMoCmaes(object):
                 # maxevals makes the algorithm run twice when possible, when
                 # the kernels are not dominated 
                 self.run(min(maxevals, budget - self.counteval))
-                self.add_kernels(1, sigma0)
+                self.add_method(self)
 
-            print("{} kernels, {}/{} evals".format(self.num_kernels,
-                                                   self.counteval, budget))
-
-    def incremental_runs_v2(self, budget, sigma0):
-        """
-        An algorithm with increasing kernels.
-
-        We first run the algorithm until all kernels become non dominated, then
-        we do an iteration and add kernels in the middle of the non-dominated
-        set. We start another loop until the budget is consumed.
-        """
-        # TODO : is it the good criterion to decide whether we are on the
-        # Pareto front ? all the offsprings being non-dominated by the mean is
-        # not the good criterion ?
-
-        # lim_eval is the maximum number of evaluations such that you can still make a
-        # step without overpassing the budget
-        while budget >= self.counteval :
-            while self.num_kernels > len(self.layer) and budget >= self.counteval:
-                self.step()
-            # now, we are near the Pareto set
-            if budget > self.counteval:
-                self.step()
-                self.add_kernels_middle()
             print("{} kernels, {}/{} evals".format(self.num_kernels,
                                                    self.counteval, budget))
 
@@ -306,11 +259,11 @@ class CoMoCmaes(object):
             plt.grid(which="minor")
 
             plt.plot(f1, f2, 'o')
-            
+
             # we print 'max(self.hv_archive)' where 'self.hv_archive' is nonempty:
             plt.text(0.1, 0.6, 'hvarchive_max = {}'.format(
                 float(max(self.hv_archive))), fontsize=axislabelsize-2)
-            
+
             plt.xlabel('first objective function', fontsize=axislabelsize)
             plt.ylabel('second objective function', fontsize=axislabelsize)
             plt.title("archive of {}, {}D, {} kernels".format(self.name,
@@ -332,7 +285,7 @@ class CoMoCmaes(object):
         axis = np.linspace(self.num_kernels*(
             self.kernels[0].popsize+1), maxiter*self.num_kernels*(
             self.kernels[0].popsize+1), maxiter)/self.num_kernels
-                
+
         plt.grid(which="major")
         plt.grid(which="minor")
         plt.xticks(fontsize=12)
@@ -348,7 +301,7 @@ class CoMoCmaes(object):
         # print the value of the offset hv_max = max(self.hv) somewhere likely to be visible:
         plt.text(axlen/7, float(max(self.hv))-float(self.hv[0]), 'hv_max = {}'.format(
             float(max(self.hv))), fontsize=axislabelsize-2)
-        
+
         plt.xlabel('function evaluations / number of kernels', fontsize=axislabelsize)
         plt.ylabel('hv_max - hv', fontsize=axislabelsize)
         plt.title("COMO-CMA-ES, {}, {}D,{} kernels".format(self.name,
@@ -420,7 +373,9 @@ class CoMoCmaes(object):
                    fontsize=axislabelsize)
         plt.ylabel('ratio of non-dominated points', fontsize=axislabelsize)
         plt.title("COMO-CMA-ES, {}, {}D, {} kernels".format(self.name,
-                                                            self.dim, self.num_kernels), fontsize=titlelabelsize-2)
+                                                            self.dim,
+                                                            self.num_kernels),
+                  fontsize=titlelabelsize-2)
         plt.legend()
 
     def plot_kernels(self, numbers=3, font=plt.rcParams['font.size']):
@@ -465,13 +420,41 @@ class CoMoCmaes(object):
         assert numbers < self.num_kernels + 1
         plt.figure()
         plt.rcParams['font.size'] = font
-        
+
         # sample randomly at uniform 'numbers' points in {0,...,self.num_kernels-1}:
         tab = random.sample(range(self.num_kernels), numbers)
-        
+
         for i in range(len(tab)):
             data = cma.CMADataLogger("{}".format(tab[i])).load() # load the data to be plotted
             data.plot_axes_scaling() # plot the data
+
+
+def add_kernel_close(self):
+    """Add 'numbers' kernels with initial mean chosen randomly around a kernel
+    chosen randomly and initial sigma 'sigma0'.
+    """
+    idx = np.random.randint(0, self.num_kernels)
+
+    # compute randomly the initial mean of the new kernel
+    kernel = self.kernels[idx]
+    lbounds = kernel.mean - 1/2 * kernel.sigma
+    rbounds = kernel.mean + 1/2 * kernel.sigma
+    x0 = lbounds + np.random.rand(self.dim)*(rbounds-lbounds)
+    self.add_kernel(x0, kernel.sigma)
+
+def add_kernels_middle(self, part):
+    """Add kernels with mean in the middle of already existing
+    kernel means, ordered by fitnesses and stepsize in the middle of the
+    corresponding stepsizes."""
+    new_kernels = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
+    nb = max(int(part * (self.num_kernels - 1)), 1)
+    tab = np.random.randint(0, self.num_kernels-1, nb)
+
+    for idx in range(nb):
+        i = tab[idx]
+        x0 = (new_kernels[i].mean + new_kernels[i+1].mean) / 2
+        sigma0 = (new_kernels[i].sigma + new_kernels[i+1].sigma) / 2
+        self.add_kernel(x0, sigma0)
 
 if __name__ == "__main__":
     dim = 10
@@ -481,17 +464,27 @@ if __name__ == "__main__":
 
     fun = (lambda x: sphere(x,0) , lambda x: sphere(x,1))
     name = "double-sphere"
+    inner_iterations = 1
     sigma0 = 0.1
     lbounds, rbounds = -1, 3
     num_kernels = 10
     refpoint = [10, 10]
     budget = 100000
-    inner_iterations = 1
-    mymo = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint,
+    add_method = lambda y: add_kernels_middle(y, 0.1)
+    for i in range(1):
+        mymo = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint,
                      budget, name=name, update_order=lambda x: np.random.permutation(x),
-                     inner_iterations=inner_iterations)
-    mymo.incremental_runs_v2(budget, sigma0)
-    mymo.plot_convergence_gap(100)
+                     inner_iterations=inner_iterations, add_method=add_method)
+        #mymo.run(budget)
+        mymo.incremental_runs(budget)
+        mymo.plot_front()
+        mymo.plot_archive()
+        mymo.plot_convergence_gap()
+        mymo.plot_archive_gap()
+        mymo.plot_ratios()
+        #mymo.plot_kernels() # pb
+        #mymo.plot_stds(2) # pb
+        #mymo.plot_axes_lengths(2) # pb
     mpl.pyplot.show(block=True)
 
 #    dim = 10
