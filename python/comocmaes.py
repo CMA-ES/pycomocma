@@ -79,7 +79,7 @@ class CoMoCmaes(object):
                 x0 = lbounds + np.random.rand(self.dim)*(rbounds-lbounds)
                 kernels += [cma.CMAEvolutionStrategy(x0, sigma0, {'verb_filenameprefix': str(
                     i), 'conditioncov_alleviate': [np.inf, np.inf],
-                    'CMA_const_trace': 'True','verbose':-1})]#,'AdaptSigma':cma.sigma_adaptation.CMAAdaptSigmaTPA})]
+                    'CMA_const_trace': 'True', 'verbose':-1})]
         self.kernels = kernels
         
         # definition of num_offspring: number of offspring for each kernel
