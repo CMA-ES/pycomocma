@@ -118,6 +118,8 @@ class CoMoCmaes(object):
         self.ratio_nondominated_median_offspring = []
         self.ratio_nondominated_third_quartile_offspring = []
         self.counteval_increase = []
+        self.counteval_step = []   # store the number of eval at the end of
+                                   # each step
 
     def evaluate(self, x_var):
         """Evaluate the objective functions on the decision variable x_var and 
@@ -185,6 +187,7 @@ class CoMoCmaes(object):
         self.ratio_nondominated_first_quartile_offspring += [percentile_tab[0]]
         self.ratio_nondominated_median_offspring += [percentile_tab[1]]
         self.ratio_nondominated_third_quartile_offspring += [percentile_tab[2]]
+        self.counteval_step += [self.counteval]
 
         # call the test_method
         self.test_method(self)
@@ -278,76 +281,63 @@ class CoMoCmaes(object):
         else:
             print("No step is done on {}.".format(self.name))
 
-    def plot_convergence_gap(self, length=None, titlelabelsize=18, axislabelsize=16):
+    def _plot_gap(self, what, length=None, titlelabelsize=18, axislabelsize=16):
         """
-        Plot the convergence gap (in log scale): 'max(self.hv))-self.hv[k]' for
-        k = 0,...,length-1.
+        Plot the gap between 'what' (which is either hv or hv_archive and has
+        only negative values) and its maximum (in log scale) for the first
+        'length' values of 'what'.
         """
+        if not length:
+            length = self.counteval
+        else:
+            length = min(self.counteval, length) # avoid to be out of bounds
 
         plt.figure()
-        # maxiter is the number of iterations done so far based on consumed evaluations (self.counteval):
-        maxiter = (self.counteval-self.num_kernels)//(
-            self.num_kernels*self.inner_iterations*(self.num_offspring+1))
-        # we define for each iteration, the number of evaluations divided by the number of kernels:
-        axis = np.linspace(self.num_kernels*(
-            self.kernels[0].popsize+1), maxiter*self.num_kernels*(
-            self.kernels[0].popsize+1), maxiter)/self.num_kernels
-
         plt.grid(which="major")
         plt.grid(which="minor")
         plt.xticks(fontsize=12)
         plt.yticks(fontsize=12)
 
-        if not length:
-            length = max(axis) + 1
-        # myaxis is the portion of the axis to be plotted:
-        myaxis = [u for u in axis if u < length]
-        axlen = len(myaxis)
-        plt.semilogy(myaxis, [float(max(self.hv))-float(u) + 1e-20
-                              for u in self.hv[:axlen]], '-')
+        if what == "hv":
+            values = [float(max(self.hv))-float(u) for u in self.hv[:length]]
+            length_max = len(self.hv)
+            if length is None:
+                length = length_max
+            length = min(length, length_max)
+        if what == "hv_archive":
+            values = [float(max(self.hv_archive))-float(u) for u in
+                      self.hv_archive[:length]]
+            length_max = len(self.hv_archive)
+            if length is None:
+                length = length_max
+            length = min(length, length_max)
+
+        axis = self.counteval_step[:length]
+        plt.semilogy(axis, values, '-')
+
         # print the value of the offset hv_max = max(self.hv) somewhere likely to be visible:
-        plt.text(axlen/7, float(max(self.hv))-float(self.hv[0]), 'hv_max = {}'.format(
+        plt.text(length/7, values[0], (what + '_max = {}').format(
             float(max(self.hv))), fontsize=axislabelsize-2)
 
-        plt.xlabel('function evaluations / number of kernels', fontsize=axislabelsize)
-        plt.ylabel('hv_max - hv', fontsize=axislabelsize)
-        plt.title("COMO-CMA-ES, {}, {}D,{} kernels".format(self.name,
-                                                           self.dim, self.num_kernels), fontsize=titlelabelsize-2)
+        plt.xlabel('function evaluations', fontsize=axislabelsize)
+        plt.ylabel(what + "_max - " + what, fontsize=axislabelsize)
+        plt.title("COMO-CMA-ES, {}, {}D,{} kernels".format(self.name, self.dim,
+                    self.num_kernels), fontsize=titlelabelsize-2)
 
+    def plot_convergence_gap(self, length=None, titlelabelsize=18, axislabelsize=16):
+        """
+        Plot the convergence gap (in log scale): 'max(self.hv))-self.hv[k]' for
+        k = 0,...,length-1.
+        """
+        self._plot_gap("hv", length=length, titlelabelsize=titlelabelsize,
+                      axislabelsize=axislabelsize)
     def plot_archive_gap(self, length=None,  titlelabelsize=18, axislabelsize=16):
         """
         Plot the archive gap (in log scale): 'max(self.hv_archive))-self.hv_archive[k]' for
         k = 0,...,length-1.
         """
-        plt.figure()
-        # maxiter is the number of iterations done so far based on consumed evaluations (self.counteval):
-        maxiter = (self.counteval-self.num_kernels)//(
-            self.num_kernels*self.inner_iterations*(self.num_offspring+1))
-        # we define for each iteration, the number of evaluations divided by the number of kernels:
-        axis = np.linspace(self.num_kernels*(
-            self.kernels[0].popsize+1), maxiter*self.num_kernels*(
-            self.kernels[0].popsize+1), maxiter)/self.num_kernels
-                
-        plt.grid(which="major")
-        plt.grid(which="minor")
-        
-        if not length:
-            length = max(axis) + 1
-        # myaxis is the portion of the axis to be plotted:
-        myaxis = [u for u in axis if u < length]
-        axlen = len(myaxis)
-        plt.semilogy(myaxis, [float(max(self.hv_archive))-float(u) + 1e-20
-                              for u in self.hv_archive[:axlen]], '-')
-        # print the value of the offset hvarchive_max = max(self.hv_archive)
-        # somewhere likely to be visible:
-        plt.text(axlen/7, float(max(self.hv_archive))-float(self.hv_archive[0]), 'hvarchive_max = {}'.format(
-            float(max(self.hv_archive))), fontsize=axislabelsize-2)
-        
-        plt.xlabel('function evaluations / number of kernels',
-                   fontsize=axislabelsize)
-        plt.ylabel('hvarchive_max - hv_archive', fontsize=axislabelsize)
-        plt.title("COMO-CMA-ES, {}, {}D,{} kernels".format(self.name,
-                                                           self.dim, self.num_kernels), fontsize=titlelabelsize-2)
+        self._plot_gap("hv_archive", length=length, titlelabelsize=titlelabelsize,
+                      axislabelsize=axislabelsize)
 
     def plot_ratios(self, length=None, titlelabelsize=18, axislabelsize=16):
         """
@@ -529,7 +519,7 @@ if __name__ == "__main__":
     lbounds, rbounds = -1, 3
     num_kernels = 10
     refpoint = [10, 10]
-    budget = 50000
+    budget = 20000
     #add_method = lambda y: add_kernels_middle(y, 0.3)
     add_method = check_add_kernels_middle
     test_method = check_kernels_middle_nd
@@ -538,7 +528,7 @@ if __name__ == "__main__":
                      budget, name=name, update_order=lambda x: np.random.permutation(x),
                      inner_iterations=inner_iterations, add_method=add_method,
                          test_method=test_method)
-        mymo.run(budget)
+        #mymo.run(budget)
         mymo.incremental_runs(budget)
         if 1 < 30:
             mymo.plot_front()
