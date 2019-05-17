@@ -117,7 +117,7 @@ class CoMoCmaes(object):
         self.ratio_nondominated_first_quartile_offspring = []
         self.ratio_nondominated_median_offspring = []
         self.ratio_nondominated_third_quartile_offspring = []
-        self.counteval_increase = []
+        self.step_increase = []
         self.counteval_step = []   # store the number of eval at the end of
                                    # each step
 
@@ -233,7 +233,7 @@ class CoMoCmaes(object):
                 self.step()
                 self.step()
                 self.add_method(self)
-                self.counteval_increase += [self.counteval]
+                self.step_increase += [len(self.counteval_step)]
             print("{} kernels, {}/{} evals".format(self.num_kernels,
                                                    self.counteval, budget))
 
@@ -287,11 +287,6 @@ class CoMoCmaes(object):
         only negative values) and its maximum (in log scale) for the first
         'length' values of 'what'.
         """
-        if not length:
-            length = self.counteval
-        else:
-            length = min(self.counteval, length) # avoid to be out of bounds
-
         plt.figure()
         plt.grid(which="major")
         plt.grid(which="minor")
@@ -299,13 +294,15 @@ class CoMoCmaes(object):
         plt.yticks(fontsize=12)
 
         if what == "hv":
-            values = [float(max(self.hv))-float(u) for u in self.hv[:length]]
+            value_max = float(max(self.hv))
+            values = [value_max-float(u) for u in self.hv[:length]]
             length_max = len(self.hv)
             if length is None:
                 length = length_max
             length = min(length, length_max)
         if what == "hv_archive":
-            values = [float(max(self.hv_archive))-float(u) for u in
+            value_max = float(max(self.hv_archive))
+            values = [value_max-float(u) for u in
                       self.hv_archive[:length]]
             length_max = len(self.hv_archive)
             if length is None:
@@ -314,10 +311,13 @@ class CoMoCmaes(object):
 
         axis = self.counteval_step[:length]
         plt.semilogy(axis, values, '-')
+        for step in self.step_increase:
+            plt.scatter(self.counteval_step[step-1], values[step-1],
+                        color='r', marker='x')
 
         # print the value of the offset hv_max = max(self.hv) somewhere likely to be visible:
         plt.text(length/7, values[0], (what + '_max = {}').format(
-            float(max(self.hv))), fontsize=axislabelsize-2)
+            value_max), fontsize=axislabelsize-2)
 
         plt.xlabel('function evaluations', fontsize=axislabelsize)
         plt.ylabel(what + "_max - " + what, fontsize=axislabelsize)
@@ -344,29 +344,25 @@ class CoMoCmaes(object):
         Plot the statistics of the ratios of non-dominated offspring + incumbent,
         and the ratio of non-dominated incumbents.
         """
+        length_max = len(self.ratio_nondominated_kernels)
+        if length is None:
+            length = length_max
+        else:
+            length = min(length, length_max)
 
         plt.figure()
-        maxiter = (self.counteval-self.num_kernels)//(
-            self.num_kernels*self.inner_iterations*(self.num_offspring+1))
-        axis = np.linspace(self.num_kernels*(
-            self.kernels[0].popsize+1), maxiter*self.num_kernels*(
-            self.num_offspring+1), maxiter)/self.num_kernels
+        myaxis = self.counteval_step[:length]
         plt.grid(which="minor")
-        if not length:
-            length = max(axis) + 1
-        myaxis = [u for u in axis if u < length]
-        axlen = len(myaxis)
 
-        plt.plot(myaxis, self.ratio_nondominated_kernels[:axlen], 'r--',
+        plt.plot(myaxis, self.ratio_nondominated_kernels[:length], 'r--',
                  label="ratio of non-dominated parents")
-
-        plt.plot(myaxis, self.ratio_nondominated_first_quartile_offspring[:axlen],
+        plt.plot(myaxis, self.ratio_nondominated_first_quartile_offspring[:length],
                  'b--', label="first quartile ratio of non-dom offspring")
-        plt.plot(myaxis, self.ratio_nondominated_median_offspring[:axlen],
+        plt.plot(myaxis, self.ratio_nondominated_median_offspring[:length],
                  'k--', label="median ratio of non-dom offspring")
-        plt.plot(myaxis, self.ratio_nondominated_third_quartile_offspring[:axlen],
+        plt.plot(myaxis, self.ratio_nondominated_third_quartile_offspring[:length],
                  'g--', label="third quartile ratio of non-dom offspring")
-        plt.xlabel('function evaluations / num_kernels',
+        plt.xlabel('function evaluations',
                    fontsize=axislabelsize)
         plt.ylabel('ratio of non-dominated points', fontsize=axislabelsize)
         plt.title("COMO-CMA-ES, {}, {}D, {} kernels".format(self.name,
@@ -424,10 +420,6 @@ class CoMoCmaes(object):
         for i in range(len(tab)):
             data = cma.CMADataLogger("{}".format(tab[i])).load() # load the data to be plotted
             data.plot_axes_scaling() # plot the data
-
-    def plot_increase_crosses(self):
-        for eval in self.counteval_increase:
-            plt.scatter(eval/self.num_kernels, 0.1, color='r', marker='x')
 
 def add_kernel_close(self):
     """Add 'numbers' kernels with initial mean chosen randomly around a kernel
@@ -534,11 +526,8 @@ if __name__ == "__main__":
             mymo.plot_front()
             mymo.plot_archive()
             mymo.plot_convergence_gap()
-            mymo.plot_increase_crosses()
             mymo.plot_archive_gap()
-            mymo.plot_increase_crosses()
             mymo.plot_ratios()
-            mymo.plot_increase_crosses()
             mymo.plot_kernels() # pb
             mymo.plot_stds(2) # pb
             mymo.plot_axes_lengths(2) # pb
