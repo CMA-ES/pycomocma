@@ -40,7 +40,8 @@ class CoMoCmaes(object):
                  inner_iterations=1,
                  lazy=False,
                  name=None,
-                 add_method=lambda *args: None
+                 add_method=lambda *args: None,
+                 test_method=lambda *args: None
                  ):
         """
         Parameters :
@@ -62,6 +63,7 @@ class CoMoCmaes(object):
         during its update
         - 'string' name : the name of the objective function
         - 'fun' add_method : the function which is called when adding kernels
+        - 'fun' test_method : a function which is called at each step
         """
         self.objective_functions = objective_functions
         self.dim = dim
@@ -88,6 +90,7 @@ class CoMoCmaes(object):
         self.update_order = update_order
         self.name = name
         self.add_method = add_method
+        self.test_method = test_method
 
         # Here we try a way to store the objective values of the cma means
         # once and for all, without creating a new structure.
@@ -183,6 +186,9 @@ class CoMoCmaes(object):
         self.ratio_nondominated_median_offspring += [percentile_tab[1]]
         self.ratio_nondominated_third_quartile_offspring += [percentile_tab[2]]
 
+        # call the test_method
+        self.test_method(self)
+
     def add_kernel(self, x0, sigma0):
         "Add a kernel of mean x0 and initial stepsize sigma0 to self."""
         new_kernel = cma.CMAEvolutionStrategy(x0, sigma0,
@@ -201,9 +207,8 @@ class CoMoCmaes(object):
         while self.counteval < budget:
             self.step()
             if self.counteval > (level + 1) * bound:
-                level = self.counteval / budget
-                print("We are at ", level)
-
+                level = int(self.counteval / budget * 10)
+                print("We are at ", level, "/10")
 
     def incremental_runs(self, budget):
         """
@@ -462,8 +467,8 @@ def add_kernels_middle(self, part):
         sigma0 = (kernels_sorted[i].sigma + kernels_sorted[i+1].sigma) / 2
         self.add_kernel(x0, sigma0)
 
-def check_kernels_middle(self):
-    """Check the ratio of middle points which are non-dominated."""
+def check_add_kernels_middle(self):
+    """Check the ratio of middle points which are non-dominated and add them."""
     kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
 
     ratio = 0
@@ -475,8 +480,29 @@ def check_kernels_middle(self):
             ratio += 1
             sigma0 = (kernels_sorted[idx].sigma + kernels_sorted[idx+1].sigma) / 2
             self.add_kernel(x0, sigma0)
-        test += 1 
+        self.counteval -= 1 # compensation
     ratio /= nb
+    print(ratio)
+
+def check_kernels_middle_nd(self):
+    """Check the ratio of points in the middle of ND points which are non-dominated."""
+    kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
+
+    ratio = 0
+    test = 0
+    nb = 0
+    for idx in range(self.num_kernels - 1):
+        ker1 = kernels_sorted[idx]
+        ker2 = kernels_sorted[idx + 1]
+        nd_fit = self.layer
+        if ker1.fit.fitnesses in nd_fit and ker2.fit.fitnesses in nd_fit:
+            nb += 1
+            x0 = (ker1.mean + ker2.mean) / 2
+            if not self.layer.dominates(self.evaluate(x0)):
+                ratio += 1
+            self.counteval -= 1 # compensation
+    if nb != 0:
+        ratio /= nb
     print(ratio)
 
 if __name__ == "__main__":
@@ -504,14 +530,16 @@ if __name__ == "__main__":
     lbounds, rbounds = -1, 3
     num_kernels = 10
     refpoint = [10, 10]
-    budget = 1000000
+    budget = 50000
     #add_method = lambda y: add_kernels_middle(y, 0.3)
-    add_method = check_kernels_middle
+    add_method = check_add_kernels_middle
+    test_method = check_kernels_middle_nd
     for i in range(1):
         mymo = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint,
                      budget, name=name, update_order=lambda x: np.random.permutation(x),
-                     inner_iterations=inner_iterations, add_method=add_method)
-        #mymo.run(budget)
+                     inner_iterations=inner_iterations, add_method=add_method,
+                         test_method=test_method)
+        mymo.run(budget)
         mymo.incremental_runs(budget)
         if 1 < 30:
             mymo.plot_front()
