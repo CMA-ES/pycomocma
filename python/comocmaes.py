@@ -503,7 +503,7 @@ def check_kernels_middle_nd(self):
             self.counteval -= 1 # compensation
     if nb != 0:
         ratio /= nb
-    print(ratio)
+        print(ratio)
 
 if __name__ == "__main__":
     dim = 10
