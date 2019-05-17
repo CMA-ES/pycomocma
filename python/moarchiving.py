@@ -104,12 +104,9 @@ class NondominatedSortedList(list):
         self.hypervolume_computation_float_type = NondominatedSortedList.hypervolume_computation_float_type
         self.maintain_contributing_hypervolumes = NondominatedSortedList.maintain_contributing_hypervolumes
         
-        self.dim = dim
         if list_of_f_tuples is not None and len(list_of_f_tuples):
             try:
                 list_of_f_tuples = list_of_f_tuples.tolist()
-                if not self.dim:
-                    self.dim = len(list_of_f_tuples[0])
             except:
                 pass
 
@@ -132,6 +129,9 @@ class NondominatedSortedList(list):
         else:
             self._contributing_hypervolumes = []
         self._set_HV()
+        self._dimensin = 0
+        if len(self) or len(reference_point):
+            self._dimension = len(self[0]) if len(self) else len(reference_point)
         self.make_expensive_asserts and self._asserts()
 
     def add(self, f_tuple):
@@ -176,6 +176,8 @@ class NondominatedSortedList(list):
         `self` and that `idx` is the correct insertion place e.g.
         acquired by `bisect_left`.
         """
+        assert not self._dimension or len(f_tuple) == self._dimension
+        self._dimension = len(f_tuple)
         # the following condition is valid for more than 2 objectives 
         if idx == len(self) or any(f_tuple[k] > self[idx][k] for k in range(1,len(f_tuple))):
             self.insert(idx, f_tuple)
@@ -195,6 +197,7 @@ class NondominatedSortedList(list):
         del self[idx + 1:idx2]  # can make `add` 20x faster
         self._add_HV(idx)
         assert len(self) >= 1
+        self._dimension = self._dimension or len(f_tuple)
         # self.make_expensive_asserts and self._asserts()
 
     def remove(self, f_tuple):
@@ -293,6 +296,7 @@ class NondominatedSortedList(list):
         nda.reference_point = [xi for xi in self.reference_point]
         nda._hypervolume = self.hypervolume_final_float_type(self._hypervolume)  # with Fraction not necessary
         nda._contributing_hypervolumes = [hv for hv in self._contributing_hypervolumes]
+        nda._dimension = self._dimension
         return nda
 
     def bisect_left(self, f_tuple, lowest_index=0):
@@ -417,6 +421,11 @@ class NondominatedSortedList(list):
         if any(f_tuple[k] >= reference_point[k] for k in range(len(f_tuple))):
             return False
         return True
+    
+    @property
+    def dimension(self):
+        """ dimension of the f_tuples or of the reference point. """
+        return self._dimension
 
     @property
     def hypervolume(self):
@@ -655,8 +664,6 @@ class NondominatedSortedList(list):
             res = hv_float.compute(self)
             hv = Ff(res)
             return hv
-            
-            
 
     def compute_hypervolumes(self, reference_point):
         """depricated, subject to removal, see `compute_hypervolume` and `contributing_hypervolumes`.
