@@ -220,7 +220,6 @@ class CoMoCmaes(object):
         """
 
         while budget - self.counteval > 0:
-            maxevals = 2 * self.num_kernels * (self.num_offspring + 1)
             # the first condition corresponds to having at least one mean of a
             # kernel dominated by the others or not dominating the reference point
             while self.num_kernels > len(self.layer) and budget > self.counteval:
@@ -228,10 +227,10 @@ class CoMoCmaes(object):
             if budget > self.counteval:
                 # maxevals makes the algorithm run twice when possible, when
                 # the kernels are not dominated 
-                self.run(min(maxevals, budget - self.counteval))
+                self.step()
+                self.step()
                 self.add_method(self)
                 self.counteval_increase += [self.counteval]
-
             print("{} kernels, {}/{} evals".format(self.num_kernels,
                                                    self.counteval, budget))
 
