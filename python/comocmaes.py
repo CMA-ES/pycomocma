@@ -446,7 +446,7 @@ class CoMoCmaes(object):
             self._save("stds", end)
 
 
-    def plot_axes_lengths(self, numbers, font=plt.rcParams['font.size'],
+    def plot_axes_lengths(self, numbers=3, font=plt.rcParams['font.size'],
                           save=False, end=None):
         """
         Choose uniformly at random 'numbers' kernels and plot their covariance matrices 
@@ -466,7 +466,7 @@ class CoMoCmaes(object):
 
         # save the plot
         if save:
-            self.save("axes_lengths", end)
+            self._save("axes_lengths", end)
 
     def plot_all(self, save=False, end=None):
         self.plot_front(save=save, end=end)
@@ -506,22 +506,20 @@ def add_kernels_middle(self, part):
         sigma0 = (kernels_sorted[i].sigma + kernels_sorted[i+1].sigma) / 2
         self.add_kernel(x0, sigma0)
 
-def check_add_kernels_middle(self):
-    """Check the ratio of middle points which are non-dominated and add them."""
+def add_kernels_middle(self):
+    """For each point in the middle of ND points, add a kernel with mean this
+    point and stepsize the mean of the ND points stepsize."""
     kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
 
     ratio = 0
-    test = 0
-    nb = self.num_kernels - 1
     for idx in range(self.num_kernels - 1):
-        x0 = (kernels_sorted[idx].mean + kernels_sorted[idx+1].mean) / 2
-        if not self.layer.dominates(self.evaluate(x0)):
-            ratio += 1
-            sigma0 = (kernels_sorted[idx].sigma + kernels_sorted[idx+1].sigma) / 2
-            self.add_kernel(x0, sigma0)
-        self.counteval -= 1 # compensation
-    ratio /= nb
-    print(ratio)
+        ker1 = kernels_sorted[idx]
+        ker2 = kernels_sorted[idx + 1]
+        nd_fit = self.layer
+        if ker1.fit.fitnesses in nd_fit and ker2.fit.fitnesses in nd_fit:
+            x0 = (ker1.mean + ker2.mean) / 2
+            stepsize0 = (ker1.sigma + ker2.sigma) / 2
+            self.add_kernel(x0, stepsize0)
 
 def check_kernels_middle_nd(self):
     """Check the ratio of points in the middle of ND points which are non-dominated."""
@@ -552,7 +550,6 @@ if __name__ == "__main__":
         return(sum([(elt - x0)**2 for elt in x]))
 
     mypb = problem(dim, name="cigtab")
-    mypb.sep(0)
 
     b_simple = 1
     if not b_simple:
@@ -569,7 +566,7 @@ if __name__ == "__main__":
     refpoint = [10, 10]
     budget = 20000
     #add_method = lambda y: add_kernels_middle(y, 0.3)
-    add_method = check_add_kernels_middle
+    add_method = add_kernels_middle
     test_method = check_kernels_middle_nd
     for i in range(1):
         mymo = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint,
