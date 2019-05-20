@@ -539,9 +539,9 @@ def check_kernels_middle_nd(self):
             if not self.layer.dominates(self.evaluate(x0)):
                 ratio += 1
             self.counteval -= 1 # compensation
-    if nb != 0:
+    if nb != 0 and ratio != nb:
         ratio /= nb
-        print(ratio)
+        print("the ratio of nd points in the middle of nd neighbours is < 1:", ratio)
 
 if __name__ == "__main__":
     dim = 10
