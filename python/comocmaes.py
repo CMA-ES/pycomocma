@@ -237,7 +237,20 @@ class CoMoCmaes(object):
             print("{} kernels, {}/{} evals".format(self.num_kernels,
                                                    self.counteval, budget))
 
-    def plot_front(self, titlelabelsize=18, axislabelsize=16):
+    def _save(self, plot_name=None, end=None):
+        """Save the figure with the name
+        '{plot_name}_{self.name}_{self.counteval}_{end}.png' """
+        fig_name = plot_name
+        if self.name is not None:
+            fig_name += "_" + self.name
+        fig_name += "_" + str(self.counteval)
+        if end is not None:
+            fig_name += "_" + end
+        fig_name += ".png"
+        plt.savefig(fig_name)
+
+    def plot_front(self, titlelabelsize=18, axislabelsize=16, save=False,
+                   end=None):
         """
         Plot the objective values of the incumbents of the kernels.
         """
@@ -256,8 +269,12 @@ class CoMoCmaes(object):
         plt.title("front of {}, {}D, {} kernels".format(self.name,
                                                         self.dim, self.num_kernels), fontsize=titlelabelsize)
 
+        # save the plot
+        if save:
+            self._save("front", end)
 
-    def plot_archive(self, titlelabelsize=18, axislabelsize=16):
+    def plot_archive(self, titlelabelsize=18, axislabelsize=16, save=False,
+                     end=None):
         """
         Plot the objective values of all non-dominated points evaluated so far.
         """
@@ -281,7 +298,11 @@ class CoMoCmaes(object):
         else:
             print("No step is done on {}.".format(self.name))
 
-    def _plot_gap(self, what, length=None, titlelabelsize=18, axislabelsize=16):
+        # save the plot
+        if save:
+            self._save("archive", end)
+
+    def _plot_gap(self, what, length, titlelabelsize, axislabelsize, save, end):
         """
         Plot the gap between 'what' (which is either hv or hv_archive and has
         only negative values) and its maximum (in log scale) for the first
@@ -324,22 +345,28 @@ class CoMoCmaes(object):
         plt.title("COMO-CMA-ES, {}, {}D,{} kernels".format(self.name, self.dim,
                     self.num_kernels), fontsize=titlelabelsize-2)
 
-    def plot_convergence_gap(self, length=None, titlelabelsize=18, axislabelsize=16):
+        # save the plot
+        if save:
+            self._save(what + "gap", end)
+
+    def plot_convergence_gap(self, length=None, titlelabelsize=18,
+                             axislabelsize=16, save=False, end=None):
         """
         Plot the convergence gap (in log scale): 'max(self.hv))-self.hv[k]' for
         k = 0,...,length-1.
         """
-        self._plot_gap("hv", length=length, titlelabelsize=titlelabelsize,
-                      axislabelsize=axislabelsize)
-    def plot_archive_gap(self, length=None,  titlelabelsize=18, axislabelsize=16):
+        self._plot_gap("hv", length, titlelabelsize, axislabelsize, save, end)
+
+    def plot_archive_gap(self, length=None,  titlelabelsize=18,
+                         axislabelsize=16, save=False, end=None):
         """
         Plot the archive gap (in log scale): 'max(self.hv_archive))-self.hv_archive[k]' for
         k = 0,...,length-1.
         """
-        self._plot_gap("hv_archive", length=length, titlelabelsize=titlelabelsize,
-                      axislabelsize=axislabelsize)
+        self._plot_gap("hv_archive", length, titlelabelsize, axislabelsize, save, end)
 
-    def plot_ratios(self, length=None, titlelabelsize=18, axislabelsize=16):
+    def plot_ratios(self, length=None, titlelabelsize=18, axislabelsize=16,
+                    save=False, end=None):
         """
         Plot the statistics of the ratios of non-dominated offspring + incumbent,
         and the ratio of non-dominated incumbents.
@@ -371,7 +398,12 @@ class CoMoCmaes(object):
                   fontsize=titlelabelsize-2)
         plt.legend()
 
-    def plot_kernels(self, numbers=3, font=plt.rcParams['font.size']):
+        # save the plot
+        if save:
+            self._save("ratios", end)
+
+    def plot_kernels(self, numbers=3, font=plt.rcParams['font.size'],
+                     save=False, end=None):
         """
         Choose uniformly at random 'numbers' kernels and plot them using the CMA logger tools.
         - font is the font size of the plots.
@@ -387,7 +419,12 @@ class CoMoCmaes(object):
             kernel = self.kernels[tab[i]]
             kernel.logger.plot() # plot 'kernel'
 
-    def plot_stds(self, numbers, font=plt.rcParams['font.size']):
+        # save the plot
+        if save:
+            self._save("kernels", end)
+
+    def plot_stds(self, numbers=3, font=plt.rcParams['font.size'], save=False,
+                  end=None):
         """
         Choose uniformly at random 'numbers' kernels and plot their standards deviations
         divided by the step-size in all coordinates, using the CMADataLogger tools.
@@ -404,7 +441,13 @@ class CoMoCmaes(object):
             data = cma.CMADataLogger("{}".format(tab[i])).load() # load the data to be plotted
             data.plot_stds() # plot the data
 
-    def plot_axes_lengths(self, numbers, font=plt.rcParams['font.size']):
+        # save the plot
+        if save:
+            self._save("stds", end)
+
+
+    def plot_axes_lengths(self, numbers, font=plt.rcParams['font.size'],
+                          save=False, end=None):
         """
         Choose uniformly at random 'numbers' kernels and plot their covariance matrices 
         square root eigenvalues using the CMADataLogger tools.
@@ -420,6 +463,21 @@ class CoMoCmaes(object):
         for i in range(len(tab)):
             data = cma.CMADataLogger("{}".format(tab[i])).load() # load the data to be plotted
             data.plot_axes_scaling() # plot the data
+
+        # save the plot
+        if save:
+            self.save("axes_lengths", end)
+
+    def plot_all(self, save=False, end=None):
+        self.plot_front(save=save, end=end)
+        self.plot_archive(save=save, end=end)
+        self.plot_convergence_gap(save=save, end=end)
+        self.plot_archive_gap(save=save, end=end)
+        self.plot_ratios(save=save, end=end)
+        self.plot_kernels(save=save, end=end)
+        self.plot_stds(save=save, end=end)
+        self.plot_axes_lengths(save=save, end=end)
+
 
 def add_kernel_close(self):
     """Add 'numbers' kernels with initial mean chosen randomly around a kernel
@@ -470,7 +528,6 @@ def check_kernels_middle_nd(self):
     kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
 
     ratio = 0
-    test = 0
     nb = 0
     for idx in range(self.num_kernels - 1):
         ker1 = kernels_sorted[idx]
@@ -505,7 +562,6 @@ if __name__ == "__main__":
         fun = (lambda x: sphere(x, 0), lambda x: sphere(x, 1))
         name = "double-sphere"
 
-
     inner_iterations = 1
     sigma0 = 0.1
     lbounds, rbounds = -1, 3
@@ -522,15 +578,7 @@ if __name__ == "__main__":
                          test_method=test_method)
         #mymo.run(budget)
         mymo.incremental_runs(budget)
-        if 1 < 30:
-            mymo.plot_front()
-            mymo.plot_archive()
-            mymo.plot_convergence_gap()
-            mymo.plot_archive_gap()
-            mymo.plot_ratios()
-            mymo.plot_kernels() # pb
-            mymo.plot_stds(2) # pb
-            mymo.plot_axes_lengths(2) # pb
+        mymo.plot_all(save=True, end="incr")
     mpl.pyplot.show(block=True)
 
 #    dim = 10
