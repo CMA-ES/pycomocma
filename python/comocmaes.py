@@ -234,8 +234,9 @@ class CoMoCmaes(object):
                 self.step()
                 self.add_method(self)
                 self.step_increase += [len(self.counteval_step)]
-            print("{} kernels, {}/{} evals".format(self.num_kernels,
-                                                   self.counteval, budget))
+            print("{} kernels, {}/{} evals, {} steps".format(self.num_kernels,
+                                                   self.counteval, budget,
+                                                   len(self.counteval_step)))
 
     def _save(self, plot_name=None, end=None):
         """Save the figure with the name
