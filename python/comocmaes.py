@@ -14,7 +14,7 @@ from moarchiving import BiobjectiveNondominatedSortedList as NDA
 #import sys
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-#import os
+import os
 #from math import inf
 from problems import BiobjectiveConvexQuadraticProblem as problem
 import random
@@ -194,10 +194,11 @@ class CoMoCmaes(object):
 
     def add_kernel(self, x0, sigma0):
         "Add a kernel of mean x0 and initial stepsize sigma0 to self."""
-        new_kernel = cma.CMAEvolutionStrategy(x0, sigma0,
-                                              {'verb_filenameprefix':
-                                               str(self.num_kernels+1),
-                                               'verbose': -1})
+        prop = {'verb_filenameprefix': str(self.num_kernels+1),
+                'conditioncov_alleviate': [np.inf, np.inf],
+                'CMA_const_trace': 'True',
+                'verbose': -1}
+        new_kernel = cma.CMAEvolutionStrategy(x0, sigma0, prop)
         new_kernel.fit.fitnesses = self.evaluate(new_kernel.mean)
         new_kernel.ratio_nondominated_offspring = []
         self.kernels += [new_kernel]
@@ -240,15 +241,29 @@ class CoMoCmaes(object):
 
     def _save(self, plot_name=None, end=None):
         """Save the figure with the name
-        '{plot_name}_{self.name}_{self.counteval}_{end}.png' """
+        '{plot_name}_{self.name}_{self.counteval}_{end}.png'
+        in the directory '{self.name}_{self.counteval}_{end}'"""
+        # create the name of the file and the directory
         fig_name = plot_name
+        dir_name = ""
         if self.name is not None:
             fig_name += "_" + self.name
+            dir_name += self.name
         fig_name += "_" + str(self.counteval)
+        dir_name += "_" + str(self.counteval)
         if end is not None:
             fig_name += "_" + end
+            dir_name += "_" + end
         fig_name += ".png"
-        plt.savefig(fig_name)
+        dir_name += "/"
+
+        here = os.path.dirname(__file__)
+        results_dir = os.path.join(here, dir_name)
+
+        if not os.path.isdir(results_dir):
+            os.makedirs(results_dir)
+
+        plt.savefig(dir_name + fig_name)
 
     def plot_front(self, titlelabelsize=18, axislabelsize=16, save=False,
                    end=None):
@@ -493,7 +508,7 @@ def add_kernel_close(self):
     x0 = lbounds + np.random.rand(self.dim)*(rbounds-lbounds)
     self.add_kernel(x0, kernel.sigma)
 
-def add_kernels_middle(self, part):
+def add_some_kernels_middle(self, part):
     """Add kernels with mean in the middle of already existing
     kernel means, ordered by fitnesses and stepsize in the middle of the
     corresponding stepsizes."""
@@ -512,7 +527,6 @@ def add_kernels_middle(self):
     point and stepsize the mean of the ND points stepsize."""
     kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
 
-    ratio = 0
     for idx in range(self.num_kernels - 1):
         ker1 = kernels_sorted[idx]
         ker2 = kernels_sorted[idx + 1]
