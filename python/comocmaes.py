@@ -522,9 +522,26 @@ def add_some_kernels_middle(self, part):
         sigma0 = (kernels_sorted[i].sigma + kernels_sorted[i+1].sigma) / 2
         self.add_kernel(x0, sigma0)
 
-def add_kernels_middle(self):
+def add_kernels_middle_copy(self):
     """For each point in the middle of ND points, add a kernel with mean this
     point and stepsize the mean of the ND points stepsize."""
+    kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
+
+    for idx in range(self.num_kernels - 1):
+        ker1 = kernels_sorted[idx]
+        ker2 = kernels_sorted[idx + 1]
+        nd_fit = self.layer
+        if ker1.fit.fitnesses in nd_fit and ker2.fit.fitnesses in nd_fit:
+            ker = ker1._copy_light()
+            ker.mean = (ker1.mean + ker2.mean) / 2
+            ker.fit.fitnesses = self.evaluate(ker.mean)
+            ker.ratio_nondominated_offspring = []
+            self.kernels += [ker]
+            self.num_kernels += 1
+
+def add_kernels_middle(self):
+    """For each point in the middle of ND points, add a kernel which is a light
+    copy of the first kernel with mean the middle of the means."""
     kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
 
     for idx in range(self.num_kernels - 1):
