@@ -71,6 +71,7 @@ class CoMoCmaes(object):
         self.sigma0 = sigma0
         self.reference_point = reference_point
         self.counteval = 0
+        self.countstep = 0
         self.lazy = lazy
         # initialization of kernels
         if kernels is None:
@@ -117,7 +118,8 @@ class CoMoCmaes(object):
         self.ratio_nondominated_first_quartile_offspring = []
         self.ratio_nondominated_median_offspring = []
         self.ratio_nondominated_third_quartile_offspring = []
-        self.step_increase = []
+        self.num_kernels_step = []  # store the number of kernels at the end of
+                                    # each step
         self.counteval_step = []   # store the number of eval at the end of
                                    # each step
 
@@ -188,6 +190,8 @@ class CoMoCmaes(object):
         self.ratio_nondominated_median_offspring += [percentile_tab[1]]
         self.ratio_nondominated_third_quartile_offspring += [percentile_tab[2]]
         self.counteval_step += [self.counteval]
+        self.num_kernels_step += [self.num_kernels]
+        self.countstep += 1
 
         # call the test_method
         self.test_method(self)
@@ -234,7 +238,6 @@ class CoMoCmaes(object):
                 self.step()
                 self.step()
                 self.add_method(self)
-                self.step_increase += [len(self.counteval_step)]
             print("{} kernels, {}/{} evals, {} steps".format(self.num_kernels,
                                                    self.counteval, budget,
                                                    len(self.counteval_step)))
@@ -348,7 +351,9 @@ class CoMoCmaes(object):
 
         axis = self.counteval_step[:length]
         plt.semilogy(axis, values, '-')
-        for step in self.step_increase:
+        step_incr = [i for i in range(1, self.countstep) if self.num_kernels_step[i] >
+                     self.num_kernels_step[i - 1]]
+        for step in step_incr:
             plt.scatter(self.counteval_step[step-1], values[step-1],
                         color='r', marker='x')
 
@@ -429,7 +434,7 @@ class CoMoCmaes(object):
         plt.rcParams['font.size'] = font 
 
         # sample randomly at uniform 'numbers' points in {0,...,self.num_kernels-1}:
-        tab = random.sample(range(self.num_kernels), numbers) 
+        tab = random.sample(range(self.num_kernels_step[-1]), numbers)
 
         for i in range(len(tab)):
             kernel = self.kernels[tab[i]]
@@ -451,7 +456,7 @@ class CoMoCmaes(object):
         plt.rcParams['font.size'] = font
         
         # sample randomly at uniform 'numbers' points in {0,...,self.num_kernels-1}:
-        tab = random.sample(range(self.num_kernels), numbers)
+        tab = random.sample(range(self.num_kernels_step[-1]), numbers)
         
         for i in range(len(tab)):
             data = cma.CMADataLogger("{}".format(tab[i])).load() # load the data to be plotted
@@ -474,7 +479,7 @@ class CoMoCmaes(object):
         plt.rcParams['font.size'] = font
 
         # sample randomly at uniform 'numbers' points in {0,...,self.num_kernels-1}:
-        tab = random.sample(range(self.num_kernels), numbers)
+        tab = random.sample(range(self.num_kernels_step[-1]), numbers)
 
         for i in range(len(tab)):
             data = cma.CMADataLogger("{}".format(tab[i])).load() # load the data to be plotted
@@ -485,13 +490,21 @@ class CoMoCmaes(object):
             self._save("axes_lengths", end)
 
     def plot_all(self, save=False, end=None):
+        print(1)
         self.plot_front(save=save, end=end)
+        print(2)
         self.plot_archive(save=save, end=end)
+        print(3)
         self.plot_convergence_gap(save=save, end=end)
+        print(4)
         self.plot_archive_gap(save=save, end=end)
+        print(5)
         self.plot_ratios(save=save, end=end)
+        print(6)
         self.plot_kernels(save=save, end=end)
+        print(7)
         self.plot_stds(save=save, end=end)
+        print(8)
         self.plot_axes_lengths(save=save, end=end)
 
 
@@ -508,7 +521,7 @@ def add_kernel_close(self):
     x0 = lbounds + np.random.rand(self.dim)*(rbounds-lbounds)
     self.add_kernel(x0, kernel.sigma)
 
-def add_some_kernels_middle(self, part):
+def add_kernels_middle(self, part):
     """Add kernels with mean in the middle of already existing
     kernel means, ordered by fitnesses and stepsize in the middle of the
     corresponding stepsizes."""
@@ -516,42 +529,33 @@ def add_some_kernels_middle(self, part):
     nb = max(int(part * (self.num_kernels - 1)), 1)
     tab = np.random.randint(0, self.num_kernels-1, nb)
 
-    for idx in range(nb):
-        i = tab[idx]
-        x0 = (kernels_sorted[i].mean + kernels_sorted[i+1].mean) / 2
-        sigma0 = (kernels_sorted[i].sigma + kernels_sorted[i+1].sigma) / 2
-        self.add_kernel(x0, sigma0)
+    for i in range(nb):
+        idx = tab[i]
+        ker1 = kernels_sorted[idx]
+        ker2 = kernels_sorted[idx + 1]
+        if ker1.fit.fitnesses in self.layer and ker2.fit.fitnesses in self.layer:
+            x0 = (ker1.mean + ker2.mean) / 2
+            sigma0 = (ker1.sigma + ker2.sigma) / 2
+            self.add_kernel(x0, sigma0)
 
-def add_kernels_middle_copy(self):
+def add_kernels_middle_copy(self, part):
     """For each point in the middle of ND points, add a kernel with mean this
     point and stepsize the mean of the ND points stepsize."""
     kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
+    nb = max(int(part * (self.num_kernels - 1)), 1)
+    tab = np.random.randint(0, self.num_kernels-1, nb)
 
-    for idx in range(self.num_kernels - 1):
+    for i in range(nb):
+        idx = tab[i]
         ker1 = kernels_sorted[idx]
         ker2 = kernels_sorted[idx + 1]
-        nd_fit = self.layer
-        if ker1.fit.fitnesses in nd_fit and ker2.fit.fitnesses in nd_fit:
+        if ker1.fit.fitnesses in self.layer and ker2.fit.fitnesses in self.layer:
             ker = ker1._copy_light()
             ker.mean = (ker1.mean + ker2.mean) / 2
             ker.fit.fitnesses = self.evaluate(ker.mean)
             ker.ratio_nondominated_offspring = []
             self.kernels += [ker]
             self.num_kernels += 1
-
-def add_kernels_middle(self):
-    """For each point in the middle of ND points, add a kernel which is a light
-    copy of the first kernel with mean the middle of the means."""
-    kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
-
-    for idx in range(self.num_kernels - 1):
-        ker1 = kernels_sorted[idx]
-        ker2 = kernels_sorted[idx + 1]
-        nd_fit = self.layer
-        if ker1.fit.fitnesses in nd_fit and ker2.fit.fitnesses in nd_fit:
-            x0 = (ker1.mean + ker2.mean) / 2
-            stepsize0 = (ker1.sigma + ker2.sigma) / 2
-            self.add_kernel(x0, stepsize0)
 
 def check_kernels_middle_nd(self):
     """Check the ratio of points in the middle of ND points which are non-dominated."""
@@ -581,9 +585,9 @@ if __name__ == "__main__":
         # for simplicity, x0 is a scalar
         return(sum([(elt - x0)**2 for elt in x]))
 
-    mypb = problem(dim, name="cigtab")
+    mypb = problem(dim, name="sphere")
 
-    b_simple = 1
+    b_simple = 0
     if not b_simple:
         fun = mypb.objective_functions()
         name = mypb.name
@@ -597,8 +601,8 @@ if __name__ == "__main__":
     num_kernels = 10
     refpoint = [10, 10]
     budget = 20000
-    #add_method = lambda y: add_kernels_middle(y, 0.3)
-    add_method = add_kernels_middle
+    add_method = lambda y: add_kernels_middle(y, 0.1)
+    #add_method = lambda y: add_kernels_middle_copy(y, 0.1)
     test_method = check_kernels_middle_nd
     for i in range(1):
         mymo = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint,
