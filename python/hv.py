@@ -47,20 +47,23 @@ class HyperVolume:
         that the reference point is [0, ..., 0].
 
         """
+        # Cheikh: commenting the weaklyDominates function, 52 to 58 and setting relevantPoints to front
+       
+        # def weaklyDominates(point, other):
+        #    for i in xrange(len(point)):
+         #       if point[i] > other[i]:
+          #          return False
+          #  return True
 
-        def weaklyDominates(point, other):
-            for i in xrange(len(point)):
-                if point[i] > other[i]:
-                    return False
-            return True
-
-        relevantPoints = []
+      #  relevantPoints = []
+        relevantPoints = front
         referencePoint = self.referencePoint
         dimensions = len(referencePoint)
-        for point in front:
-            # only consider points that dominate the reference point
-            if weaklyDominates(point, referencePoint):
-                relevantPoints.append(point)
+        #Cheikh: commenting 62 to 65:
+  #      for point in front:
+  #          # only consider points that dominate the reference point
+  #          if weaklyDominates(point, referencePoint):
+  #              relevantPoints.append(point)
         if any(referencePoint):
             # shift points so that referencePoint == [0, ..., 0]
             # this way the reference point doesn't have to be explicitly used

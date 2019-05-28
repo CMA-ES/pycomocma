@@ -377,11 +377,12 @@ class NondominatedSortedList(list):
         else:
             res = 0 if number_only else []
         idx -= 1
-        while idx >= 0 and all(self[idx][k] <= f_tuple[k] for k in range(1,len(f_tuple))):
-            if number_only:
-                res += 1
-            else:
-                res.insert(0, self[idx])  # keep sorted
+        while idx >= 0:
+            if all(self[idx][k] <= f_tuple[k] for k in range(1,len(f_tuple))):                
+                if number_only:
+                    res += 1
+                else:
+                    res.insert(0, self[idx])  # keep sorted
             idx -= 1
         return res
 
@@ -568,7 +569,7 @@ class NondominatedSortedList(list):
             return (ref_d0**2 + ref_d1**2)**0.5
 
         # distances to the two outer kink points, given by the extreme
-        # points and the respective the reference point coordinate, for
+        # points and the respective reference point coordinate, for
         # the left (and up) most point:
         squared_distances = [max((0, f_tuple[0] - self[0][0]))**2 +
                               ref_d1**2]
