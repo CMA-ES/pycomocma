@@ -4,6 +4,7 @@
 
 """
 from hv import HyperVolume
+import itertools
 
 class EmpiricalFront(list):
     """
@@ -145,7 +146,8 @@ class EmpiricalFront(list):
         if len(self) == 0:
             return sum([max(0, f_tuple[k] - self.reference_point[k])**2
                         for k in range(len(f_tuple)) ])**0.5
-
+        for pair in itertools.combinations(self, 2):
+            pass
         raise NotImplementedError()
 
         
