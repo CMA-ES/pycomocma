@@ -67,6 +67,22 @@ class EmpiricalFront(list):
             return True
         return False
     
+    def kink_points(self, f_tuple = None):
+        """
+        If f_tuple, also add the orthogonal projections of f_tuple to the 
+        empirical front
+        """
+        kinks_loose = []
+        for pair in itertools.combinations(self, 2):
+            kinks_loose += [[max(x) for x in zip(pair[0], pair[1])]]
+        kinks = []
+        for kink in kinks_loose:
+            if not self.dominates(kink):
+                kinks += [kink]
+        return kinks
+    
+    def 
+    
     def prune(self):
         """
         """
@@ -146,8 +162,7 @@ class EmpiricalFront(list):
         if len(self) == 0:
             return sum([max(0, f_tuple[k] - self.reference_point[k])**2
                         for k in range(len(f_tuple)) ])**0.5
-        for pair in itertools.combinations(self, 2):
-            pass
+
         raise NotImplementedError()
 
         
