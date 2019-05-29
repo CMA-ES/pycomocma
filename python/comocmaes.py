@@ -525,25 +525,6 @@ def add_kernels_middle(self, part):
     """
     Add around a fraction 'part' of kernels with mean in the middle of
     already existing kernel ND means, ordered by fitnesses.
-    The stepsize is the mean of the stepsizes of the parents.
-    """
-    kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
-    nb = max(int(part * (self.num_kernels - 1)), 1)
-    tab = np.random.randint(0, self.num_kernels-1, nb)
-
-    for i in range(nb):
-        idx = tab[i]
-        ker1 = kernels_sorted[idx]
-        ker2 = kernels_sorted[idx + 1]
-        if ker1.fit.fitnesses in self.layer and ker2.fit.fitnesses in self.layer:
-            x0 = (ker1.mean + ker2.mean) / 2
-            sigma0 = (ker1.sigma + ker2.sigma) / 2
-            self.add_kernel(x0, sigma0)
-
-def add_kernels_middle_copy(self, part):
-    """
-    Add around a fraction 'part' of kernels with mean in the middle of
-    already existing kernel ND means, ordered by fitnesses.
     Others infos are copied from the left kernel.
     """
     kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
