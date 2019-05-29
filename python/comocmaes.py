@@ -423,7 +423,7 @@ class CoMoCmaes(object):
         if save:
             self._save("ratios", end)
 
-    def plot_kernels(self, numbers=3, font=plt.rcParams['font.size'],
+    def plot_kernels(self, numbers=1, font=plt.rcParams['font.size'],
                      save=False, end=None):
         """
         Choose uniformly at random 'numbers' kernels and plot them using the CMA logger tools.
@@ -444,7 +444,7 @@ class CoMoCmaes(object):
         if save:
             self._save("kernels", end)
 
-    def plot_stds(self, numbers=3, font=plt.rcParams['font.size'], save=False,
+    def plot_stds(self, numbers=1, font=plt.rcParams['font.size'], save=False,
                   end=None):
         """
         Choose uniformly at random 'numbers' kernels and plot their standards deviations
@@ -467,7 +467,7 @@ class CoMoCmaes(object):
             self._save("stds", end)
 
 
-    def plot_axes_lengths(self, numbers=3, font=plt.rcParams['font.size'],
+    def plot_axes_lengths(self, numbers=1, font=plt.rcParams['font.size'],
                           save=False, end=None):
         """
         Choose uniformly at random 'numbers' kernels and plot their covariance matrices 
@@ -522,9 +522,11 @@ def add_kernel_close(self):
     self.add_kernel(x0, kernel.sigma)
 
 def add_kernels_middle(self, part):
-    """Add kernels with mean in the middle of already existing
-    kernel means, ordered by fitnesses and stepsize in the middle of the
-    corresponding stepsizes."""
+    """
+    Add around a fraction 'part' of kernels with mean in the middle of
+    already existing kernel ND means, ordered by fitnesses.
+    The stepsize is the mean of the stepsizes of the parents.
+    """
     kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
     nb = max(int(part * (self.num_kernels - 1)), 1)
     tab = np.random.randint(0, self.num_kernels-1, nb)
@@ -539,8 +541,11 @@ def add_kernels_middle(self, part):
             self.add_kernel(x0, sigma0)
 
 def add_kernels_middle_copy(self, part):
-    """For each point in the middle of ND points, add a kernel with mean this
-    point and stepsize the mean of the ND points stepsize."""
+    """
+    Add around a fraction 'part' of kernels with mean in the middle of
+    already existing kernel ND means, ordered by fitnesses.
+    Others infos are copied from the left kernel.
+    """
     kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
     nb = max(int(part * (self.num_kernels - 1)), 1)
     tab = np.random.randint(0, self.num_kernels-1, nb)
@@ -560,7 +565,6 @@ def add_kernels_middle_copy(self, part):
 def check_kernels_middle_nd(self):
     """Check the ratio of points in the middle of ND points which are non-dominated."""
     kernels_sorted = sorted(self.kernels, key=lambda kernel: kernel.fit.fitnesses)
-
     ratio = 0
     nb = 0
     for idx in range(self.num_kernels - 1):
