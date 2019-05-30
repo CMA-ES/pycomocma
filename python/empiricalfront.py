@@ -5,6 +5,7 @@
 """
 from hv import HyperVolume
 import itertools
+import copy
 
 class EmpiricalFront(list):
     """
@@ -14,7 +15,12 @@ class EmpiricalFront(list):
                  reference_point=None):
         """
         """
-        list.__init__(self)
+        if list_of_f_tuples is not None and len(list_of_f_tuples):
+            try:
+                list_of_f_tuples = list_of_f_tuples.tolist()
+            except:
+                pass
+        list.__init__(self, list_of_f_tuples)
         
         if reference_point is not None:
             self.reference_point = list(reference_point)
@@ -51,26 +57,54 @@ class EmpiricalFront(list):
 
     def dominates_with(self, idx, f_tuple):
         """
+        
+        independant to self.reference_point
         """
-        assert idx < len(self)
-        if all(self[idx][k] <= f_tuple[k] for k in range(len(self))) and any(
-                self[idx][k] < f_tuple[k] for k in range(len(self))):
+        assert idx < len(self) and idx > -1
+        # notion of strong domination here : not the non dominated points,
+        # but the points on the empirical front
+        if all(self[idx][k] < f_tuple[k] for k in range(len(f_tuple))):
             return True
         return False
     
     def in_domain(self, f_tuple):
         """
         """
-        # raise if refpoint not defined
-        assert len(f_tuple) == len(self.reference_pooint)
+        if self.reference_point is None:
+            raise ValueError("to know the domain, a reference"
+                             " point is needed (must be given initially)")
+        assert len(f_tuple) == len(self.reference_point)
         if all(f_tuple[k] < self.reference_point[k] for k in range(len(f_tuple))):
             return True
         return False
     
+    def dominators(self, f_tuple):
+        """return the list of all `f_tuple`-dominating elements in `self`.
+
+        >>> from empiricalfront import EmpiricalFront as EF
+        >>> a = EF([[1.2, 0.1], [0.5, 1]])
+        >>> len(a)
+        2
+        >>> a.dominators([2, 3]) == a
+        True
+        >>> a.dominators([0.5, 1])
+        [[0.5, 1]]
+        >>> len(a.dominators([0.6, 3])), a.dominators([0.6, 3], number_only=True)
+        (1, 1)
+        >>> a.dominators([0.5, 0.9])
+        []
+        """ 
+        res = []
+        for idx in range(len(self)):
+            if self.dominates_with(idx, f_tuple):
+                res += [self[idx]]
+        return res
+        
+        
     def kink_points(self, f_tuple = None):
         """
-        If f_tuple, also add the orthogonal projections of f_tuple to the 
-        empirical front
+        If f_tuple is not None, also add the projections of f_tuple to the empirical front,
+        with respect to the axes
         """
         kinks_loose = []
         for pair in itertools.combinations(self, 2):
@@ -79,9 +113,19 @@ class EmpiricalFront(list):
         for kink in kinks_loose:
             if not self.dominates(kink):
                 kinks += [kink]
+                
+        if f_tuple is not None:
+            for point in self.dominators(f_tuple):
+                # we project here f_tuple on the axes containing 'point'
+                # and collect all the projections
+                for idx in range(len(f_tuple)):
+                    projected_f_tuple = copy.deepcopy(f_tuple)
+                    projected_f_tuple[idx] = point[idx]
+                    
+                    kinks += [projected_f_tuple]
+            
         return kinks
     
-    def 
     
     def prune(self):
         """
@@ -90,7 +134,7 @@ class EmpiricalFront(list):
             self.remove(f_tuple)
         if self.reference_point is not None:
             hv_float = HyperVolume(self.reference_point)
-            self._hypervolume = hv_float(self)
+            self._hypervolume = hv_float.compute(self)
             
     def _set_HV(self):
         """set current hypervolume value using `self.reference_point`.
@@ -103,7 +147,7 @@ class EmpiricalFront(list):
         if self.reference_point is None:
             return None
         hv_float = HyperVolume(self.reference_point)
-        self._hypervolume = hv_float(self)
+        self._hypervolume = hv_float.compute(self)
         return self._hypervolume
         
     @property
@@ -112,8 +156,8 @@ class EmpiricalFront(list):
 
         Raise `ValueError` when no reference point was given initially.
 
-        >>> from moarchiving import NondominatedSortedList as NDA
-        >>> a = NDA([[0.5, 0.4], [0.3, 0.7]], [2, 2.1])
+        >>> from empiricalfront import EmpiricalFront as EF
+        >>> a = EF([[0.5, 0.4], [0.3, 0.7]], [2, 2.1])
         >>> a._asserts()
         >>> a.reference_point == [2, 2.1]
         True
@@ -142,14 +186,9 @@ class EmpiricalFront(list):
         """
         """
         hv_float = HyperVolume(self.reference_point)
-        res1 = hv_float(self + [f_tuple])
+        res1 = hv_float.compute(self + [f_tuple])
         res2 = self._hypervolume
         return res1 - res2
-    
-    def distance_to_hypervolume_area(self, f_tuple):
-        return (sum(max((0, f_tuple[k] - self.reference_point[k]))**2
-                for k in range(self.dim)))**0.5 \
-               if self.reference_point else 0
         
     def distance_to_pareto_front(self, f_tuple):
         """
@@ -162,9 +201,11 @@ class EmpiricalFront(list):
         if len(self) == 0:
             return sum([max(0, f_tuple[k] - self.reference_point[k])**2
                         for k in range(len(f_tuple)) ])**0.5
-
-        raise NotImplementedError()
-
+        squared_distances = []
+        for kink in self.kinks(f_tuple):
+            squared_distances += [sum( (f_tuple[k] - kink[k])**2 for k in range(
+                    len(f_tuple)) )]
+        return min(squared_distances)**0.5
         
     def hypervolume_improvement(self, f_tuple):
         """return how much `f_tuple` would improve the hypervolumen.

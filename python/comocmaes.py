@@ -10,7 +10,7 @@ import warnings
 import fractions
 import numpy as np
 import cma
-from moarchiving import NondominatedSortedList as NDA
+from empiricalfront import EmpiricalFront as EF
 import sys
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -100,11 +100,11 @@ class CoMoCmaes(object):
 
         # self.layer is the list of the objective values of the non-dominated kernel means 
         # by non-dominated, we mean non-dominated by other current kernels means
-        self.layer = NDA([kernel.fit.fitnesses for kernel in self.kernels],
+        self.layer = EF([kernel.fit.fitnesses for kernel in self.kernels],
                          reference_point)
         # self.archive is the list of the non-dominated objective values among
         # everything evaluated
-        self.archive = NDA([kernel.fit.fitnesses for kernel in self.kernels],
+        self.archive = EF([kernel.fit.fitnesses for kernel in self.kernels],
                            reference_point)
 
         # storage attributes
@@ -155,7 +155,7 @@ class CoMoCmaes(object):
 
                    # compute the ratio of non dominated [offspring + mean] and
                    # store it
-                   temp_archive = NDA(offspring_values, self.reference_point)
+                   temp_archive = EF(offspring_values, self.reference_point)
                    temp_archive.add(fit)
                    kernel.ratio_nondominated_offspring += [
                         len(temp_archive) / (1+self.num_offspring)]
@@ -174,33 +174,12 @@ class CoMoCmaes(object):
         self.hv += [self.layer.hypervolume]
         self.hv_archive += [self.archive.hypervolume]
         self.ratio_nondominated_kernels += [len(self.layer)/self.num_kernels]
-        tab = [kernel.ratio_nondominated_offspring[-1]
-               for kernel in self.kernels]
+        tab = [kernel.ratio_nondominated_offspring[-1] for kernel in self.kernels]
         percentile_tab = np.percentile(tab, [25, 50, 75])
         self.ratio_nondominated_first_quartile_offspring += [percentile_tab[0]]
         self.ratio_nondominated_median_offspring += [percentile_tab[1]]
         self.ratio_nondominated_third_quartile_offspring += [percentile_tab[2]]
 
-    def add_kernels(self, numbers, sigma0):
-        """Add 'numbers' kernels with initial mean chosen randomly around a kernel
-        chosen randomly and initial sigma 'sigma0'."""
-        tab = np.random.randint(0, self.num_kernels, numbers)
-
-        for i in range(numbers):
-            # compute randomly the initial mean of the new kernel
-            kernel = self.kernels[tab[i]]
-            lbounds = kernel.mean - 1/2 * kernel.sigma
-            rbounds = kernel.mean + 1/2 * kernel.sigma
-            x0 = lbounds + np.random.rand(self.dim)*(rbounds-lbounds)
-
-            # create the kernel and add it to the kernels
-            new_kernel = cma.CMAEvolutionStrategy(x0, sigma0, {'verb_filenameprefix': str(
-                self.num_kernels+1), 'verbose': -9})
-            new_kernel.fit.fitnesses = self.evaluate(new_kernel.mean)
-            self.kernels += [new_kernel]
-
-        # update the number of kernels
-        self.num_kernels += numbers
 
     def run(self, budget):
         """Do as many steps as possible within the allocated budget."""
@@ -211,30 +190,6 @@ class CoMoCmaes(object):
             self.step()
             if not (l % (max(1, maxiter//10))) and budget > 2000:
                 print("{}".format(l/maxiter), end=' ')
-
-    def incremental_runs(self, budget, sigma0):
-        """
-        An algorithm with increasing kernels.
-
-        We first run the algorithm until all kernels become non dominated, then
-        we do two iterations and we add another kernel. We start another loop
-        until the budget is consumed.
-        """
-
-        while budget - self.counteval > 0:
-            maxevals = 2 * self.num_kernels * (self.num_offspring + 1)
-            # the first condition corresponds to having at least one mean of a
-            # kernel dominated by the others
-            while self.num_kernels > len(self.layer) and budget > self.counteval:
-                self.step()
-            if budget > self.counteval:
-                # maxevals makes the algorithm to run twice when possible, when
-                # the kernels are not dominated 
-                self.run(min(maxevals, budget - self.counteval))
-                self.add_kernels(1, sigma0)
-
-            print("{} kernels, {}/{} evals".format(self.num_kernels,
-                                                   self.counteval, budget))
 
     def plot_front(self, titlelabelsize=18, axislabelsize=16):
         if self.hv != []:
@@ -409,8 +364,6 @@ if __name__ == "__main__":
     refpoint = [1.1, 1.1]
     budget = 3000*num_kernels
 
-    if 1 > 0:
-        mymo = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint, budget,
-                         num_offspring=None, name=myproblem.name,
-                         update_order=lambda x: np.random.permutation(x), inner_iterations=1)
-    #    mymo.run(budget)
+    mymo = CoMoCmaes(fun, dim, sigma0, lbounds, rbounds, num_kernels, refpoint, budget,
+                     name=myproblem.name, update_order=lambda x: np.random.permutation(x))
+    mymo.run(budget)
