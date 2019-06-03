@@ -9,11 +9,18 @@ import copy
 
 class EmpiricalFront(list):
     """
+    A list of objective values in an empirical Pareto front,
+    meaning that no point strictly domminates another one in all
+    objectives.
     """
     def __init__(self,
                  list_of_f_tuples=None,
                  reference_point=None):
         """
+        elements of list_of_f_tuples not in the empirical front are pruned away
+        `reference_point` is also used to compute the hypervolume, with the hv
+        module of Simon Wessing.
+
         """
         if list_of_f_tuples is not None and len(list_of_f_tuples):
             try:
@@ -30,7 +37,7 @@ class EmpiricalFront(list):
         self._set_HV()
 
     def add(self, f_tuple):
-        """add `f_tuple` in `self` if it is not (weakly) dominated.
+        """add `f_tuple` in `self` if it is not dominated in all objectives.
         """
         f_tuple = list(f_tuple)  # convert array to list
         
@@ -40,12 +47,14 @@ class EmpiricalFront(list):
             
     def add_list(self, list_of_f_tuples):
         """
+        add list of f_tuples, using the add method.
         """
         for f_tuple in list_of_f_tuples:
             self.add(f_tuple)
     
     def dominates(self, f_tuple):
         """
+        
         """
         if not self.in_domain(f_tuple):
             return True
@@ -57,8 +66,8 @@ class EmpiricalFront(list):
 
     def dominates_with(self, idx, f_tuple):
         """
-        
-        independant to self.reference_point
+        We assert whether self[idx] dominates f_tuple in all objectives.
+        Note that it is independant to the reference_point.
         """
         assert idx < len(self) and idx > -1
         # notion of strong domination here : not the non dominated points,
@@ -69,6 +78,7 @@ class EmpiricalFront(list):
     
     def in_domain(self, f_tuple):
         """
+        Test if f_tuple dominates the reference point in all objectives.
         """
         if self.reference_point is None:
             raise ValueError("to know the domain, a reference"
@@ -80,6 +90,7 @@ class EmpiricalFront(list):
     
     def dominators(self, f_tuple):
         """return the list of all `f_tuple`-dominating elements in `self`.
+        The method 'dominates_with' is used
 
         >>> from empiricalfront import EmpiricalFront as EF
         >>> a = EF([[1.2, 0.1], [0.5, 1]])
@@ -103,6 +114,7 @@ class EmpiricalFront(list):
         
     def kink_points(self, f_tuple = None):
         """
+        Create the 'kink' points from elements of self.
         If f_tuple is not None, also add the projections of f_tuple to the empirical front,
         with respect to the axes
         """
@@ -129,12 +141,13 @@ class EmpiricalFront(list):
     
     def prune(self):
         """
+        remove point dominated by another one in all objectives.
         """
         for f_tuple in filter(lambda x: self.dominates(x), self):
             self.remove(f_tuple)
         if self.reference_point is not None:
             hv_float = HyperVolume(self.reference_point)
-            self._hypervolume = hv_float.compute(self)
+            self._hypervolume = hv_float.compute(copy.deepcopy(self))
             
     def _set_HV(self):
         """set current hypervolume value using `self.reference_point`.
@@ -147,7 +160,7 @@ class EmpiricalFront(list):
         if self.reference_point is None:
             return None
         hv_float = HyperVolume(self.reference_point)
-        self._hypervolume = hv_float.compute(self)
+        self._hypervolume = hv_float.compute(copy.deepcopy(self))
         return self._hypervolume
         
     @property
@@ -184,14 +197,16 @@ class EmpiricalFront(list):
                 
     def contributing_hypervolume(self, f_tuple):
         """
+        Hypervolume improvement of f_tuple with respect to self.
         """
         hv_float = HyperVolume(self.reference_point)
-        res1 = hv_float.compute(self + [f_tuple])
+        res1 = hv_float.compute(copy.deepcopy(self + [f_tuple]))
         res2 = self._hypervolume
         return res1 - res2
         
     def distance_to_pareto_front(self, f_tuple):
         """
+        Compute the distance of a dominated f_tuple to the empirical Pareto front.
         """
         if self.reference_point is None:
             raise ValueError("to compute the distance to the empirical front"
@@ -208,7 +223,7 @@ class EmpiricalFront(list):
         return min(squared_distances)**0.5
         
     def hypervolume_improvement(self, f_tuple):
-        """return how much `f_tuple` would improve the hypervolumen.
+        """return how much `f_tuple` would improve the hypervolume.
 
         If dominated, return the distance to the empirical pareto front
         multiplied by -1.
