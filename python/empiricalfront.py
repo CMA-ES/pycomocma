@@ -105,6 +105,8 @@ class EmpiricalFront(list):
         >>> a.dominators([0.5, 0.9])
         []
         """ 
+        if f_tuple is None:
+            return self
         res = []
         for idx in range(len(self)):
             if self.dominates_with(idx, f_tuple):
@@ -117,25 +119,25 @@ class EmpiricalFront(list):
         Create the 'kink' points from elements of self.
         If f_tuple is not None, also add the projections of f_tuple to the empirical front,
         with respect to the axes
-        """
+        """    
+                    
         kinks_loose = []
-        for pair in itertools.combinations(self, 2):
-            kinks_loose += [[max(x) for x in zip(pair[0], pair[1])]]
-        kinks = []
-        for kink in kinks_loose:
-            if not self.dominates(kink):
-                kinks += [kink]
-                
+        dominators_f_tuple = self.dominators(f_tuple)
+        for pair in itertools.combinations(dominators_f_tuple, 2):
+            kinks_loose += [[max(x) for x in zip(pair[0], pair[1])]]                
         if f_tuple is not None:
-            for point in self.dominators(f_tuple):
+            for point in dominators_f_tuple:
                 # we project here f_tuple on the axes containing 'point'
                 # and collect all the projections
                 for idx in range(len(f_tuple)):
                     projected_f_tuple = copy.deepcopy(f_tuple)
                     projected_f_tuple[idx] = point[idx]
                     
-                    kinks += [projected_f_tuple]
-            
+                    kinks_loose += [projected_f_tuple]
+        kinks = []
+        for kink in kinks_loose:
+            if not self.dominates(kink):
+                kinks += [kink]
         return kinks
     
     
@@ -143,7 +145,7 @@ class EmpiricalFront(list):
         """
         remove point dominated by another one in all objectives.
         """
-        for f_tuple in filter(lambda x: self.dominates(x), self):
+        for f_tuple in [x for x in self if self.dominates(x)]:
             self.remove(f_tuple)
         if self.reference_point is not None:
             hv_float = HyperVolume(self.reference_point)
