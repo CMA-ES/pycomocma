@@ -7,7 +7,7 @@
 
 import numpy as np
 import cma
-from moarchiving import BiobjectiveNondominatedSortedList as NDA
+from empiricalfront import EmpiricalFront as EF
 import matplotlib.pyplot as plt
 from problems import BiobjectiveConvexQuadraticProblem as problem
 import random
@@ -67,9 +67,9 @@ class CoMoCmaes(object):
             
         self.inner_iterations = inner_iterations
         self.update_order = update_order
-        self.layer = NDA([kernel.fit.fitnesses for kernel in self.kernels],
+        self.layer = EF([kernel.fit.fitnesses for kernel in self.kernels],
                          reference_point)
-        self.archive = NDA([kernel.fit.fitnesses for kernel in self.kernels],
+        self.archive = EF([kernel.fit.fitnesses for kernel in self.kernels],
                          reference_point)
         self.hv = []
         self.hv_archive = []
@@ -113,7 +113,7 @@ class CoMoCmaes(object):
                     if 1>0:
                         kernel.logger.add()
                     
-                    temp_archive = NDA(offspring_values, self.reference_point)
+                    temp_archive = EF(offspring_values, self.reference_point)
                     temp_archive.add(fit)
                     kernel.ratio_nondominated_offspring += [len(temp_archive) / (1+self.num_offspring)]
         # removing the "soon to be old" parent        
