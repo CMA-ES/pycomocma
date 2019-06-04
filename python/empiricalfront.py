@@ -149,7 +149,7 @@ class EmpiricalFront(list):
             self.remove(f_tuple)
         if self.reference_point is not None:
             hv_float = HyperVolume(self.reference_point)
-            self._hypervolume = hv_float.compute(copy.deepcopy(self))
+            self._hypervolume = hv_float.compute(self)
             
     def _set_HV(self):
         """set current hypervolume value using `self.reference_point`.
@@ -162,7 +162,7 @@ class EmpiricalFront(list):
         if self.reference_point is None:
             return None
         hv_float = HyperVolume(self.reference_point)
-        self._hypervolume = hv_float.compute(copy.deepcopy(self))
+        self._hypervolume = hv_float.compute(self)
         return self._hypervolume
         
     @property
@@ -202,7 +202,7 @@ class EmpiricalFront(list):
         Hypervolume improvement of f_tuple with respect to self.
         """
         hv_float = HyperVolume(self.reference_point)
-        res1 = hv_float.compute(copy.deepcopy(self + [f_tuple]))
+        res1 = hv_float.compute(self + [f_tuple])
         res2 = self._hypervolume
         return res1 - res2
         
