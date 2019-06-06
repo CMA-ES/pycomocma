@@ -324,7 +324,7 @@ if __name__ == "__main__":
 #    num_kernels = np.int(10**3)
     num_kernels = 3
 
-    myproblem = problem(dim, name = "cigtab")
+    myproblem = problem(dim, name = "sphere")
     myproblem.sep(0)
   #  myproblem.two()
     fun = myproblem.objective_functions()
@@ -334,7 +334,7 @@ if __name__ == "__main__":
 #    sigma0 = np.sqrt(dim)
   #  refpoint = [1, 1]
     refpoint = [1.1, 1.1]
-    budget = 6000*num_kernels
+    budget = 2000*num_kernels
 
     mymo = CoMoCmaes(fun,dim,sigma0,lbounds,rbounds,num_kernels,refpoint,budget,
                        num_offspring = None, name = myproblem.name,
