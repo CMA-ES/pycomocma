@@ -44,6 +44,17 @@ class EmpiricalFront(list):
         if not self.dominates(f_tuple):
             self += [f_tuple]
         self.prune()
+        
+    def remove_it(self, f_tuple):
+        """
+        """
+        f_tuple = list(f_tuple)  # convert array to list
+        if f_tuple in self:
+            self.remove(f_tuple)
+        if self.reference_point is not None:
+            hv_float = HyperVolume(self.reference_point)
+            self._hypervolume = hv_float.compute(self)
+        
             
     def add_list(self, list_of_f_tuples):
         """
@@ -236,11 +247,15 @@ class EmpiricalFront(list):
         assert contribution >= 0
         if contribution:
             return contribution
-        return self.distance_to_pareto_front(f_tuple)
+        return -self.distance_to_pareto_front(f_tuple)
 
         
+if __name__ == "__main__":
 
-
+    # Example:
+    refpoint = [1.1, 1.1]
+    myfront = [[0, 1], [1, 0], [0.25, 0.25], [2, 2]]
+    emp = EmpiricalFront(myfront, refpoint)
             
     
     
