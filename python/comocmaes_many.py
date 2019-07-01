@@ -7,7 +7,7 @@
 
 import numpy as np
 import cma
-from empiricalfront import EmpiricalFront as EF
+from nondominatedarchive import NonDominatedList as NDA
 import matplotlib.pyplot as plt
 from problems import BiobjectiveConvexQuadraticProblem as problem
 import random
@@ -30,7 +30,6 @@ class CoMoCmaes(object):
                  kernels = None,
                  num_offspring = None,
                  inner_iterations = 1,
-                 lazy = False,
                  name = None
                  ):
         
@@ -43,7 +42,6 @@ class CoMoCmaes(object):
         self.num_offspring = num_offspring
         self.reference_point = reference_point
         self.counteval = 0
-        self.lazy = lazy
         if not kernels:            
             kernels = []
             for i in range(num_kernels):
@@ -67,9 +65,9 @@ class CoMoCmaes(object):
             
         self.inner_iterations = inner_iterations
         self.update_order = update_order
-        self.layer = EF([kernel.fit.fitnesses for kernel in self.kernels],
+        self.layer = NDA([kernel.fit.fitnesses for kernel in self.kernels],
                          reference_point)
-        self.archive = EF([kernel.fit.fitnesses for kernel in self.kernels],
+        self.archive = NDA([kernel.fit.fitnesses for kernel in self.kernels],
                          reference_point)
         self.hv = []
         self.hv_archive = []
@@ -94,37 +92,27 @@ class CoMoCmaes(object):
         for idx in range(len(self.kernels)):
             kernel = self.kernels[order[idx]]
             fit = kernel.fit.fitnesses
-            if not self.lazy:
-                if fit in self.layer:
-                    self.layer.remove_it(fit)
-        
-            for _ in range(self.inner_iterations):              
-                try:
-                    offspring = kernel.ask()
-    
-                    offspring_values = [self.evaluate(child) for child in offspring]
-                    hypervolume_improvements = [self.layer.hypervolume_improvement(
-                            point) for point in offspring_values]
-                    self.archive.add_list(offspring_values)
-                    self.archive.add(fit)                
-                    kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
-                 #   if self.counteval < 3000*self.num_kernels or (len(
-                  #          self.hv) > 1 and abs(self.hv[-1] - self.hv[-2]) > 10**-16):
-                    if 1>0:
-                        kernel.logger.add()
-                    
-                    temp_archive = EF(offspring_values, self.reference_point)
-                    temp_archive.add(fit)
-                    kernel.ratio_nondominated_offspring += [len(temp_archive) / (1+self.num_offspring)]
-        # removing the "soon to be old" parent        
-                except:
-                    continue
-            
-            if fit in self.layer:
-                self.layer.remove_it(fit)
+            self.layer.remove(fit)
+            if 1>0:
+                offspring = kernel.ask()
+
+                offspring_values = [self.evaluate(child) for child in offspring]
+                hypervolume_improvements = [self.layer.hypervolume_improvement(
+                        point) for point in offspring_values]
+                self.archive.add_list(offspring_values)
+
+                kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
+             #   if self.counteval < 3000*self.num_kernels or (len(
+              #          self.hv) > 1 and abs(self.hv[-1] - self.hv[-2]) > 10**-16):
+                kernel.logger.add()
+                
+                temp_archive = NDA(offspring_values + [fit], self.reference_point)
+                kernel.ratio_nondominated_offspring += [len(temp_archive) / (1+self.num_offspring)]
+
     #updating the fitness:
             kernel.fit.fitnesses = self.evaluate(kernel.mean)
             self.layer.add(kernel.fit.fitnesses)
+            self.archive.add(kernel.fit.fitnesses)
         self.hv += [self.layer.hypervolume]
         self.hv_archive += [self.archive.hypervolume]
         self.ratio_nondominated_kernels += [len(self.layer)/self.num_kernels]
@@ -322,10 +310,10 @@ if __name__ == "__main__":
     
     dim = 10
 #    num_kernels = np.int(10**3)
-    num_kernels = 3
+    num_kernels = 7
 
-    myproblem = problem(dim, name = "cigtab")
-    myproblem.sep(0)
+    myproblem = problem(dim, name = "sphere")
+ #   myproblem.sep(0)
   #  myproblem.two()
     fun = myproblem.objective_functions()
     lbounds = -0*np.ones(dim)
@@ -334,11 +322,10 @@ if __name__ == "__main__":
 #    sigma0 = np.sqrt(dim)
   #  refpoint = [1, 1]
     refpoint = [1.1, 1.1]
-    budget = 2000*num_kernels
+    budget = 1000*num_kernels
 
     mymo = CoMoCmaes(fun,dim,sigma0,lbounds,rbounds,num_kernels,refpoint,budget,
-                       num_offspring = None, name = myproblem.name,
-                       update_order = lambda x: np.random.permutation(x),inner_iterations = 1)
+                       num_offspring = None, name = myproblem.name)
     mymo.run(budget)    
     mymo.plot_front()
     
