@@ -167,8 +167,13 @@ class HyperVolume:
         """Sorts the list of nodes by the i-th value of the contained points."""
         # build a list of tuples of (point[i], node)
         decorated = [(node.cargo[i], node) for node in nodes]
-        # sort by this value
-        decorated.sort()
+        #Cheikh : comment below and write a non-buggy sorting for decorated:
+        
+        ## sort by this value
+        #decorated.sort()
+        
+        decorated.sort(key = lambda u: u[0])
+        
         # write back to original list
         nodes[:] = [node for (_, node) in decorated]
             
