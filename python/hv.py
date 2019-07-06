@@ -21,7 +21,7 @@ try:
     xrange = range
 except:
     pass
-
+from fractions import Fraction as Ff
 
 class HyperVolume:
     """
@@ -66,9 +66,9 @@ class HyperVolume:
             # this way the reference point doesn't have to be explicitly used
             # in the HV computation
             for j in xrange(len(relevantPoints)):
-                relevantPoints[j] = [relevantPoints[j][i] - referencePoint[i] for i in xrange(dimensions)]
+                relevantPoints[j] = [Ff(relevantPoints[j][i]) - Ff(referencePoint[i]) for i in xrange(dimensions)]
         self.preProcess(relevantPoints)
-        bounds = [-1.0e308] * dimensions
+        bounds = [-Ff(1.0e308)] * dimensions
         hyperVolume = self.hvRecursive(dimensions - 1, len(relevantPoints), bounds)
         return hyperVolume
 
@@ -80,7 +80,7 @@ class HyperVolume:
         is [0, ..., 0]. This allows the avoidance of a few operations.
 
         """
-        hvol = 0.0
+        hvol = Ff(0.0)
         sentinel = self.list.sentinel
         if length == 0:
             return hvol
@@ -91,16 +91,16 @@ class HyperVolume:
         elif dimIndex == 1:
             # special case: two dimensions, end recursion
             q = sentinel.next[1]
-            h = q.cargo[0]
+            h = Ff(q.cargo[0])
             p = q.next[1]
             while p is not sentinel:
                 pCargo = p.cargo
-                hvol += h * (q.cargo[1] - pCargo[1])
-                if pCargo[0] < h:
-                    h = pCargo[0]
+                hvol += h * (Ff(q.cargo[1]) - Ff(pCargo[1]))
+                if Ff(pCargo[0]) < h:
+                    h = Ff(pCargo[0])
                 q = p
                 p = q.next[1]
-            hvol += h * q.cargo[1]
+            hvol += h * Ff(q.cargo[1])
             return hvol
         else:
             remove = self.list.remove
@@ -122,10 +122,11 @@ class HyperVolume:
             qCargo = q.cargo
             qPrevDimIndex = q.prev[dimIndex]
             if length > 1:
-                hvol = qPrevDimIndex.volume[dimIndex] + qPrevDimIndex.area[dimIndex] * (qCargo[dimIndex] - qPrevDimIndex.cargo[dimIndex])
+                hvol = Ff(qPrevDimIndex.volume[dimIndex]) + Ff(
+                        qPrevDimIndex.area[dimIndex]) * (Ff(qCargo[dimIndex]) - Ff(qPrevDimIndex.cargo[dimIndex]))
             else:
-                qArea[0] = 1
-                qArea[1:dimIndex+1] = [qArea[i] * -qCargo[i] for i in xrange(dimIndex)]
+                qArea[0] = Ff(1)
+                qArea[1:dimIndex+1] = [Ff(qArea[i]) * Ff(-qCargo[i]) for i in xrange(dimIndex)]
             q.volume[dimIndex] = hvol
             if q.ignore >= dimIndex:
                 qArea[dimIndex] = qPrevDimIndex.area[dimIndex]
@@ -134,8 +135,8 @@ class HyperVolume:
                 if qArea[dimIndex] <= qPrevDimIndex.area[dimIndex]:
                     q.ignore = dimIndex
             while p is not sentinel:
-                pCargoDimIndex = p.cargo[dimIndex]
-                hvol += q.area[dimIndex] * (pCargoDimIndex - q.cargo[dimIndex])
+                pCargoDimIndex = Ff(p.cargo[dimIndex])
+                hvol += Ff(q.area[dimIndex]) * Ff((pCargoDimIndex - Ff(q.cargo[dimIndex])))
                 bounds[dimIndex] = pCargoDimIndex
                 reinsert(p, dimIndex, bounds)
                 length += 1
@@ -143,12 +144,12 @@ class HyperVolume:
                 p = p.next[dimIndex]
                 q.volume[dimIndex] = hvol
                 if q.ignore >= dimIndex:
-                    q.area[dimIndex] = q.prev[dimIndex].area[dimIndex]
+                    q.area[dimIndex] = Ff(q.prev[dimIndex].area[dimIndex])
                 else:
                     q.area[dimIndex] = hvRecursive(dimIndex - 1, length, bounds)
-                    if q.area[dimIndex] <= q.prev[dimIndex].area[dimIndex]:
+                    if Ff(q.area[dimIndex]) <= Ff(q.prev[dimIndex].area[dimIndex]):
                         q.ignore = dimIndex
-            hvol -= q.area[dimIndex] * q.cargo[dimIndex]
+            hvol -= Ff(q.area[dimIndex]) * Ff(q.cargo[dimIndex])
             return hvol
 
 
@@ -194,8 +195,8 @@ class MultiList:
             self.next  = [None] * numberLists
             self.prev = [None] * numberLists
             self.ignore = 0
-            self.area = [0.0] * numberLists
-            self.volume = [0.0] * numberLists
+            self.area = [Ff(0.0)] * numberLists
+            self.volume = [Ff(0.0)] * numberLists
     
         def __str__(self): 
             return str(self.cargo)
@@ -274,7 +275,7 @@ class MultiList:
             predecessor.next[i] = successor
             successor.prev[i] = predecessor  
             if bounds[i] > node.cargo[i]:
-                bounds[i] = node.cargo[i]
+                bounds[i] = Ff(node.cargo[i])
         return node
     
     
@@ -289,7 +290,7 @@ class MultiList:
             node.prev[i].next[i] = node
             node.next[i].prev[i] = node
             if bounds[i] > node.cargo[i]:
-                bounds[i] = node.cargo[i]
+                bounds[i] = Ff(node.cargo[i])
             
 
 

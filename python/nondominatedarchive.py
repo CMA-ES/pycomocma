@@ -29,7 +29,7 @@ class NonDominatedList(list):
                 list_of_f_tuples = list_of_f_tuples.tolist()
             except:
                 pass
-        list.__init__(self, list_of_f_tuples)
+            list.__init__(self, list_of_f_tuples)
         
         if reference_point is not None:
             self.reference_point = list(reference_point)
@@ -76,10 +76,9 @@ class NonDominatedList(list):
         Return `None` (like `list.remove`).
         """
         f_tuple = list(f_tuple)  # convert array to list
-        if f_tuple in self:
-            list.remove(self, f_tuple)
-            self._hypervolume = None
-            self._kink_points = None
+        list.remove(self, f_tuple)
+        self._hypervolume = None
+        self._kink_points = None
         
         
     def add_list(self, list_of_f_tuples):
@@ -249,7 +248,7 @@ class NonDominatedList(list):
         Otherwise return `False` or `None` if `idx` is out-of-range.
 
         >>> from nondominatedarchive import NonDominatedList as NDA
-        >>> NDA().dominates_with(0, [1, 2]) is None  # empty NDA
+        >>> NDA()._strictly_dominates_with(0, [1, 2]) is None  # empty NDA
         True
 
         """
@@ -318,33 +317,27 @@ class NonDominatedList(list):
         >>> a._asserts()
         >>> a.reference_point == [2, 2.1]
         True
-        >>> a.add([0.2, 0.8])
-        0
         >>> a._asserts()
-        >>> abs(a.hypervolume - a.compute_hypervolume(a.reference_point)) < 1e-11
-        True
-        >>> a.add([0.3, 0.6])
-        1
-        >>> a._asserts()
-        >>> abs(a.hypervolume - a.compute_hypervolume(a.reference_point)) < 1e-11
-        True
 
         """
         if self.reference_point is None:
             raise ValueError("to compute the hypervolume a reference"
                              " point is needed (must be given initially)")
         if self._hypervolume is None:
-            hv_float = HyperVolume(self.reference_point)
-            self._hypervolume = hv_float.compute(self)
+            hv_fraction = HyperVolume(self.reference_point)
+            self._hypervolume = hv_fraction.compute(self)
         return self._hypervolume
 
     def contributing_hypervolume(self, f_tuple):
         """
         Hypervolume improvement of f_tuple with respect to self.
         """
-        hv_float = HyperVolume(self.reference_point)
-        res1 = hv_float.compute(self + [f_tuple])
-        res2 = self._hypervolume or hv_float.compute(self)
+        if self.reference_point is None:
+            raise ValueError("to compute the hypervolume a reference"
+                             " point is needed (must be given initially)")
+        hv_fraction = HyperVolume(self.reference_point)
+        res1 = hv_fraction.compute(self + [f_tuple])
+        res2 = self._hypervolume or hv_fraction.compute(self)
         return res1 - res2
         
     def distance_to_pareto_front(self, f_tuple):
@@ -394,6 +387,16 @@ class NonDominatedList(list):
             [list(0.01 * npr.randn(2) + npr.rand(1) * [i, -i])
              for i in range(N)],
             reference_point=ref_point)
+    
+    @staticmethod
+    def _random_archive_many(k, max_size=500, p_ref_point=0.5):
+        from numpy import random as npr
+        N = npr.randint(max_size)
+        ref_point = list(npr.randn(k) + 1) if npr.rand() < p_ref_point else None
+        return NonDominatedList(
+            [list(0.01 * npr.randn(k) + i*(2*npr.rand(k)-1))
+             for i in range(N)],
+            reference_point=ref_point)
 
     def _asserts(self):
         """make all kind of consistency assertions.
@@ -403,11 +406,6 @@ class NonDominatedList(list):
         ...    [[-0.749, -1.188], [-0.557, 1.1076],
         ...    [0.2454, 0.4724], [-1.146, -0.110]], [10, 10])
         >>> a._asserts()
-        >>> for i in range(len(a)):
-        ...    assert a.contributing_hypervolume(i) == a.contributing_hypervolumes[i]
-        >>> assert all(map(lambda x, y: x - 1e-9 < y < x + 1e-9,
-        ...               a.contributing_hypervolumes,
-        ...               [4.01367, 11.587422]))
         >>> for p in list(a):
         ...     a.remove(p)
         >>> assert len(a) == 0
@@ -418,12 +416,22 @@ class NonDominatedList(list):
         >>> from numpy.random import rand
         >>> for _ in range(120):
         ...     a = nondominatedarchive.NonDominatedList._random_archive()
-        ...     a.make_expensive_asserts = True
         ...     if a.reference_point:
         ...         for f_tuple in rand(10, 2):
         ...             h0 = a.hypervolume
         ...             hi = a.hypervolume_improvement(list(f_tuple))
         ...             assert a.hypervolume == h0  # works OK with Fraction
+
+        >>> for _ in range(10):
+        ...     for k in range(3,10):                    
+        ...         a = nondominatedarchive.NonDominatedList._random_archive_many(k)
+        ...         if a.reference_point:
+        ...             for f_tuple in rand(10, k):
+        ...                 h0 = a.contributing_hypervolume(list(f_tuple))
+        ...                 hi = a.hypervolume_improvement(list(f_tuple))
+        ...                 assert h0 >= 0            
+        ...                 assert h0 == hi or (h0 == 0 and hi < 0)
+                            
 
 
         """
@@ -432,6 +440,6 @@ if __name__ == "__main__":
     import doctest
     doctest.testmod()
     # Example:
-    refpoint = [1.1, 1.1]
-    myfront = [[0, 1], [1, 0], [0.25, 0.25], [2, 2]]
+    refpoint = [1.1, 1.1, 1.1]
+    myfront = [[0, 0, 1], [1, 0, 0], [0, 1, 0], [0.25, 0.25, 0.25], [2, 2, 2]]
     emp = NonDominatedList(myfront, refpoint)
