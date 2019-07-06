@@ -18,7 +18,7 @@ class Comocmaes(interfaces.OOOptimizer):
     def __init__(self,
                  x0,
                  sigma0,
-                 evaluate,
+                 fitness,
                  num_kernels,
                  reference_point = None,    
                  update_order = lambda x: np.arange(x),
@@ -35,12 +35,12 @@ class Comocmaes(interfaces.OOOptimizer):
         for i in range(num_kernels):
             kernels += [cma.CMAEvolutionStrategy(x0,sigma0,{'verb_filenameprefix' : str(
                     i),'conditioncov_alleviate':[np.inf, np.inf],
-'CMA_const_trace': 'False'})]#,'verbose':-9})]#,'AdaptSigma':cma.sigma_adaptation.CMAAdaptSigmaTPA})]
+'CMA_const_trace': 'False', 'tolx': 10**-6})]#,'verbose':-9})]#,'AdaptSigma':cma.sigma_adaptation.CMAAdaptSigmaTPA})]
         self.kernels = kernels
         #Here we store the objective values of the cma means 
         #once and for all, without creating a new structure. 
         #Note that the fit class is currently "blanc":
-        self.evaluate = evaluate
+        self.evaluate = fitness
         mean_values = self.evaluate(x0)
         for kernel in self.kernels:
             kernel.fit.fitness = mean_values
@@ -92,10 +92,17 @@ class Comocmaes(interfaces.OOOptimizer):
             self.layer.add(kernel.fit.fitness)
             kernel.logger.add()
         
-    def stop(self):
+    def stop(self, tolx = None):
         """
         """
-        if all(kernel.sigma < 10**-6 for kernel in self.kernels):
+        if tolx == None:
+            tolx = [self.kernels[i].opts['tolx'] for i in range(self.num_kernels)]
+        assert all([u > 0 for u in tolx])
+        if (all([all([self.kernels[i].sigma * xi < tolx[i] for xi
+        in self.kernels[i].sigma_vec * self.kernels[i].pc]) 
+        and all([self.kernels[i].sigma * xi < tolx[i] for xi in 
+        self.kernels[i].sigma_vec * np.sqrt(self.kernels[i].dC)])
+        for i in range(self.num_kernels)])):
             return True
         return False
     
