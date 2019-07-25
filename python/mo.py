@@ -112,7 +112,7 @@ TODO        moes.result_pretty()
     def __init__(self,
                list_of_solver_instances, # usally come from a factory function 
                                          #  creating single solvers instances
-               options = None, # keeping an archive, exact Sofomore, etc.
+               options = None, # keeping an archive, etc.
                reference_point = None,    
                ):
         """
@@ -195,9 +195,8 @@ TODO        moes.result_pretty()
                 self.archive = NDA(F, self.reference_point)
             else:
                 self.archive.add_list(F)
-                
-    #TODO: write tell to incorporate the exact sofomore, example with an argument 
-    # ‘objective_functions‘ that should be a callable, otherwise raise something    
+
+ 
     def stop(self):
         """
         return a nonempty dictionary when all kernels stop, containing all the
@@ -282,7 +281,7 @@ class CmaKernel(cma.CMAEvolutionStrategy):
     def __init__(self, x0, sigma0, inopts=None):
         """
         """
-        cma.CMAEvolutionStrategy.__init__(self, x0, sigma0, inopts=None)
+        cma.CMAEvolutionStrategy.__init__(self, x0, sigma0, inopts)
         self.incumbent = self.mean
         self.objective_values = None
         
