@@ -26,7 +26,7 @@ class Sofomore(interfaces.OOOptimizer):
 
     - ``moes = Sofomore(list_of_solver_instances, reference_point, opts)``
 
-    - ``es = moes = Sofomore(list_of_solver_instances, 
+    - ``moes = Sofomore(list_of_solver_instances, 
                              reference_point).optimize(objective_fcts)``
 
     Arguments   
@@ -66,11 +66,7 @@ class Sofomore(interfaces.OOOptimizer):
             optimization.
             Note that the archive will not interfere with the optimization 
             process.
-            - 'exact_sofomore': if `True`, the ask-and-tell interface is
-            written exactly as the Sofomore algorithm from `Toure et al`.
-            Meaning that for each single-objective solver, the objective
-            values of its incumbent are also updated during the call of tell.
-
+ 
 
     Main interface / usage
     ======================
@@ -130,8 +126,7 @@ TODO        moes.result_pretty()
         self.reference_point = reference_point
         self.front = []
         update_order = lambda x: x
-        defopts = {'archive': False, 'update_order': update_order, 
-                   'exact_sofomore':False}
+        defopts = {'archive': False, 'update_order': update_order}
         if options is None:
             options = {}
         if isinstance(options, dict):
@@ -148,10 +143,11 @@ TODO        moes.result_pretty()
         return a list of vectors
         """
         if num_kernels == "all" or num_kernels > len(self.kernels):
-            num_kernels = len(self.kernels)
+            num_kernels = len(self.kernels) # raise a warning here instead
         self.offspring = []
         res = []
-        for ikernel in range(self.num_kernels):
+        for ikernel in [_randint_derandomized_generator(self.num_kernels)
+                        for _ in range(num_kernels)]:
             kernel = self.kernels[ikernel]
             if not kernel.stop():
                 offspring = kernel.ask()
@@ -221,8 +217,9 @@ TODO        moes.result_pretty()
         """
         turn off ‘kernel‘ in self, when ‘kernel‘ is in self.
         """
-        if kernel in self:
-            kernel.stop()['turn_off'] = True 
+        if kernel in self.kernels:
+    #        kernel.stop()['turn_off'] = True 
+            kernel.opts['termination_callback'] = lambda _: 'kernel turned off'
     
     def add(self, kernels):
         """
@@ -264,7 +261,7 @@ def get_cma(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
     if not isinstance(sigma_starts, list):
         sigma_starts = num_kernels * [sigma_starts]
     if not isinstance(inopts, list):
-        inopts = num_kernels * [inopts]
+        inopts = [dict(inopts) for _ in num_kernels]
         
     for i in range(num_kernels):
         defopts = cma.CMAOptions()
@@ -295,7 +292,7 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         to_be_ignored = ignore_list + ('tolfun', 'tolfunhist', 'flat fitness', 'tolstagnation')
         return cma.CMAEvolutionStrategy.stop(self, check, ignore_list = to_be_ignored)
 
-def _randint_derandomized_generator(self, low, high=None, size=None):
+def _randint_derandomized_generator(low, high=None, size=None):
     """the generator for `randint_derandomized`
     code from the module cocopp, in: cocopp.toolsstats._randint_derandomized_generator
     """
@@ -310,3 +307,18 @@ def _randint_derandomized_generator(self, low, high=None, size=None):
             yield low + randi
             if delivered >= size:
                 break
+            
+class Sequence(object):
+    def __init__(self, max_val, generator=_randint_derandomized_generator):
+        self.max_val = max_val
+        self.generator = generator
+    def __call__(self):
+        while True:
+            for randi in self.generator(self.max_val):
+                self.delivered += 1
+                yield randi
+        
+        
+        
+        
+        
