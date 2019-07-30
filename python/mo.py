@@ -9,6 +9,7 @@ import cma
 from cma import interfaces
 from nondominatedarchive import NonDominatedList as NDL
 from moarchiving import BiobjectiveNondominatedSortedList as BNDSL
+import warnings
 
 class Sofomore(interfaces.OOOptimizer):
     
@@ -22,21 +23,21 @@ class Sofomore(interfaces.OOOptimizer):
     Calling Sequences
     =================
 
-    - ``moes = Sofomore(list_of_solver_instances, reference_point)``
+    - ``moes = Sofomore(list_of_solvers_instances, reference_point)``
 
-    - ``moes = Sofomore(list_of_solver_instances, reference_point, opts)``
+    - ``moes = Sofomore(list_of_solvers_instances, reference_point, opts)``
 
-    - ``moes = Sofomore(list_of_solver_instances, 
+    - ``moes = Sofomore(list_of_solvers_instances, 
                              reference_point).optimize(objective_fcts)``
 
     Arguments   
     =========
-    `list_of_solver_instances`
+    `list_of_solvers_instances`
         list of instances of single-objective solvers.
         It's generally created via a factory function.
         Let's take the example of a factory function that returns cma-es 
         instances, called `get_cma`. Then:
-        - ``list_of_solver_instances = get_cma(11*[x0], sigma0)`` 
+        - ``list_of_solvers_instances = get_cma(11*[x0], sigma0)`` 
         creates a list of 11 cma-es instances of mean `x0` and step-size 
         `sigma0`.
         A single-objective solver instance must have the following
@@ -58,7 +59,7 @@ class Sofomore(interfaces.OOOptimizer):
         the Hypervolume indicator of `p` points towards the Pareto set/front.
         However, it can be changed dynamically by the user if needed.
         
-    `opts`
+    `options`
         options, a dictionary with optional settings related to the 
         Sofomore framework. It contains the following keys:
             - 'archive': if its value is `True`, tracks the non-dominated
@@ -66,14 +67,17 @@ class Sofomore(interfaces.OOOptimizer):
             optimization.
             Note that the archive will not interfere with the optimization 
             process.
+            - 'update_order': the order in which the kernels will be updated.
  
 
     Main interface / usage
     ======================
     The interface is inherited from the generic `OOOptimizer`
     class (see also there). An object instance is generated from::
-
-        moes = cma.CMAEvolutionStrategy(8 * [0.5], 0.2)
+        
+        list_of_solvers_instances = get_cma(11*[x0], sigma0)
+        moes = mo.Sofomore(list_of_solvers_instances,
+                           reference_point = reference_point)
 
     The least verbose interface is via the optimize method::
 
@@ -83,42 +87,63 @@ TODO     res = moes.result
     More verbosely, the optimization is done using the
     methods `stop`, `ask`, and `tell`::
 
+        
+        X = moes.ask(num_kernels = "all")
+        for i in moes.asked_indices:
+            kernel = moes.kernels[i]
+            kernel.objective_values = fitness(kernel.incumbent)
+        F = [fitness(x) for x in X]
+        moes.tell(X, F)
+-----The phase above phase initializes the kernels on the Objective space-----
         while not moes.stop():
+            for i in moes.asked_indices:
+                kernel = moes.kernels[i]
+                kernel.objective_values = fitness(kernel.incumbent)
             solutions = moes.ask()
             F = [fitness(x) for x in solutions]
             moes.tell(solutions, F)
 TODO        moes.disp()
 TODO        moes.result_pretty()
 
-
     where `ask` delivers new candidate solutions and `tell` updates
     the `optim` instance by passing the respective function values.
 
     Attributes and Properties
     =========================
-    - `kernels`: `list_of_solver_instances`, and is the list of 
-    single-objective solvers.
-    - `num_kernels`: length of `list_of_solver_instances`.
-    - `options`: passed options
+    - `kernels`: initialized with `list_of_solvers_instances`, 
+    and is the list of single-objective solvers.
+    - `num_kernels`: length of `self.kernels`.
+    - `options`: passed options.
     - `front`: list of non-dominated points among the incumbents of 
     self.kernels.
     - `archive`: list of non-dominated points among all points evaluated 
     so far.
     - `reference_point`: the current reference point.
     - `offspring`: list of tuples of the index of a solver and the generated
-    candidate solutions, that we generally get by calling the `ask` method.
+    candidate solutions, that we generally get with the cma's `ask` method.
+    - asked-indices: the kernels' indices updated during the
+    last `ask-and-tell` call.
         
     """   
     def __init__(self,
-               list_of_solver_instances, # usally come from a factory function 
-                                         #  creating single solvers instances
+               list_of_solvers_instances, # usally come from a factory function 
+                                         #  creating single solvers' instances
                options = None, # keeping an archive, etc.
                reference_point = None,    
                ):
         """
+        Initialization:
+            - `list_of_solvers_instances` is a list of single-objective 
+            solvers' instances
+            - `options` is a dictionary updating the values of 
+            `archive` and `update_order`, that responds respectfully to whether
+            or not tracking an archive, and the order of update of the kernels.
+            - The reference_point can be changed by the user after 
+            initialization, by setting a value to `self.reference_point`.
+        
         """
-        assert len(list_of_solver_instances) > 1
-        self.kernels = list_of_solver_instances
+        assert len(list_of_solvers_instances) > 1
+        self.kernels = list_of_solvers_instances
         self.num_kernels = len(self.kernels)
         for kernel in self.kernels:
             if not hasattr(kernel, 'objective_values'):
@@ -140,12 +165,26 @@ TODO        moes.result_pretty()
         self.update_order = Sequence(self.num_kernels)()
         self.asked_indices = []
         
-    def ask(self, num_kernels = 1):
+    def ask(self, num_kernels = 1, is_feasible = None,
+            max_rejection = 10, **kwargs):
         """
-        return a list of vectors
+        get/sample new feasible candidate solutions, by constantly calling the
+        `ask` method of the `cma.CMAEvolutionStrategy` class.
+        Arguments
+        ---------
+        - `num_kernels`: the number of kernels that we sample solutions from.
+        - `is_feasible`: boolean function rejecting the feasability of a 
+        solution. Each solution is resampled until none of them is rejected,
+        unless the `max_rejection` number is reached for a kernel.
+        - `kwargs`: keywords arguments for the `cma.CMAEvolutionStrategy`'s
+        `ask` method.
+        
+        Return a list of all the offspring from all the asked kernels.
         """
-        if num_kernels == "all" or num_kernels > len(self.kernels):
-            num_kernels = len(self.kernels) # raise a warning here instead for >
+        if num_kernels == "all":
+            num_kernels = self.num_kernels
+        if num_kernels > self.num_kernels:
+            warnings.warn('value larger than the actual number of kernels.')
         self.offspring = []
         res = []
 #        for ikernel in [_randint_derandomized_generator(self.num_kernels)
@@ -154,10 +193,13 @@ TODO        moes.result_pretty()
         for ikernel in indices:
             kernel = self.kernels[ikernel]
             if not kernel.stop():
-                offspring = kernel.ask()
+                rejected = 0
+                offspring = kernel.ask(kwargs)
+                #TODO: continue here
                 res.extend(offspring)
                 self.offspring += [(ikernel, offspring)]
         self.asked_indices = indices
+        #TODO: put the infeasible part here, with the box constraints and so one
         return res
         
     def tell(self, X, F):
@@ -279,7 +321,7 @@ def get_cma(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
     for i in range(num_kernels):
         defopts = cma.CMAOptions()
         defopts.update({'verb_filenameprefix': str(number_created_kernels+i), 'conditioncov_alleviate': [np.inf, np.inf],
-                    'verbose':-1, 'tolx':1e-6})
+                    'verbose':-1, 'tolx':1e-9})
         if isinstance(list_of_opts[i], dict):
             defopts.update(list_of_opts[i])
             
