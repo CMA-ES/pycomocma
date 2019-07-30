@@ -138,7 +138,6 @@ TODO        moes.result_pretty()
             self.archive = []
         self.offspring = []
         self.update_order = Sequence(self.num_kernels)()
-        self.asked_indices = []
         
     def ask(self, num_kernels = 1):
         """
@@ -150,14 +149,12 @@ TODO        moes.result_pretty()
         res = []
 #        for ikernel in [_randint_derandomized_generator(self.num_kernels)
 #                        for _ in range(num_kernels)]:
-        indices = [self.update_order.__next__() for _ in range(num_kernels)]
-        for ikernel in indices:
+        for ikernel in [self.update_order.__next__() for _ in range(num_kernels)]:
             kernel = self.kernels[ikernel]
             if not kernel.stop():
                 offspring = kernel.ask()
-                res.extend(offspring)
+                res.extend([kernel.mean]+offspring)
                 self.offspring += [(ikernel, offspring)]
-        self.asked_indices = indices
         return res
         
     def tell(self, X, F):
@@ -174,8 +171,8 @@ TODO        moes.result_pretty()
         start = 0 # position of the offspring
         for ikernel, offspring in self.offspring:
             kernel = self.kernels[ikernel]
-
-            start += len(offspring)
+            kernel.objective_values = F[start]
+            start += 1+len(offspring)
         
         if self.reference_point is None:
             pass #write here the max among the kernel.objective_values
@@ -190,9 +187,9 @@ TODO        moes.result_pretty()
                                   # the reference point
                 self.front.remove(fit)
             hypervolume_improvements = [self.front.hypervolume_improvement(
-                    point) for point in F[start:start+len(offspring)]]
+                    point) for point in F[start+1:start+len(offspring)+1]]
             self.front.add(fit) # in case num_kernels > 1
-            start += len(offspring)
+            start += 1+len(offspring)
             kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
             try:
                 kernel.logger.add()
@@ -270,18 +267,15 @@ def get_cma(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
         sigma_starts = num_kernels * [sigma_starts]
     if inopts is None:
         inopts = {}
-    list_of_opts = []
-    if isinstance(inopts, list):
-        list_of_opts = inopts
-    else:
-        list_of_opts = [dict(inopts) for _ in range(num_kernels)]
-    
+    if not isinstance(inopts, list):
+        inopts = [dict(inopts) for _ in range(num_kernels)]
+        
     for i in range(num_kernels):
         defopts = cma.CMAOptions()
         defopts.update({'verb_filenameprefix': str(number_created_kernels+i), 'conditioncov_alleviate': [np.inf, np.inf],
                     'verbose':-1, 'tolx':1e-6})
-        if isinstance(list_of_opts[i], dict):
-            defopts.update(list_of_opts[i])
+        if isinstance(inopts[i], dict):
+            defopts.update(inopts[i])
             
         kernels += [CmaKernel(x_starts[i], sigma_starts[i], defopts)]
         
