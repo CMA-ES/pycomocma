@@ -536,7 +536,11 @@ def add_kernels_middle(self, part):
         ker1 = kernels_sorted[idx]
         ker2 = kernels_sorted[idx + 1]
         if ker1.fit.fitnesses in self.layer and ker2.fit.fitnesses in self.layer:
-            ker = ker1._copy_light()
+            prop = {'verb_filenameprefix': str(self.num_kernels+1),
+                    'conditioncov_alleviate': [np.inf, np.inf],
+                    'CMA_const_trace': 'True',
+                    'verbose': -1}
+            ker = ker1._copy_light(prop)
             ker.mean = (ker1.mean + ker2.mean) / 2
             ker.fit.fitnesses = self.evaluate(ker.mean)
             ker.ratio_nondominated_offspring = []
