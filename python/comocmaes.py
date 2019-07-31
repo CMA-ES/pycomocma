@@ -260,7 +260,7 @@ class CoMoCmaes(object):
         fig_name += ".png"
         dir_name += "/"
 
-        here = os.path.dirname(__file__)
+        here = os.getcwd()
         results_dir = os.path.join(here, dir_name)
 
         if not os.path.isdir(results_dir):
