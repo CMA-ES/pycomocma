@@ -88,19 +88,10 @@ TODO     res = moes.result
     methods `stop`, `ask`, and `tell`::
 
         
-        X = moes.ask(num_kernels = "all")
-        for i in moes.asked_indices:
-            kernel = moes.kernels[i]
-            kernel.objective_values = fitness(kernel.incumbent)
-        F = [fitness(x) for x in X]
-        moes.tell(X, F)
------The phase above phase initializes the kernels on the Objective space-----
         while not moes.stop():
-            for i in moes.asked_indices:
-                kernel = moes.kernels[i]
-                kernel.objective_values = fitness(kernel.incumbent)
-            solutions = moes.ask()
-            F = [fitness(x) for x in solutions]
+            X = moes.ask()
+            F = [fitness(x) for x in X]
+            moes.tell(X, F)
             moes.tell(solutions, F)
 TODO        moes.disp()
 TODO        moes.result_pretty()
@@ -163,43 +154,35 @@ TODO        moes.result_pretty()
             self.archive = []
         self.offspring = []
         self.update_order = Sequence(self.num_kernels)()
-        self.asked_indices = []
+        self.told_indices = range(self.num_kernels)
         
-    def ask(self, num_kernels = 1, is_feasible = None,
-            max_rejection = 10, **kwargs):
+    def ask(self, num_kernels = 1):
         """
         get/sample new feasible candidate solutions, by constantly calling the
         `ask` method of the `cma.CMAEvolutionStrategy` class.
+        
         Arguments
         ---------
         - `num_kernels`: the number of kernels that we sample solutions from.
-        - `is_feasible`: boolean function rejecting the feasability of a 
-        solution. Each solution is resampled until none of them is rejected,
-        unless the `max_rejection` number is reached for a kernel.
-        - `kwargs`: keywords arguments for the `cma.CMAEvolutionStrategy`'s
-        `ask` method.
         
-        Return a list of all the offspring from all the asked kernels.
-        """
+        Return
+        ------
+        A list of N-dimensional (N is the dimension of the search space) 
+        candidate solutions generated from `num_kernels` kernels 
+        to be evaluated."""
+        
         if num_kernels == "all":
             num_kernels = self.num_kernels
         if num_kernels > self.num_kernels:
-            warnings.warn('value larger than the actual number of kernels.')
+            warnings.warn('value larger than the number of kernels.')
         self.offspring = []
-        res = []
-#        for ikernel in [_randint_derandomized_generator(self.num_kernels)
-#                        for _ in range(num_kernels)]:
-        indices = [self.update_order.__next__() for _ in range(num_kernels)]
-        for ikernel in indices:
+        res = [self.kernels[i].incumbent for i in self.told_indices]
+        for ikernel in [self.update_order.__next__() for _ in range(num_kernels)]:
             kernel = self.kernels[ikernel]
             if not kernel.stop():
-                rejected = 0
-                offspring = kernel.ask(kwargs)
-                #TODO: continue here
+                offspring = kernel.ask()
                 res.extend(offspring)
                 self.offspring += [(ikernel, offspring)]
-        self.asked_indices = indices
-        #TODO: put the infeasible part here, with the box constraints and so one
         return res
         
     def tell(self, X, F):
@@ -207,24 +190,17 @@ TODO        moes.result_pretty()
         """
         if len(X) == 0: # when asking a terminated kernel for example
             return 
-        all_offspring = []
-        solutions = [v for (u, v) in self.offspring]
-        for v in solutions:
-            all_offspring += v
-#        assert X == all_offspring
-        NDA = BNDSL if len(F[0]) == 2 else NDL
-        start = 0 # position of the offspring
-        for ikernel, offspring in self.offspring:
-            kernel = self.kernels[ikernel]
 
-            start += len(offspring)
+        NDA = BNDSL if len(F[0]) == 2 else NDL
+        for i in range(len(self.told_indices)):
+            self.kernels[self.told_indices[i]].objective_values = F[i]
         
         if self.reference_point is None:
-            pass #write here the max among the kernel.objective_values
-        
+            pass #write here the max among the kernel.objective_values       
         self.front = NDA([kernel.objective_values for kernel in self.kernels],
                          self.reference_point)
-        start = 0 # position of the offspring
+            
+        start = len(self.told_indices) # position of the first offspring
         for ikernel, offspring in self.offspring:
             kernel = self.kernels[ikernel]
             fit = kernel.objective_values
@@ -240,7 +216,9 @@ TODO        moes.result_pretty()
                 kernel.logger.add()
             except:
                 pass
-
+            
+        self.told_indices = [u for (u,v) in self.offspring]
+       
         if self.options['archive']:
             if not self.archive:
                 self.archive = NDA(F, self.reference_point)
