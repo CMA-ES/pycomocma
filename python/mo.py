@@ -305,7 +305,10 @@ TODO        moes.result_pretty()
         might still play a role, due to its eventual trace in `self.front`.
         """
         if kernel in self.kernels:
-            kernel.opts['termination_callback'] = lambda _: 'kernel turned off'
+            try:
+                kernel.opts['termination_callback'] = lambda _: 'kernel turned off'
+            except:
+                pass
         else:
             try:
                 kernel = self.kernels[kernel]
@@ -400,8 +403,13 @@ class CmaKernel(cma.CMAEvolutionStrategy):
     
     def stop(self, check=True, ignore_list=()):
         """
+        'flat fitness' is ignored because ... For the `cigtab` bi-objective
+        function, the Hypervolume is flat for a long period, although the
+        evolution is correctly occuring in the search space.
         """
-        to_be_ignored = ignore_list + ('tolfun', 'tolfunhist', 'flat fitness', 'tolstagnation')
+        to_be_ignored = ignore_list + ('tolfun', 'tolfunhist', 
+                                       'flat fitness', 'tolstagnation')
+        
         return cma.CMAEvolutionStrategy.stop(self, check, ignore_list = to_be_ignored)
 
 def _randint_derandomized_generator(order):
