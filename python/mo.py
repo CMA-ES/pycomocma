@@ -43,13 +43,13 @@ class Sofomore(interfaces.OOOptimizer):
         A single-objective solver instance must have the following
         attributes and methods:
             - `incumbent`: an attribute that gives the estimate of 
-            the solver.
-            - `objective_values`: an attribute that store the objective 
+            the single-objective solver.
+            - `objective_values`: an attribute that stores the objective 
             values of the incumbent.
             - `stop`: a method returning a dictionary representing the 
             termination status.
-            - `ask`: generate new candidate solutions.
-            - `tell`: pass the objective values and update the states of the
+            - `ask`: generates new candidate solutions.
+            - `tell`: passes the objective values and updates the states of the
             single-objective solvers.
                 
     `reference_point`  
@@ -67,7 +67,9 @@ class Sofomore(interfaces.OOOptimizer):
             optimization.
             Note that the archive will not interfere with the optimization 
             process.
-            - 'update_order': the order in which the kernels will be updated.
+            - 'update_order': a function from an ordered sequence to an ordered
+            sequence, with the same set. It guides the order in which the
+            kernels will be updated during the optimization.
  
 
     Main interface / usage
@@ -106,15 +108,22 @@ TODO        moes.result_pretty()
     - `num_kernels`: length of `self.kernels`.
     - `options`: passed options.
     - `front`: list of non-dominated points among the incumbents of 
-    self.kernels.
+    `self.kernels`.
     - `archive`: list of non-dominated points among all points evaluated 
     so far.
     - `reference_point`: the current reference point.
-    - `offspring`: list of tuples of the index of a solver and the generated
-    candidate solutions, that we generally get with the cma's `ask` method.
-    - asked-indices: the kernels' indices updated during the
-    last `ask-and-tell` call.
-        
+    - `offspring`: list of tuples of the index of a kernel with its 
+    corresponding candidate solutions, that we generally get with the cma's 
+    `ask` method.
+    - told_indices: the kernels' indices for which we will evaluate the 
+    objective values of their incumbents, in the next call of the `tell` 
+    method.
+    Before the first call of `tell`, they are the indices of all the initial
+    kernels (i.e. `range(self.num_kernels)`). And before another call of 
+    `tell`, they are the indices of the kernels from which we have sampled new 
+    candidate solutions during the penultimate `ask` method. 
+    Note that we should call the `ask` method before any call of the `tell`
+    method.
     """   
     def __init__(self,
                list_of_solvers_instances, # usally come from a factory function 
@@ -148,36 +157,46 @@ TODO        moes.result_pretty()
         if isinstance(options, dict):
             defopts.update(options)
         else:
-            pass # TODO raise a warning at least here.
+            warnings.warn("options should be either a dictionary or None.")
         self.options = defopts
         if self.options['archive']:
             self.archive = []
         self.offspring = []
-        self.update_order = Sequence(self.num_kernels)()
         self.told_indices = range(self.num_kernels)
         
-    def ask(self, num_kernels = 1):
+    def ask(self, number_of_kernels = 1):
         """
-        get/sample new feasible candidate solutions, by constantly calling the
-        `ask` method of the `cma.CMAEvolutionStrategy` class.
+        get the kernels' incumbents to be evaluated for the update of 
+        `self.front` and sample new candidate solutions from 
+        `number_of_kernels` kernels.
+        The sampling is done by calling the `ask` method of the
+        `cma.CMAEvolutionStrategy` class.
+        The indices of the considered kernels' incumbents are given by the 
+        `told_indices` attribute.
         
         Arguments
         ---------
-        - `num_kernels`: the number of kernels that we sample solutions from.
+        - `number_of_kernels`: the number of kernels where we sample 
+        solutions from.
         
         Return
         ------
-        A list of N-dimensional (N is the dimension of the search space) 
-        candidate solutions generated from `num_kernels` kernels 
-        to be evaluated."""
-        
-        if num_kernels == "all":
-            num_kernels = self.num_kernels
-        if num_kernels > self.num_kernels:
+        The list of the kernels' incumbents to be evaluated, extended with a
+        list of N-dimensional (N is the dimension of the search space) 
+        candidate solutions generated from `number_of_kernels` kernels 
+        to be evaluated.
+    
+        :See: the `ask` method from the class `cma.CMAEvolutionStrategy`,
+            in `evolution_strategy.py` from the `cma` module.
+        """
+        if number_of_kernels == "all":
+            number_of_kernels = self.num_kernels
+        if number_of_kernels > self.num_kernels:
             warnings.warn('value larger than the number of kernels.')
         self.offspring = []
+        order = Sequence(self.options['update_order'](range(self.num_kernels)))()
         res = [self.kernels[i].incumbent for i in self.told_indices]
-        for ikernel in [self.update_order.__next__() for _ in range(num_kernels)]:
+        for ikernel in [order.__next__() for _ in range(number_of_kernels)]:
             kernel = self.kernels[ikernel]
             if not kernel.stop():
                 offspring = kernel.ask()
@@ -185,15 +204,40 @@ TODO        moes.result_pretty()
                 self.offspring += [(ikernel, offspring)]
         return res
         
-    def tell(self, X, F):
+    def tell(self, solutions, objective_values):
         """
+        pass objective function values to update respectfully: `self.front`, 
+        the state variables of some kernels, `self.told_indices` and eventually 
+        `self.archive`.
+        Arguments
+        ---------
+        `solutions`
+            list or array of points (of type `numpy.ndarray`), most presumably 
+            before delivered by the `ask()` method.
+        `objective_values`
+            list of multiobjective function values (of type `list`)
+            corresponding to the respective points in `solutions`.
+
+        Details
+        -------
+        To update a kernel, `tell()` applies the kernel's `tell` method
+        to the kernel's corresponding candidate solutions (offspring) along
+        with the "changing" fitness `- self.front.hypervolume_improvement`.
+        
+        :See: 
+            - the `tell` method from the class `cma.CMAEvolutionStrategy`,
+            in `evolution_strategy.py` from the `cma` module.
+            - the `hypervolume_improvement` method from the class
+            `BiobjectiveNondominatedSortedList`, in the module `moarchiving.py`
+            - the `hypervolume_improvement` method from the class
+            `NonDominatedList`, in the module `nondominatedarchive.py`
         """
-        if len(X) == 0: # when asking a terminated kernel for example
+        if len(solutions) == 0: # when asking a terminated kernel for example
             return 
 
-        NDA = BNDSL if len(F[0]) == 2 else NDL
+        NDA = BNDSL if len(objective_values[0]) == 2 else NDL
         for i in range(len(self.told_indices)):
-            self.kernels[self.told_indices[i]].objective_values = F[i]
+            self.kernels[self.told_indices[i]].objective_values = objective_values[i]
         
         if self.reference_point is None:
             pass #write here the max among the kernel.objective_values       
@@ -208,7 +252,7 @@ TODO        moes.result_pretty()
                                   # the reference point
                 self.front.remove(fit)
             hypervolume_improvements = [self.front.hypervolume_improvement(
-                    point) for point in F[start:start+len(offspring)]]
+                    point) for point in objective_values[start:start+len(offspring)]]
             self.front.add(fit) # in case num_kernels > 1
             start += len(offspring)
             kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
@@ -221,9 +265,9 @@ TODO        moes.result_pretty()
        
         if self.options['archive']:
             if not self.archive:
-                self.archive = NDA(F, self.reference_point)
+                self.archive = NDA(objective_values, self.reference_point)
             else:
-                self.archive.add_list(F)
+                self.archive.add_list(objective_values)
 
  
     def stop(self):
@@ -252,6 +296,7 @@ TODO        moes.result_pretty()
     def add(self, kernels):
         """
         add kernel to self.
+        from a factory function
         """
         if not isinstance(kernels, list):
             kernels = [kernels]
@@ -331,32 +376,28 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         to_be_ignored = ignore_list + ('tolfun', 'tolfunhist', 'flat fitness', 'tolstagnation')
         return cma.CMAEvolutionStrategy.stop(self, check, ignore_list = to_be_ignored)
 
-def _randint_derandomized_generator(low, high=None, size=None):
+def _randint_derandomized_generator(order):
     """the generator for `randint_derandomized`
     code from the module cocopp, in: cocopp.toolsstats._randint_derandomized_generator
     """
-    if high is None:
-        low, high = 0, low
-    if size is None:
-        size = high
+    size = len(order)
     delivered = 0
     while delivered < size:
-        for randi in np.random.permutation(high - low):
+        for i in order:
             delivered += 1
-            yield low + randi
+            yield i
             if delivered >= size:
                 break
             
 class Sequence(object):
-    def __init__(self, max_val, generator=_randint_derandomized_generator):
-        self.max_val = max_val
-        self.generator = generator
+    def __init__(self, seq, order = lambda x: np.random.permutation(x)):
+        self.generator = _randint_derandomized_generator(order(seq))
         self.delivered = 0
     def __call__(self):
         while True:
-            for randi in self.generator(self.max_val):
+            for i in self.generator:
                 self.delivered += 1
-                yield randi
+                yield i
         
         
         
