@@ -91,10 +91,10 @@ TODO     res = moes.result
 
         
         while not moes.stop():
-            X = moes.ask()
-            F = [fitness(x) for x in X]
-            moes.tell(X, F)
-            moes.tell(solutions, F)
+            solutions = moes.ask()
+            objective_values = [fitness(x) for x in solutions]
+            moes.tell(solutions, objective_values)
+            moes.tell(solutions, objective_values)
 TODO        moes.disp()
 TODO        moes.result_pretty()
 
@@ -273,8 +273,19 @@ TODO        moes.result_pretty()
     def stop(self):
         """
         return a nonempty dictionary when all kernels stop, containing all the
-        termination status
-
+        termination status. Therefore it's solely ... on the kernels' `stop`
+        method, which also return dictionaries.
+        Return
+        ------
+        For example with 5 kernels, stop should return either None, or a `dict`
+        of the form:
+            {0: dict0,
+             1: dict1,
+             2: dict2,
+             3: dict2,
+             4: dict4},
+        where each index `i` is a key which value is the `dict` instance
+        `self.kernels[i].stop()`
         """
         res = {}
         for i in range(len(self.kernels)):
@@ -287,30 +298,47 @@ TODO        moes.result_pretty()
         
     def turn_off(self, kernel):
         """
-        turn off ‘kernel‘ in self, when ‘kernel‘ is in self.
+        inactivate `kernel`, assuming that it's an element of `self.kernels`,
+        or an index in `range(self.num_kernels)`.
+        When inactivated, `kernel` is no longer updated, it is ignored.
+        However we do not remove it from `self.kernels`, meaning that `kernel`
+        might still play a role, due to its eventual trace in `self.front`.
         """
         if kernel in self.kernels:
-    #        kernel.stop()['turn_off'] = True 
             kernel.opts['termination_callback'] = lambda _: 'kernel turned off'
-    
+        else:
+            try:
+                kernel = self.kernels[kernel]
+                kernel.opts['termination_callback'] = lambda _: 'kernel turned off'
+            except:
+                pass
     def add(self, kernels):
         """
-        add kernel to self.
-        from a factory function
+        add `kernels` of type `list` to `self.kernels` and update `self.front`
+        and `self.num_kernels`.
+        Generally, `kernels` are created from a factory function.
+        If `kernels` is of length 1, the brackets can be omitted.
         """
         if not isinstance(kernels, list):
             kernels = [kernels]
         self.kernels += kernels
         self.num_kernels += len(kernels)
-    def remove(self, kernel):
+        
+    def remove(self, kernels):
         """
-        remove ‘kernel‘ if it's in self.
+        remove elements of the `kernels` (type `list`) that belong to
+        `self.kernels`, and update `self.front` and
+        `self.num_kernels` accordingly.
+        If `kernels` is of length 1, the brackets can be omitted.
         """
-        if kernel in self.kernels:
-            self.kernels.remove(kernel)
-        if kernel.objective_values in self.front:
-            self.front.remove(kernel.objective_values)
-        self.num_kernels -= 1
+        if not isinstance(kernels, list):
+            kernels = [kernels]
+        for kernel in kernels:
+            if kernel in self.kernels:
+                self.kernels.remove(kernel)
+                if kernel.objective_values in self.front:
+                    self.front.remove(kernel.objective_values)
+            self.num_kernels -= 1
 
 def get_cma(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
     """
