@@ -306,15 +306,19 @@ TODO        moes.result_pretty()
         """
         if kernel in self.kernels:
             try:
-                kernel.opts['termination_callback'] = lambda _: 'kernel turned off'
-            except:
-                pass
+                kernel.opts['termination_callback'] += (lambda _: 'kernel turned off',)
+#               kernel.opts['termination_callback'] = lambda _: 'kernel turned off'
+
+            except (AttributeError, TypeError):
+                warnings.warn("their is a problem with opts.")
         else:
             try:
                 kernel = self.kernels[kernel]
-                kernel.opts['termination_callback'] = lambda _: 'kernel turned off'
-            except:
-                pass
+                kernel.opts['termination_callback'] += (lambda _: 'kernel turned off',)
+#                kernel.opts['termination_callback'] = lambda _: 'kernel turned off'
+            except (AttributeError, TypeError):
+                warnings.warn("their is a problem with opts.")
+
     def add(self, kernels):
         """
         add `kernels` of type `list` to `self.kernels` and update `self.front`
@@ -403,9 +407,10 @@ class CmaKernel(cma.CMAEvolutionStrategy):
     
     def stop(self, check=True, ignore_list=()):
         """
-        'flat fitness' is ignored because ... For the `cigtab` bi-objective
-        function, the Hypervolume is flat for a long period, although the
-        evolution is correctly occuring in the search space.
+        'flat fitness' is ignored because it does not necessarily mean that a 
+        termination criteria is met. For the `cigtab` bi-objective
+        function for example, the Hypervolume is flat for a long period, 
+        although the evolution is correctly occuring in the search space.
         """
         to_be_ignored = ignore_list + ('tolfun', 'tolfunhist', 
                                        'flat fitness', 'tolstagnation')
