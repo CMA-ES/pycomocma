@@ -10,6 +10,7 @@ from cma import interfaces
 from nondominatedarchive import NonDominatedList as NDL
 from moarchiving import BiobjectiveNondominatedSortedList as BNDSL
 import warnings
+import cma.utilities.utils
 
 class Sofomore(interfaces.OOOptimizer):
     
@@ -36,8 +37,8 @@ class Sofomore(interfaces.OOOptimizer):
         list of instances of single-objective solvers.
         It's generally created via a factory function.
         Let's take the example of a factory function that returns cma-es 
-        instances, called `get_cma`. Then:
-        - ``list_of_solvers_instances = get_cma(11*[x0], sigma0)`` 
+        instances, called `get_cmas`. Then:
+        - ``list_of_solvers_instances = get_cmas(11*[x0], sigma0)`` 
         creates a list of 11 cma-es instances of mean `x0` and step-size 
         `sigma0`.
         A single-objective solver instance must have the following
@@ -77,7 +78,7 @@ class Sofomore(interfaces.OOOptimizer):
     The interface is inherited from the generic `OOOptimizer`
     class (see also there). An object instance is generated from::
         
-        list_of_solvers_instances = get_cma(11*[x0], sigma0)
+        list_of_solvers_instances = get_cmas(11*[x0], sigma0)
         moes = mo.Sofomore(list_of_solvers_instances,
                            reference_point = reference_point)
 
@@ -92,8 +93,7 @@ TODO     res = moes.result
         
         while not moes.stop():
             solutions = moes.ask()
-            objective_values = [fitness(x) for x in solutions]
-            moes.tell(solutions, objective_values)
+            objective_values = [[f(x) for f in fun] for x in solutions]
             moes.tell(solutions, objective_values)
 TODO        moes.disp()
 TODO        moes.result_pretty()
@@ -150,7 +150,7 @@ TODO        moes.result_pretty()
                 kernel.objective_values = None
         self.reference_point = reference_point
         self.front = []
-        update_order = lambda x: x
+        update_order = lambda x: np.random.permutation(x)
         defopts = {'archive': False, 'update_order': update_order}
         if options is None:
             options = {}
@@ -163,6 +163,9 @@ TODO        moes.result_pretty()
             self.archive = []
         self.offspring = []
         self.told_indices = range(self.num_kernels)
+        
+        seq = range(self.num_kernels)
+        self._order = Sequence(self.options['update_order'], seq)()
         
     def ask(self, number_of_kernels = 1):
         """
@@ -194,9 +197,8 @@ TODO        moes.result_pretty()
         if number_of_kernels > self.num_kernels:
             warnings.warn('value larger than the number of kernels.')
         self.offspring = []
-        order = Sequence(self.options['update_order'](range(self.num_kernels)))()
         res = [self.kernels[i].incumbent for i in self.told_indices]
-        for ikernel in [order.__next__() for _ in range(number_of_kernels)]:
+        for ikernel in [next(self._order) for _ in range(number_of_kernels)]:
             kernel = self.kernels[ikernel]
             if not kernel.stop():
                 offspring = kernel.ask()
@@ -307,15 +309,12 @@ TODO        moes.result_pretty()
         if kernel in self.kernels:
             try:
                 kernel.opts['termination_callback'] += (lambda _: 'kernel turned off',)
-#               kernel.opts['termination_callback'] = lambda _: 'kernel turned off'
-
             except (AttributeError, TypeError):
                 warnings.warn("their is a problem with opts.")
         else:
             try:
                 kernel = self.kernels[kernel]
                 kernel.opts['termination_callback'] += (lambda _: 'kernel turned off',)
-#                kernel.opts['termination_callback'] = lambda _: 'kernel turned off'
             except (AttributeError, TypeError):
                 warnings.warn("their is a problem with opts.")
 
@@ -347,7 +346,7 @@ TODO        moes.result_pretty()
                     self.front.remove(kernel.objective_values)
             self.num_kernels -= 1
 
-def get_cma(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
+def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
     """
     produce `len(x_starts)` instances of type `cmaKernel`.
     """
@@ -417,30 +416,30 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         
         return cma.CMAEvolutionStrategy.stop(self, check, ignore_list = to_be_ignored)
 
-def _randint_derandomized_generator(order):
+def order_generator(seq):
     """the generator for `randint_derandomized`
-    code from the module cocopp, in: cocopp.toolsstats._randint_derandomized_generator
+    code from the module cocopp, 
+    in: cocopp.toolsstats._randint_derandomized_generator
     """
-    size = len(order)
+    size = len(seq)
     delivered = 0
     while delivered < size:
-        for i in order:
+        for i in seq:
             delivered += 1
             yield i
             if delivered >= size:
                 break
             
 class Sequence(object):
-    def __init__(self, seq, order = lambda x: np.random.permutation(x)):
-        self.generator = _randint_derandomized_generator(order(seq))
+    def __init__(self, permutation, seq):
         self.delivered = 0
+        self.permutation = permutation
+        self.seq = seq
+        self.generator = order_generator(permutation(seq))
     def __call__(self):
         while True:
             for i in self.generator:
                 self.delivered += 1
                 yield i
-        
-        
-        
-        
-        
+                if self.delivered % len(self.seq) == 0:
+                    self = Sequence(self.permutation, self.seq)
