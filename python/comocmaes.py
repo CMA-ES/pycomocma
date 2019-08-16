@@ -41,7 +41,8 @@ class CoMoCmaes(object):
                  lazy=False,
                  name=None,
                  add_method=lambda *args: None,
-                 test_method=lambda *args: None
+                 test_method=lambda *args: None,
+                 benchmark=False
                  ):
         """
         Parameters :
@@ -64,6 +65,7 @@ class CoMoCmaes(object):
         - 'string' name : the name of the objective function
         - 'fun' add_method : the function which is called when adding kernels
         - 'fun' test_method : a function which is called at each step
+        - 'bool' benchmark : True if it is used for benchmarking with coco
         """
         self.objective_functions = objective_functions
         self.dim = dim
@@ -92,6 +94,7 @@ class CoMoCmaes(object):
         self.name = name
         self.add_method = add_method
         self.test_method = test_method
+        self.benchmark = benchmark
 
         # Here we try a way to store the objective values of the cma means
         # once and for all, without creating a new structure.
@@ -128,7 +131,10 @@ class CoMoCmaes(object):
         increment the number of evaluations.
         """
         self.counteval += 1
-        return [fun(x_var) for fun in self.objective_functions]
+        if not self.benchmark:
+            return [fun(x_var) for fun in self.objective_functions]
+        else:
+            return list(self.objective_functions(x_var))
 
     def step(self):
         """Makes one step through all the kernels and store the data."""
