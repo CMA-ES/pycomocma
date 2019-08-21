@@ -12,17 +12,35 @@ dim = int64(dim);
 x0 = py.numpy.array(ones(1,dim));
 x_starts = py.list(repmat({x0},1,5));
 
-lb = py.float(0.5);
-rb = py.numpy.inf;
+%bounds = evalin('caller', '[0.5, inf]');
+bounds = [0.5, inf];
+
+if size(bounds, 1) > 1
+    bounds = bounds';
+end
+lb = bounds(1);
+rb = bounds(2);
+if lb == -inf
+    lb = -py.numpy.inf;
+else
+    lb = py.float(lb);
+end
+if rb == inf
+    rb = py.numpy.inf;
+else
+    rb = py.float(rb);
+end
 newbounds = py.list({lb, rb});
+
 nVar = 10;
 num_offspring = py.int(floor(4+3*log(nVar)));
 cmaes_opts = py.dict(struct('popsize', num_offspring, 'bounds', newbounds));
 list_of_solvers = py.mo.get_cmas(x_starts, sigma0, cmaes_opts);
 
 moes = py.mo.Sofomore(list_of_solvers,'reference_point', reference_point);
-while moes.stop() == 0
+%while moes.stop() == 0
 %while 0
+for i =1:3
     X = moes.ask();
     X_matlab = zeros(int64(py.len(X)), dim);
     for i=1:size(X_matlab,1)

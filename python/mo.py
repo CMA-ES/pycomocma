@@ -434,7 +434,7 @@ def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
             pass
         if not isinstance(x_starts[0], list):
             x_starts = [x_starts]
-            
+    
     kernels = []
     num_kernels = len(x_starts)
     if not isinstance(sigma_starts, list):
@@ -446,6 +446,14 @@ def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
         list_of_opts = inopts
     else:
         list_of_opts = [dict(inopts) for _ in range(num_kernels)]
+    
+    # repairing the initial values:
+    for i in range(len(x_starts)):
+        try:
+            bounds_transform = cma.constraints_handler.BoundTransform(list_of_opts[i]['bounds'])        
+            x_starts[i] = bounds_transform.repair(x_starts[i])
+        except KeyError:
+            pass
     
     for i in range(num_kernels):
         defopts = cma.CMAOptions()
