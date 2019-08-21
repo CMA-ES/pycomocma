@@ -11,6 +11,7 @@ from nondominatedarchive import NonDominatedList as NDL
 from moarchiving import BiobjectiveNondominatedSortedList as BNDSL
 import warnings
 import cma.utilities.utils
+import sys
 
 class Sofomore(interfaces.OOOptimizer):
     
@@ -166,6 +167,7 @@ TODO        moes.result_pretty()
         
         seq = range(self.num_kernels)
         self._order = Sequence(self.options['update_order'], seq)()
+        self.countiter = 0
         
     def ask(self, number_of_kernels = 1):
         """
@@ -270,6 +272,8 @@ TODO        moes.result_pretty()
                 self.archive = NDA(objective_values, self.reference_point)
             else:
                 self.archive.add_list(objective_values)
+            
+        self.countiter += 1
 
  
     def stop(self):
@@ -346,6 +350,74 @@ TODO        moes.result_pretty()
                     self.front.remove(kernel.objective_values)
             self.num_kernels -= 1
 
+    
+    @property
+    def countevals(self):
+        """
+        """
+        return sum(kernel.countevals for kernel in self.kernels)
+    
+    # The following methods 'disp_annotation' and 'disp' are from the 'cma'
+    # module
+    def disp_annotation(self):
+        """print annotation line for `disp` ()"""
+        self.has_been_called = True
+        print('Iterat #Fevals   Hypervolume   axis ratios '
+             '  sigmas   min&max stds\n'+'(median)'.rjust(42) +
+             '(median)'.rjust(10) + '(median)'.rjust(12))
+     #   try:
+          #  sys.stdout.flush() : error in matlab:
+          # Python Error: AttributeError: 'MexPrinter' object has no attribute 'flush'
+
+      #  except AttributeError:
+       #     pass
+    def disp(self, modulo=None):
+        """print current state variables in a single-line.
+
+        Prints only if ``iteration_counter % modulo == 0``.
+
+        :See also: `disp_annotation`.
+        """
+        if modulo is None:
+            try:
+                modulo = self.kernels[0].opts['verb_disp']
+            except AttributeError:
+                pass
+
+        # console display
+
+        if modulo:
+            if not hasattr(self, 'has_been_called'):
+                self.disp_annotation()
+
+            if self.countiter > 0 and (self.stop() or self.countiter < 4
+                              or self.countiter % modulo < 1):
+                try:
+                    print(' '.join((repr(self.countiter).rjust(5),
+                                    repr(self.countevals).rjust(6),
+                                    '%.15e' % (self.front.hypervolume),
+                                    '%4.1e' % (np.median([kernel.D.max() / kernel.D.min()
+                                               if not kernel.opts['CMA_diagonal'] or kernel.countiter > kernel.opts['CMA_diagonal']
+                                               else max(kernel.sigma_vec*1) / min(kernel.sigma_vec*1) \
+                                               for kernel in self.kernels])),
+                                    '%6.2e' % (np.median([kernel.sigma for kernel in self.kernels])),
+                                    '%6.0e' % (np.median([kernel.sigma * min(kernel.sigma_vec * kernel.dC**0.5) \
+                                                         for kernel in self.kernels])),
+                                    '%6.0e' % (np.median([kernel.sigma * max(kernel.sigma_vec * kernel.dC**0.5) \
+                                                          for kernel in self.kernels]))
+                                    )))
+                except AttributeError:
+                    pass
+                    # if self.countiter < 4:
+       #         try:
+                  #  sys.stdout.flush() : error in matlab:
+                  # Python Error: AttributeError: 'MexPrinter' object has no attribute 'flush'
+
+         #       except AttributeError:
+          #          pass
+        return self
+
+
 def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
     """
     produce `len(x_starts)` instances of type `cmaKernel`.
@@ -402,7 +474,7 @@ class CmaKernel(cma.CMAEvolutionStrategy):
     def incumbent(self):
         """
         """
-        return self.mean
+        return self.boundary_handler.repair(self.mean)
     
     def stop(self, check=True, ignore_list=()):
         """
@@ -415,6 +487,10 @@ class CmaKernel(cma.CMAEvolutionStrategy):
                                        'flat fitness', 'tolstagnation')
         
         return cma.CMAEvolutionStrategy.stop(self, check, ignore_list = to_be_ignored)
+
+
+
+
 
 def order_generator(seq):
     """the generator for `randint_derandomized`
@@ -443,3 +519,79 @@ class Sequence(object):
                 yield i
                 if self.delivered % len(self.seq) == 0:
                     self = Sequence(self.permutation, self.seq)
+
+
+class RankPenalizedFitness:
+    """compute f-values of infeasible solutions as rank_f-inverse(const + sum g-ranks).
+    
+    The inverse is computed by linear interpolation.
+    
+    Draw backs: does not support approaching the optimum from the infeasible domain.
+    
+    Infeasible solutions with valid f-value measurement could get a 1/2-scaled credit for their
+    f-rank difference to the base f-value.
+    """
+
+    def __init__(self, f, g_list):
+        self.f = f
+        self.g_list = g_list
+        # control parameters
+        self.base_prctile = 0.2  # best f-value an infeasible solution can get
+        self.g_scale = 1.01  # factor for g-ranks penalty
+        self._debugging = True
+        # internal state
+        self.f_current_best = 0
+
+    def __call__(self, X):
+        """X is a list of solutions.
+        
+        Assumes that at least one solution does not return nan as f-value
+        """
+        # TODO: what to do if there is no f-value for a feasible solution
+        f_values = [self.f(x) for x in X]
+        g_ranks_list = []
+        is_feasible = np.ones(len(X))
+        for g in self.g_list:
+            g_values = [g(x) for x in X]
+            g_is_feas = np.asarray(g_values) <= 0
+            is_feasible *= g_is_feas
+            nb_feas = sum(g_is_feas)
+            g_ranks = [g - nb_feas + 1 if g >= nb_feas else 0
+                       for g in cma.utilities.utils.ranks(g_values)]  # TODO: this fails with nan-values
+            if self._debugging: print(g_ranks)
+            g_ranks_list.append(g_ranks)
+        idx_feas = np.where(is_feasible)[0]
+        # we could also add the distance to the best feasible solution as penalty on the median?
+        # or we need to increase the individual g-weight with the number of iterations that no single
+        #    feasible value was seen
+        # change f-values of infeasible solutions
+        sorted_feas_f_values = sorted(np.asarray(f_values)[idx_feas])
+        try: self.f_current_best = sorted_feas_f_values[0]
+        except IndexError: pass
+        j0 = self.base_prctile * (len(idx_feas) - 1)
+        for i in set(range(len(X))).difference(idx_feas):
+            j = j0 + self.g_scale * (
+                    sum(g_ranks[i] for g_ranks in g_ranks_list) - 1)  # -1 makes base a possible value
+            assert j >= self.base_prctile * (len(idx_feas) - 1)
+            # TODO: use f-value of infeasible solution if available?
+            if 11 < 3 and np.isfinite(f_values[i]):
+                self.gf_scale = 1 / 2
+                j += self.gf_scale * (_interpolated_rank(f_values, f_values[i]) - 
+                                      _interpolated_rank(f_values, f_values[j0]))  # TODO: filter f-values by np.isfinite
+            j = max((j, 0))
+            j1, j2 = int(j), int(np.ceil(j))
+            f1 = self._f_from_index(sorted_feas_f_values, j1)
+            f2 = self._f_from_index(sorted_feas_f_values, j2)
+            # take weighted average fitness between index j and j+1
+            f_values[i] = 0e-6 + (j - j1) * f2 + (j2 - j) * f1 if j2 > j1 else f1
+        return f_values
+
+    def _f_from_index(self, f_values, i):
+        """`i` must be an integer but may be ``>= len(f_values)``"""
+        imax = len(f_values) - 1
+        if imax < 0:  # no feasible f-value
+            return self.f_current_best + i
+        return f_values[min((imax, i))] + max((i - imax, 0))
+        
+f = RankPenalizedFitness(lambda x: cma.ff.sphere(np.asarray(x)), [lambda x: x[0] > 0]) 
+f(2 * [[1,2,3], [-1, 1, 10]] + [[1,2,3], [-1.1, 1, 10]] + 1 * [[-1, 1, 101]])
