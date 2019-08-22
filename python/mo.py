@@ -11,7 +11,7 @@ from nondominatedarchive import NonDominatedList as NDL
 from moarchiving import BiobjectiveNondominatedSortedList as BNDSL
 import warnings
 import cma.utilities.utils
-import sys
+#import sys
 
 class Sofomore(interfaces.OOOptimizer):
     
@@ -116,7 +116,7 @@ TODO        moes.result_pretty()
     - `offspring`: list of tuples of the index of a kernel with its 
     corresponding candidate solutions, that we generally get with the cma's 
     `ask` method.
-    - told_indices: the kernels' indices for which we will evaluate the 
+    - _told_indices: the kernels' indices for which we will evaluate the 
     objective values of their incumbents, in the next call of the `tell` 
     method.
     Before the first call of `tell`, they are the indices of all the initial
@@ -163,7 +163,7 @@ TODO        moes.result_pretty()
         if self.options['archive']:
             self.archive = []
         self.offspring = []
-        self.told_indices = range(self.num_kernels)
+        self._told_indices = range(self.num_kernels)
         
         seq = range(self.num_kernels)
         self._order = Sequence(self.options['update_order'], seq)()
@@ -177,7 +177,7 @@ TODO        moes.result_pretty()
         The sampling is done by calling the `ask` method of the
         `cma.CMAEvolutionStrategy` class.
         The indices of the considered kernels' incumbents are given by the 
-        `told_indices` attribute.
+        `_told_indices` attribute.
         
         Arguments
         ---------
@@ -199,7 +199,7 @@ TODO        moes.result_pretty()
         if number_of_kernels > self.num_kernels:
             warnings.warn('value larger than the number of kernels.')
         self.offspring = []
-        res = [self.kernels[i].incumbent for i in self.told_indices]
+        res = [self.kernels[i].incumbent for i in self._told_indices]
         for ikernel in [next(self._order) for _ in range(number_of_kernels)]:
             kernel = self.kernels[ikernel]
             if not kernel.stop():
@@ -211,7 +211,7 @@ TODO        moes.result_pretty()
     def tell(self, solutions, objective_values):
         """
         pass objective function values to update respectfully: `self.front`, 
-        the state variables of some kernels, `self.told_indices` and eventually 
+        the state variables of some kernels, `self._told_indices` and eventually 
         `self.archive`.
         Arguments
         ---------
@@ -240,15 +240,15 @@ TODO        moes.result_pretty()
             return 
 
         NDA = BNDSL if len(objective_values[0]) == 2 else NDL
-        for i in range(len(self.told_indices)):
-            self.kernels[self.told_indices[i]].objective_values = objective_values[i]
+        for i in range(len(self._told_indices)):
+            self.kernels[self._told_indices[i]].objective_values = objective_values[i]
         
         if self.reference_point is None:
             pass #write here the max among the kernel.objective_values       
         self.front = NDA([kernel.objective_values for kernel in self.kernels],
                          self.reference_point)
             
-        start = len(self.told_indices) # position of the first offspring
+        start = len(self._told_indices) # position of the first offspring
         for ikernel, offspring in self.offspring:
             kernel = self.kernels[ikernel]
             fit = kernel.objective_values
@@ -265,7 +265,7 @@ TODO        moes.result_pretty()
             except:
                 pass
             
-        self.told_indices = [u for (u,v) in self.offspring]
+        self._told_indices = [u for (u,v) in self.offspring]
        
         if self.options['archive']:
             if not self.archive:
@@ -302,7 +302,7 @@ TODO        moes.result_pretty()
         return res
             
         
-    def turn_off(self, kernel):
+    def inactivate(self, kernel):
         """
         inactivate `kernel`, assuming that it's an element of `self.kernels`,
         or an index in `range(self.num_kernels)`.
@@ -350,10 +350,22 @@ TODO        moes.result_pretty()
                     self.front.remove(kernel.objective_values)
             self.num_kernels -= 1
 
+    @property
+    def set(self):
+        """
+        return the estimated Pareto set of the algorithm, among the kernels'
+        incumbents.
+        It's the pre-image of `self.front`.
+        """
+        return [kernel.incumbent for kernel in self.kernels if \
+                kernel.objective_values in self.front]
     
     @property
     def countevals(self):
         """
+        return the number of function evaluations during the optimization.
+        Note that the single-objective solvers must have an attriburte 
+        `countevals`.
         """
         return sum(kernel.countevals for kernel in self.kernels)
     
@@ -474,13 +486,39 @@ class CmaKernel(cma.CMAEvolutionStrategy):
     """
     def __init__(self, x0, sigma0, inopts=None):
         """
-        """
+        Arguments
+        =========
+        `x0`
+            initial solution, starting point. `x0` is given as "phenotype"
+            which means, if::
+    
+                opts = {'transformation': [transform, inverse]}
+    
+            is given and ``inverse is None``, the initial mean is not
+            consistent with `x0` in that ``transform(mean)`` does not
+            equal to `x0` unless ``transform(mean)`` equals ``mean``.
+        `sigma0`
+            initial standard deviation.  The problem variables should
+            have been scaled, such that a single standard deviation
+            on all variables is useful and the optimum is expected to
+            lie within about `x0` +- ``3*sigma0``. See also options
+            `scaling_of_variables`. Often one wants to check for
+            solutions close to the initial point. This allows,
+            for example, for an easier check of consistency of the
+            objective function and its interfacing with the optimizer.
+            In this case, a much smaller `sigma0` is advisable.
+        `inopts`
+            options, a dictionary with optional settings,
+            see class `cma.CMAOptions`.
+            """
         cma.CMAEvolutionStrategy.__init__(self, x0, sigma0, inopts)
         self.objective_values = None
     
     @property
     def incumbent(self):
         """
+        it gives the 'repaired' mean of a cma-es. For a problem with bound
+        constraints, `self.incumbent` in inside the bounds.
         """
         return self.boundary_handler.repair(self.mean)
     
@@ -515,6 +553,9 @@ def order_generator(seq):
                 break
             
 class Sequence(object):
+    """
+    TODO: docstring + comments to be done.
+    """
     def __init__(self, permutation, seq):
         self.delivered = 0
         self.permutation = permutation
@@ -601,5 +642,5 @@ class RankPenalizedFitness:
             return self.f_current_best + i
         return f_values[min((imax, i))] + max((i - imax, 0))
         
-f = RankPenalizedFitness(lambda x: cma.ff.sphere(np.asarray(x)), [lambda x: x[0] > 0]) 
-f(2 * [[1,2,3], [-1, 1, 10]] + [[1,2,3], [-1.1, 1, 10]] + 1 * [[-1, 1, 101]])
+#f = RankPenalizedFitness(lambda x: cma.ff.sphere(np.asarray(x)), [lambda x: x[0] > 0]) 
+#f(2 * [[1,2,3], [-1, 1, 10]] + [[1,2,3], [-1.1, 1, 10]] + 1 * [[-1, 1, 101]])
