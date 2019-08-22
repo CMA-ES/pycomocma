@@ -151,8 +151,10 @@ TODO        moes.result_pretty()
                 kernel.objective_values = None
         self.reference_point = reference_point
         self.front = []
-        update_order = lambda x: np.random.permutation(x)
-        defopts = {'archive': False, 'update_order': update_order}
+       # update_order = lambda x: np.random.permutation(x)
+        def update_order(x):
+            return np.random.permutation(x)
+        defopts = {'archive': True, 'update_order': update_order}
         if options is None:
             options = {}
         if isinstance(options, dict):
@@ -166,14 +168,14 @@ TODO        moes.result_pretty()
         self._told_indices = range(self.num_kernels)
         
         seq = range(self.num_kernels)
-        self._order = Sequence(self.options['update_order'], seq)()
+        self._order = Sequence(self.options['update_order'], seq)() # generator
         self.countiter = 0
         
-    def ask(self, number_of_kernels = 1):
+    def ask(self, number_asks = 1):
         """
         get the kernels' incumbents to be evaluated for the update of 
         `self.front` and sample new candidate solutions from 
-        `number_of_kernels` kernels.
+        `number_asks` kernels.
         The sampling is done by calling the `ask` method of the
         `cma.CMAEvolutionStrategy` class.
         The indices of the considered kernels' incumbents are given by the 
@@ -181,26 +183,26 @@ TODO        moes.result_pretty()
         
         Arguments
         ---------
-        - `number_of_kernels`: the number of kernels where we sample 
+        - `number_asks`: the number of kernels where we sample 
         solutions from.
         
         Return
         ------
         The list of the kernels' incumbents to be evaluated, extended with a
         list of N-dimensional (N is the dimension of the search space) 
-        candidate solutions generated from `number_of_kernels` kernels 
+        candidate solutions generated from `number_asks` kernels 
         to be evaluated.
     
         :See: the `ask` method from the class `cma.CMAEvolutionStrategy`,
             in `evolution_strategy.py` from the `cma` module.
         """
-        if number_of_kernels == "all":
-            number_of_kernels = self.num_kernels
-        if number_of_kernels > self.num_kernels:
+        if number_asks == "all":
+            number_asks = self.num_kernels
+        if number_asks > self.num_kernels:
             warnings.warn('value larger than the number of kernels.')
         self.offspring = []
         res = [self.kernels[i].incumbent for i in self._told_indices]
-        for ikernel in [next(self._order) for _ in range(number_of_kernels)]:
+        for ikernel in [next(self._order) for _ in range(number_asks)]:
             kernel = self.kernels[ikernel]
             if not kernel.stop():
                 offspring = kernel.ask()
@@ -309,6 +311,10 @@ TODO        moes.result_pretty()
         When inactivated, `kernel` is no longer updated, it is ignored.
         However we do not remove it from `self.kernels`, meaning that `kernel`
         might still play a role, due to its eventual trace in `self.front`.
+        
+        We expect the call of the kernel's `stop` method in interest to look like:
+        kernel.stop() = {'callback': ['kernel turned off']}
+    
         """
         if kernel in self.kernels:
             try:
@@ -321,6 +327,14 @@ TODO        moes.result_pretty()
                 kernel.opts['termination_callback'] += (lambda _: 'kernel turned off',)
             except (AttributeError, TypeError):
                 warnings.warn("their is a problem with opts.")
+                
+    def activate(self, kernel):
+        """
+        activate `kernel` when it was inactivated beforehand. Otherwise 
+        it remains quiet.
+        """
+        
+        
 
     def add(self, kernels):
         """
@@ -359,7 +373,17 @@ TODO        moes.result_pretty()
         """
         return [kernel.incumbent for kernel in self.kernels if \
                 kernel.objective_values in self.front]
-    
+
+    @property
+    def ratio_inactive(self):
+        """
+        return the ratio of inactive kernels among all kernels.
+        """
+        ratio = 0
+        for kernel in self.kernels:
+            if kernel.stop():
+                ratio += 1/self.num_kernels
+        return ratio
     @property
     def countevals(self):
         """
