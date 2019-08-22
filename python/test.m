@@ -5,4 +5,6 @@ nVar = 10;
 xstart = ones(1, nVar);
 sigma0 = 0.2;
 opts.bounds = [0.5, 0.9];
-[paretoFront, paretoSet, out] = COMOCMAES('bi_sphere', nObj, xstart, sigma0, opts);
+opts.maxiter = 200;
+%opts.verb_display = 100;
+[paretoFront, paretoSet] = COMOCMAES('bi_sphere', nObj, xstart, sigma0, opts);
