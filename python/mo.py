@@ -156,7 +156,7 @@ TODO        moes.result_pretty()
         def update_order(x):
             return x
             #return np.random.permutation(x)
-        defopts = {'archive': False, 'update_order': update_order}
+        defopts = {'archive': True, 'update_order': update_order}
         if options is None:
             options = {}
         if isinstance(options, dict):
@@ -174,6 +174,13 @@ TODO        moes.result_pretty()
         self._order = self.options['update_order'](seq)
         self.countiter = 0
         self._start_ask = 0 # where we start when calling `ask`
+        
+    def __iter__(self):
+        """
+        making self iterable. 
+        Future work: it would be interesting to make it subscriptable.
+        """
+        return iter(self.kernels)
         
         
     def modulo(self, i, n):
@@ -336,7 +343,7 @@ TODO        moes.result_pretty()
             
         self.countiter += 1
 
- 
+    @property
     def stop(self):
         """
         return a nonempty dictionary when all kernels stop, containing all the
@@ -355,14 +362,27 @@ TODO        moes.result_pretty()
         `self.kernels[i].stop()`
         """
         res = {}
-        for i in range(len(self.kernels)):
+        for i in range(self.num_kernels):
             if self.kernels[i].stop():
                 res[i] = self.kernels[i].stop()
             else:
                 return False
         return res
             
+    @property 
+    def termination_status(self):
+        """
+        return a dictionary of the current termination states of the kernels.
         
+        """
+        res = {}
+        for i in range(self.num_kernels):
+            res[i] = self.kernels[i].stop()
+        return res
+    
+    
+    
+    
     def inactivate(self, kernel):
         """
         inactivate `kernel`, assuming that it's an element of `self.kernels`,
@@ -370,9 +390,6 @@ TODO        moes.result_pretty()
         When inactivated, `kernel` is no longer updated, it is ignored.
         However we do not remove it from `self.kernels`, meaning that `kernel`
         might still play a role, due to its eventual trace in `self.front`.
-        
-        We expect the call of the kernel's `stop` method in interest to look like:
-        kernel.stop() = {'callback': ['kernel turned off']}
     
         """
         if kernel in self.kernels:
@@ -391,6 +408,9 @@ TODO        moes.result_pretty()
         """
         activate `kernel` when it was inactivated beforehand. Otherwise 
         it remains quiet.
+        
+        We expect the kernel's `stop` method in interest to look like:
+        kernel.stop() = {'callback': ['kernel turned off']}
         """
         raise NotImplementedError
         
@@ -486,7 +506,7 @@ TODO        moes.result_pretty()
             if not hasattr(self, 'has_been_called'):
                 self.disp_annotation()
 
-            if self.countiter > 0 and (self.stop() or self.countiter < 4
+            if self.countiter > 0 and (self.stop or self.countiter < 4
                               or self.countiter % modulo < 1):
                 try:
                     print(' '.join((repr(self.countiter).rjust(5),
