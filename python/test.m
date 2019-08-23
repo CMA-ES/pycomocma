@@ -7,4 +7,6 @@ sigma0 = 0.2;
 opts.bounds = [0.5, 0.9];
 opts.maxiter = 200;
 %opts.verb_display = 100;
-[paretoFront, paretoSet] = COMOCMAES('bi_sphere', nObj, xstart, sigma0, opts);
+% options for resume
+opts.OkResume = 1;
+[paretoFront, paretoSet, out] = COMOCMAES('bi_sphere', nObj, xstart, sigma0, opts);
