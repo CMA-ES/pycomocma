@@ -70,8 +70,9 @@ class Sofomore(interfaces.OOOptimizer):
             Note that the archive will not interfere with the optimization 
             process.
             - 'update_order': a function from an ordered sequence to an ordered
-            sequence, with the same set. It guides the order in which the
-            kernels will be updated during the optimization.
+            sequence, with the same elements (a permutation function then).
+            It guides the order in which the kernels will be updated during 
+            the optimization.
  
 
     Main interface / usage
@@ -96,7 +97,7 @@ TODO     res = moes.result
             solutions = moes.ask()
             objective_values = [[f(x) for f in fun] for x in solutions]
             moes.tell(solutions, objective_values)
-TODO        moes.disp()
+            moes.disp()
 TODO        moes.result_pretty()
 
     where `ask` delivers new candidate solutions and `tell` updates
@@ -153,8 +154,9 @@ TODO        moes.result_pretty()
         self.front = []
        # update_order = lambda x: np.random.permutation(x)
         def update_order(x):
-            return np.random.permutation(x)
-        defopts = {'archive': True, 'update_order': update_order}
+            return x
+            #return np.random.permutation(x)
+        defopts = {'archive': False, 'update_order': update_order}
         if options is None:
             options = {}
         if isinstance(options, dict):
@@ -168,8 +170,22 @@ TODO        moes.result_pretty()
         self._told_indices = range(self.num_kernels)
         
         seq = range(self.num_kernels)
-        self._order = Sequence(self.options['update_order'], seq)() # generator
+        #self._order = Sequence(self.options['update_order'], seq)() # generator
+        self._order = self.options['update_order'](seq)
         self.countiter = 0
+        self._start_ask = 0 # where we start when calling `ask`
+        
+        
+    def modulo(self, i, n):
+        """
+        returns the list `[i%self.num_kernels, ..., (i+n-1)%self.num_kernels]`
+        """
+        res = []
+        assert n > 0
+        for k in range(n):
+            res += [(i+k)%self.num_kernels]
+        return res
+        
         
     def ask(self, number_asks = 1):
         """
@@ -202,13 +218,56 @@ TODO        moes.result_pretty()
             warnings.warn('value larger than the number of kernels.')
         self.offspring = []
         res = [self.kernels[i].incumbent for i in self._told_indices]
-        for ikernel in [next(self._order) for _ in range(number_asks)]:
-            kernel = self.kernels[ikernel]
+        list_to_ask = self.modulo(self._start_ask, number_asks)
+        self._start_ask = (list_to_ask[-1]+1) % self.num_kernels
+        for ikernel in list_to_ask:
+            kernel = self.kernels[self._order[ikernel]]
             if not kernel.stop():
                 offspring = kernel.ask()
                 res.extend(offspring)
                 self.offspring += [(ikernel, offspring)]
         return res
+               
+        
+        
+#    def askkk(self, number_asks = 1):
+#        """
+#        get the kernels' incumbents to be evaluated for the update of 
+#        `self.front` and sample new candidate solutions from 
+#        `number_asks` kernels.
+#        The sampling is done by calling the `ask` method of the
+#        `cma.CMAEvolutionStrategy` class.
+#        The indices of the considered kernels' incumbents are given by the 
+#        `_told_indices` attribute.
+#        
+#        Arguments
+#        ---------
+#        - `number_asks`: the number of kernels where we sample 
+#        solutions from.
+#        
+#        Return
+#        ------
+#        The list of the kernels' incumbents to be evaluated, extended with a
+#        list of N-dimensional (N is the dimension of the search space) 
+#        candidate solutions generated from `number_asks` kernels 
+#        to be evaluated.
+#    
+#        :See: the `ask` method from the class `cma.CMAEvolutionStrategy`,
+#            in `evolution_strategy.py` from the `cma` module.
+#        """
+#        if number_asks == "all":
+#            number_asks = self.num_kernels
+#        if number_asks > self.num_kernels:
+#            warnings.warn('value larger than the number of kernels.')
+#        self.offspring = []
+#        res = [self.kernels[i].incumbent for i in self._told_indices]
+#        for ikernel in [next(self._order) for _ in range(number_asks)]:
+#            kernel = self.kernels[ikernel]
+#            if not kernel.stop():
+#                offspring = kernel.ask()
+#                res.extend(offspring)
+#                self.offspring += [(ikernel, offspring)]
+#        return res
         
     def tell(self, solutions, objective_values):
         """
@@ -333,6 +392,7 @@ TODO        moes.result_pretty()
         activate `kernel` when it was inactivated beforehand. Otherwise 
         it remains quiet.
         """
+        raise NotImplementedError
         
         
 
