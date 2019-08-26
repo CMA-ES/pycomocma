@@ -5,7 +5,7 @@ nVar = 10;
 xstart = ones(1, nVar);
 sigma0 = 0.2;
 opts.bounds = [0.5, 0.9];
-opts.maxiter = 200;
+opts.maxiter = 400;
 %opts.verb_display = 100;
 % options for resume
 opts.OkResume = 1;
