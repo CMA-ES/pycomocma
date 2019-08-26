@@ -70,7 +70,7 @@ class Sofomore(interfaces.OOOptimizer):
             Note that the archive will not interfere with the optimization 
             process.
             - 'update_order': a function from an ordered sequence to an ordered
-            sequence, with the same elements (a permutation function then).
+            sequence, with the same elements (a bijective function then).
             It guides the order in which the kernels will be updated during 
             the optimization.
  
@@ -153,10 +153,10 @@ TODO        moes.result_pretty()
         self.reference_point = reference_point
         self.front = []
        # update_order = lambda x: np.random.permutation(x)
-        def update_order(x):
+        def tell_order(x):
             return x
             #return np.random.permutation(x)
-        defopts = {'archive': True, 'update_order': update_order}
+        defopts = {'archive': True, 'tell_order': tell_order}
         if options is None:
             options = {}
         if isinstance(options, dict):
@@ -169,28 +169,42 @@ TODO        moes.result_pretty()
         self.offspring = []
         self._told_indices = range(self.num_kernels)
         
-        seq = range(self.num_kernels)
         #self._order = Sequence(self.options['update_order'], seq)() # generator
-        self._order = self.options['update_order'](seq)
+        seq = range(self.num_kernels)
+        self._order = self.options['tell_order'](seq)
         self.countiter = 0
         self._start_ask = 0 # where we start when calling `ask`
         
     def __iter__(self):
         """
-        making self iterable. 
+        making `self` iterable. 
         Future work: it would be interesting to make it subscriptable.
         """
         return iter(self.kernels)
         
         
-    def modulo(self, i, n):
+    def _modulo(self, number_asks):
         """
-        returns the list `[i%self.num_kernels, ..., (i+n-1)%self.num_kernels]`
+        `number_asks` is an int.
+        
+        returns the list `[self._start_ask % self.num_kernels, ..., 
+        (self._start_ask + number_asks - 1) % self.num_kernels]`.
+        
+        Designed to be used in the `ask` method:
+        self._modulo(number_asks) returns `number asks` successive integers, 
+        starting from `self._start_ask`, and whenever `self.num_kernels` is 
+        reached, we replace it by `0` and continue the sequence from `0`: 
+        it's a torus.
+        
+        Example:
+        --------    
+        If self.num_kernels = 5 and self._start_ask = 0:
+        self._modulo(8) = [0, 1, 2, 3, 4, 0, 1, 2]
         """
         res = []
-        assert n > 0
-        for k in range(n):
-            res += [(i+k)%self.num_kernels]
+        assert number_asks > 0
+        for k in range(number_asks):
+            res += [(self._start_ask + k) % self.num_kernels]
         return res
         
         
@@ -225,7 +239,7 @@ TODO        moes.result_pretty()
             warnings.warn('value larger than the number of kernels.')
         self.offspring = []
         res = [self.kernels[i].incumbent for i in self._told_indices]
-        list_to_ask = self.modulo(self._start_ask, number_asks)
+        list_to_ask = self._modulo(number_asks)
         self._start_ask = (list_to_ask[-1]+1) % self.num_kernels
         for ikernel in list_to_ask:
             kernel = self.kernels[self._order[ikernel]]
