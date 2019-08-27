@@ -246,7 +246,6 @@ TODO        moes.result_pretty()
             
         TODO: only ask `active` kernels
         """
-        assert number_asks > 0
         if number_asks == "all":
             number_asks = self.num_kernels
         if number_asks > self.num_kernels:
