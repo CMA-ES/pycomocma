@@ -64,13 +64,14 @@ class Sofomore(interfaces.OOOptimizer):
     `options`
         options, a dictionary with optional settings related to the 
         Sofomore framework. It contains the following keys:
-            - 'archive': if its value is `True`, tracks the non-dominated
+            - 'archive': default value is `True`. 
+            If its value is `True`, tracks the non-dominated
             points among the points evaluated so far during the 
             optimization.
             Note that the archive will not interfere with the optimization 
             process.
-            - 'update_order': a function from an ordered sequence to an ordered
-            sequence, with the same elements (a bijective function then).
+            - 'tell_order': default value is `None`.
+            A real-valued function that takes an int instance as argument.
             It guides the order in which the kernels will be updated during 
             the optimization.
  
@@ -126,6 +127,9 @@ TODO        moes.result_pretty()
     candidate solutions during the penultimate `ask` method. 
     Note that we should call the `ask` method before any call of the `tell`
     method.
+    - `order`: default value is `self.options['tell_order']`.
+    It is a function used as a key to sort some kernels' indices, in order to
+    select the first indices during the call of the `ask` method.
     """   
     def __init__(self,
                list_of_solvers_instances, # usally come from a factory function 
@@ -153,10 +157,10 @@ TODO        moes.result_pretty()
         self.reference_point = reference_point
         self.front = []
        # update_order = lambda x: np.random.permutation(x)
-        def tell_order(x):
-            return x
+       # def tell_order(x):
+        #    return x
             #return np.random.permutation(x)
-        defopts = {'archive': True, 'tell_order': tell_order}
+        defopts = {'archive': True, 'tell_order': None}
         if options is None:
             options = {}
         if isinstance(options, dict):
@@ -170,10 +174,9 @@ TODO        moes.result_pretty()
         self._told_indices = range(self.num_kernels)
         
         #self._order = Sequence(self.options['update_order'], seq)() # generator
-        seq = range(self.num_kernels)
-        self._order = self.options['tell_order'](seq)
+        self.order = self.options['tell_order']
         self.countiter = 0
-        self._start_ask = 0 # where we start when calling `ask`
+        self._remaining_indices_to_ask = range(self.num_kernels) # where we look when calling `ask`
         
     def __iter__(self):
         """
@@ -182,30 +185,30 @@ TODO        moes.result_pretty()
         """
         return iter(self.kernels)
         
-        
-    def _modulo(self, number_asks):
-        """
-        `number_asks` is an int.
-        
-        returns the list `[self._start_ask % self.num_kernels, ..., 
-        (self._start_ask + number_asks - 1) % self.num_kernels]`.
-        
-        Designed to be used in the `ask` method:
-        self._modulo(number_asks) returns `number asks` successive integers, 
-        starting from `self._start_ask`, and whenever `self.num_kernels` is 
-        reached, we replace it by `0` and continue the sequence from `0`: 
-        it's a torus.
-        
-        Example:
-        --------    
-        If self.num_kernels = 5 and self._start_ask = 0:
-        self._modulo(8) = [0, 1, 2, 3, 4, 0, 1, 2]
-        """
-        res = []
-        assert number_asks > 0
-        for k in range(number_asks):
-            res += [(self._start_ask + k) % self.num_kernels]
-        return res
+#        
+#    def _modulo(self, number_asks):
+#        """
+#        `number_asks` is an int.
+#        
+#        returns the list `[self._start_ask % self.num_kernels, ..., 
+#        (self._start_ask + number_asks - 1) % self.num_kernels]`.
+#        
+#        Designed to be used in the `ask` method:
+#        self._modulo(number_asks) returns `number asks` successive integers, 
+#        starting from `self._start_ask`, and whenever `self.num_kernels` is 
+#        reached, we replace it by `0` and continue the sequence from `0`: 
+#        it's a torus.
+#        
+#        Example:
+#        --------    
+#        If self.num_kernels = 5 and self._start_ask = 3:
+#        self._modulo(5) = [3, 4, 0, 1, 2]
+#        """
+#        res = []
+#        assert number_asks > 0
+#        for k in range(number_asks):
+#            res += [(self._start_ask + k) % self.num_kernels]
+#        return res
         
         
     def ask(self, number_asks = 1):
@@ -218,10 +221,18 @@ TODO        moes.result_pretty()
         The indices of the considered kernels' incumbents are given by the 
         `_told_indices` attribute.
         
+        To get the `number_asks` kernels, we use the function `self.order` as
+        a key to sort `self._remaining_indices_to_ask` (which is the list of
+        kernels' indices wherein we choose the first `number_asks` elements.
+        And if `number_asks` is larger than `len(self._remaining_indices_to_ask)`,
+        we select the list `self._remaining_indices_to_ask` extended with the  
+        first `number_asks - len(self._remaining_indices_to_ask)` elements
+        of `range(self.num_kernels)`, sorted with `self.order` as key.
+
         Arguments
         ---------
         - `number_asks`: the number of kernels where we sample 
-        solutions from.
+        solutions from, it's of type int and is smaller or equal to `self.num_kernels`
         
         Return
         ------
@@ -232,21 +243,39 @@ TODO        moes.result_pretty()
     
         :See: the `ask` method from the class `cma.CMAEvolutionStrategy`,
             in `evolution_strategy.py` from the `cma` module.
+            
+        TODO: only ask `active` kernels
         """
+        assert number_asks > 0
         if number_asks == "all":
             number_asks = self.num_kernels
         if number_asks > self.num_kernels:
-            warnings.warn('value larger than the number of kernels.')
+            number_asks = self.num_kernels
+            warnings.warn("value larger than the number of kernels {}. ".format(
+                    self.num_kernels) + "Set to {}.".format(self.num_kernels))
         self.offspring = []
         res = [self.kernels[i].incumbent for i in self._told_indices]
-        list_to_ask = self._modulo(number_asks)
-        self._start_ask = (list_to_ask[-1]+1) % self.num_kernels
-        for ikernel in list_to_ask:
-            kernel = self.kernels[self._order[ikernel]]
+      
+        sorted_indices = sorted(self._remaining_indices_to_ask, key = self.order)
+        indices_to_ask = []
+        remaining_indices = []
+        if number_asks <= len(sorted_indices):
+            indices_to_ask = sorted_indices[:number_asks]
+            remaining_indices = sorted_indices[number_asks:]
+        else:
+            val = number_asks - len(sorted_indices)
+            indices_to_ask = sorted_indices
+            sorted_indices = sorted(range(self.num_kernels), key = self.order)
+            indices_to_ask += sorted_indices[:val]
+            remaining_indices = sorted_indices[val:]
+            
+        for ikernel in indices_to_ask:
+            kernel = self.kernels[ikernel]
             if not kernel.stop():
                 offspring = kernel.ask()
                 res.extend(offspring)
                 self.offspring += [(ikernel, offspring)]
+        self._remaining_indices_to_ask = remaining_indices
         return res
                
         
@@ -357,7 +386,6 @@ TODO        moes.result_pretty()
             
         self.countiter += 1
 
-    @property
     def stop(self):
         """
         return a nonempty dictionary when all kernels stop, containing all the
@@ -490,7 +518,9 @@ TODO        moes.result_pretty()
     # The following methods 'disp_annotation' and 'disp' are from the 'cma'
     # module
     def disp_annotation(self):
-        """print annotation line for `disp` ()"""
+        """
+        copy-pasted from `cma.evolution_strategy`.
+        print annotation line for `disp` ()"""
         self.has_been_called = True
         print('Iterat #Fevals   Hypervolume   axis ratios '
              '  sigmas   min&max stds\n'+'(median)'.rjust(42) +
@@ -502,7 +532,10 @@ TODO        moes.result_pretty()
       #  except AttributeError:
        #     pass
     def disp(self, modulo=None):
-        """print current state variables in a single-line.
+        """
+        copy-pasted from `cma.evolution_strategy`.
+        print current state variables in a single-line.
+        copy-pasted from `cma.evolution_strategy` module
 
         Prints only if ``iteration_counter % modulo == 0``.
 
@@ -520,7 +553,7 @@ TODO        moes.result_pretty()
             if not hasattr(self, 'has_been_called'):
                 self.disp_annotation()
 
-            if self.countiter > 0 and (self.stop or self.countiter < 4
+            if self.countiter > 0 and (self.stop() or self.countiter < 4
                               or self.countiter % modulo < 1):
                 try:
                     print(' '.join((repr(self.countiter).rjust(5),
@@ -653,6 +686,11 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         return cma.CMAEvolutionStrategy.stop(self, check, ignore_list = to_be_ignored)
 
 
+class Sequence_to_ask(object):
+    """
+    """
+    def __init__(self, length, number_to_asks):
+        self.delivered = 0
 
 
 
