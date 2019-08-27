@@ -331,6 +331,7 @@ class NonDominatedList(list):
     def contributing_hypervolume(self, f_tuple):
         """
         Hypervolume improvement of f_tuple with respect to self.
+        TODO: the argument should be an index, as in moarchiving.
         """
         if self.reference_point is None:
             raise ValueError("to compute the hypervolume a reference"
