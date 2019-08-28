@@ -684,12 +684,37 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         
         return cma.CMAEvolutionStrategy.stop(self, check, ignore_list = to_be_ignored)
 
+class FitFun:
+    """
+    Define a callable multiobjective function from single objective ones.
+    Example:
+        fitness = FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)).
+    """
+    def __init__(self, *args):
+        self.callables = args
+    def __call__(self, x):
+        return [f(x) for f in self.callables]
 
-class Sequence_to_ask(object):
+class Order:
     """
+    `Order(moes)` is a function that takes an index `i` as argument, and returns
+    the opposite contributing hypervolume of `moes.kernels[i].objective_values`
+    into `moes.front`.
+    Example:
+        list_of_solvers = mo.get_cmas(num_kernels * [dimension * [0.3]], 0.2)
+        moes = mo.Sofomore(list_of_solvers, reference_point = [11,11])
+        moes.order = Order(moes)
+
     """
-    def __init__(self, length, number_to_asks):
-        self.delivered = 0
+    def __init__(self, moes):
+        self.moes = moes
+    def __call__(self,i):
+        if self.moes.kernels[i].objective_values not in self.moes.front:
+            # meaning that the point is not nondominated
+            return 0
+        else: # the point is nondominated: the (opposite) contributing hypervolume is a non zero value
+            index = self.moes.front.bisect_left(self.moes.kernels[i].objective_values)
+            return - self.moes.front.contributing_hypervolume(index)
 
 
 
