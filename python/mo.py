@@ -157,10 +157,11 @@ TODO        moes.result_pretty()
         self.reference_point = reference_point
         self.front = []
        # update_order = lambda x: np.random.permutation(x)
-       # def tell_order(x):
+       # def tell_order(x):  
         #    return x
             #return np.random.permutation(x)
-        defopts = {'archive': True, 'tell_order': None}
+        defopts = {'archive': True, 'verb_filenameprefix': "outsofomore/", 
+                   'verb_log': 1, 'verb_disp': 100, 'tell_order': None}
         if options is None:
             options = {}
         if isinstance(options, dict):
@@ -170,7 +171,7 @@ TODO        moes.result_pretty()
         self.options = defopts
         if self.options['archive']:
             self.archive = []
-        self.offspring = []
+        self._offspring = []
         self._told_indices = range(self.num_kernels)
         
         #self._order = Sequence(self.options['update_order'], seq)() # generator
@@ -178,6 +179,8 @@ TODO        moes.result_pretty()
         self.countiter = 0
         self._remaining_indices_to_ask = range(self.num_kernels) # where we look when calling `ask`
         
+        self.logger = cma.CMADataLogger(self.options['verb_filenameprefix'],
+                                                     modulo=self.options['verb_log']).register(self)
     def __iter__(self):
         """
         making `self` iterable. 
@@ -248,11 +251,12 @@ TODO        moes.result_pretty()
         """
         if number_asks == "all":
             number_asks = self.num_kernels
+        assert number_asks > 0
         if number_asks > self.num_kernels:
             number_asks = self.num_kernels
             warnings.warn("value larger than the number of kernels {}. ".format(
                     self.num_kernels) + "Set to {}.".format(self.num_kernels))
-        self.offspring = []
+        self._offspring = []
         res = [self.kernels[i].incumbent for i in self._told_indices]
       
         sorted_indices = sorted(self._remaining_indices_to_ask, key = self.order)
@@ -273,7 +277,7 @@ TODO        moes.result_pretty()
             if not kernel.stop():
                 offspring = kernel.ask()
                 res.extend(offspring)
-                self.offspring += [(ikernel, offspring)]
+                self._offspring += [(ikernel, offspring)]
         self._remaining_indices_to_ask = remaining_indices
         return res
                
@@ -308,14 +312,14 @@ TODO        moes.result_pretty()
 #            number_asks = self.num_kernels
 #        if number_asks > self.num_kernels:
 #            warnings.warn('value larger than the number of kernels.')
-#        self.offspring = []
+#        self._offspring = []
 #        res = [self.kernels[i].incumbent for i in self._told_indices]
 #        for ikernel in [next(self._order) for _ in range(number_asks)]:
 #            kernel = self.kernels[ikernel]
 #            if not kernel.stop():
 #                offspring = kernel.ask()
 #                res.extend(offspring)
-#                self.offspring += [(ikernel, offspring)]
+#                self._offspring += [(ikernel, offspring)]
 #        return res
         
     def tell(self, solutions, objective_values):
@@ -359,7 +363,7 @@ TODO        moes.result_pretty()
                          self.reference_point)
             
         start = len(self._told_indices) # position of the first offspring
-        for ikernel, offspring in self.offspring:
+        for ikernel, offspring in self._offspring:
             kernel = self.kernels[ikernel]
             fit = kernel.objective_values
             if fit in self.front: # i.e. if fit is not dominated and dominates 
@@ -375,7 +379,7 @@ TODO        moes.result_pretty()
             except:
                 pass
             
-        self._told_indices = [u for (u,v) in self.offspring]
+        self._told_indices = [u for (u,v) in self._offspring]
        
         if self.options['archive']:
             if not self.archive:
@@ -541,10 +545,7 @@ TODO        moes.result_pretty()
         :See also: `disp_annotation`.
         """
         if modulo is None:
-            try:
-                modulo = self.kernels[0].opts['verb_disp']
-            except AttributeError:
-                pass
+            modulo = self.options['verb_disp']
 
         # console display
 
@@ -619,8 +620,8 @@ def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
     
     for i in range(num_kernels):
         defopts = cma.CMAOptions()
-        defopts.update({'verb_filenameprefix': str(number_created_kernels+i), 'conditioncov_alleviate': [np.inf, np.inf],
-                    'verbose':-1, 'tolx':1e-9})
+        defopts.update({'verb_filenameprefix': 'kernels/kernel_' + str(number_created_kernels+i) + '/', 'conditioncov_alleviate': [np.inf, np.inf],
+                    'verbose':-1, 'tolx':1e-6})
         if isinstance(list_of_opts[i], dict):
             defopts.update(list_of_opts[i])
             
@@ -695,60 +696,26 @@ class FitFun:
     def __call__(self, x):
         return [f(x) for f in self.callables]
 
-class Order:
+class Order(object):
     """
-    `Order(moes)` is a function that takes an index `i` as argument, and returns
-    the opposite contributing hypervolume of `moes.kernels[i].objective_values`
-    into `moes.front`.
+    `Order(optimizer)` is a function that takes an index `i` as argument, and returns
+    the opposite contributing hypervolume of `optimizer.kernels[i].objective_values`
+    into `optimizer.front`.
     Example:
         list_of_solvers = mo.get_cmas(num_kernels * [dimension * [0.3]], 0.2)
         moes = mo.Sofomore(list_of_solvers, reference_point = [11,11])
         moes.order = Order(moes)
 
     """
-    def __init__(self, moes):
-        self.moes = moes
+    def __init__(self, optimizer):
+        self.optimizer = optimizer
     def __call__(self,i):
-        if self.moes.kernels[i].objective_values not in self.moes.front:
+        if self.optimizer.kernels[i].objective_values not in self.optimizer.front:
             # meaning that the point is not nondominated
             return 0
         else: # the point is nondominated: the (opposite) contributing hypervolume is a non zero value
-            index = self.moes.front.bisect_left(self.moes.kernels[i].objective_values)
-            return - self.moes.front.contributing_hypervolume(index)
-
-
-
-def order_generator(seq):
-    """the generator for `randint_derandomized`
-    code from the module cocopp, 
-    in: cocopp.toolsstats._randint_derandomized_generator
-    """
-    size = len(seq)
-    delivered = 0
-    while delivered < size:
-        for i in seq:
-            delivered += 1
-            yield i
-            if delivered >= size:
-                break
-            
-class Sequence(object):
-    """
-    TODO: docstring + comments to be done.
-    """
-    def __init__(self, permutation, seq):
-        self.delivered = 0
-        self.permutation = permutation
-        self.seq = seq
-        self.generator = order_generator(permutation(seq))
-    def __call__(self):
-        while True:
-            for i in self.generator:
-                self.delivered += 1
-                yield i
-                if self.delivered % len(self.seq) == 0:
-                    self = Sequence(self.permutation, self.seq)
-
+            index = self.optimizer.front.bisect_left(self.optimizer.kernels[i].objective_values)
+            return - self.optimizer.front.contributing_hypervolume(index)
 
 class RankPenalizedFitness:
     """compute f-values of infeasible solutions as rank_f-inverse(const + sum g-ranks).
@@ -824,3 +791,42 @@ class RankPenalizedFitness:
         
 #f = RankPenalizedFitness(lambda x: cma.ff.sphere(np.asarray(x)), [lambda x: x[0] > 0]) 
 #f(2 * [[1,2,3], [-1, 1, 10]] + [[1,2,3], [-1.1, 1, 10]] + 1 * [[-1, 1, 101]])
+        
+class Logger(interfaces.BaseDataLogger):
+    """
+    """
+    def __init__(self):
+        """
+        """
+        raise NotImplementedError
+        
+def order_generator(seq):
+    """the generator for `randint_derandomized`
+    code from the module cocopp, 
+    in: cocopp.toolsstats._randint_derandomized_generator
+    """
+    size = len(seq)
+    delivered = 0
+    while delivered < size:
+        for i in seq:
+            delivered += 1
+            yield i
+            if delivered >= size:
+                break
+            
+class Sequence(object):
+    """
+    TODO: docstring + comments to be done.
+    """
+    def __init__(self, permutation, seq):
+        self.delivered = 0
+        self.permutation = permutation
+        self.seq = seq
+        self.generator = order_generator(permutation(seq))
+    def __call__(self):
+        while True:
+            for i in self.generator:
+                self.delivered += 1
+                yield i
+                if self.delivered % len(self.seq) == 0:
+                    self = Sequence(self.permutation, self.seq)
