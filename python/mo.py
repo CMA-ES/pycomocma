@@ -11,6 +11,8 @@ from nondominatedarchive import NonDominatedList as NDL
 from moarchiving import BiobjectiveNondominatedSortedList as BNDSL
 import warnings
 import cma.utilities.utils
+import os
+from sofomore_logger import SofomoreDataLogger
 #import sys
 
 class Sofomore(interfaces.OOOptimizer):
@@ -61,8 +63,8 @@ class Sofomore(interfaces.OOOptimizer):
         the Hypervolume indicator of `p` points towards the Pareto set/front.
         However, it can be changed dynamically by the user if needed.
         
-    `options`
-        options, a dictionary with optional settings related to the 
+    `opts`
+        opts, a dictionary with optional settings related to the 
         Sofomore framework. It contains the following keys:
             - 'archive': default value is `True`. 
             If its value is `True`, tracks the non-dominated
@@ -109,7 +111,7 @@ TODO        moes.result_pretty()
     - `kernels`: initialized with `list_of_solvers_instances`, 
     and is the list of single-objective solvers.
     - `num_kernels`: length of `self.kernels`.
-    - `options`: passed options.
+    - `opts`: passed options.
     - `front`: list of non-dominated points among the incumbents of 
     `self.kernels`.
     - `archive`: list of non-dominated points among all points evaluated 
@@ -127,21 +129,21 @@ TODO        moes.result_pretty()
     candidate solutions during the penultimate `ask` method. 
     Note that we should call the `ask` method before any call of the `tell`
     method.
-    - `order`: default value is `self.options['tell_order']`.
+    - `order`: default value is `self.opts['tell_order']`.
     It is a function used as a key to sort some kernels' indices, in order to
     select the first indices during the call of the `ask` method.
     """   
     def __init__(self,
                list_of_solvers_instances, # usally come from a factory function 
                                          #  creating single solvers' instances
-               options = None, # keeping an archive, etc.
+               opts = None, # keeping an archive, etc.
                reference_point = None,    
                ):
         """
         Initialization:
             - `list_of_solvers_instances` is a list of single-objective 
             solvers' instances
-            - `options` is a dictionary updating the values of 
+            - `opts` is a dictionary updating the values of 
             `archive` and `update_order`, that responds respectfully to whether
             or not tracking an archive, and the order of update of the kernels.
             - The reference_point can be changed by the user after 
@@ -160,27 +162,33 @@ TODO        moes.result_pretty()
        # def tell_order(x):  
         #    return x
             #return np.random.permutation(x)
-        defopts = {'archive': True, 'verb_filenameprefix': "outsofomore/", 
+        defopts = {'archive': True, 'verb_filenameprefix': 'outsofomore' + os.sep, 
                    'verb_log': 1, 'verb_disp': 100, 'tell_order': None}
-        if options is None:
-            options = {}
-        if isinstance(options, dict):
-            defopts.update(options)
+        try:
+            defopts['seed'] = self.kernels[0].opts['seed']
+        except (AttributeError, KeyError):
+            defopts['seed'] = None
+        if opts is None:
+            opts = {}
+        if isinstance(opts, dict):
+            defopts.update(opts)
         else:
             warnings.warn("options should be either a dictionary or None.")
-        self.options = defopts
-        if self.options['archive']:
+        self.opts = defopts
+        self.active_archive = self.opts['archive']
+        if self.active_archive:
             self.archive = []
+        self.nda = None # the method for nondominated archiving
         self._offspring = []
         self._told_indices = range(self.num_kernels)
+        self._last_fvalues = []
         
         #self._order = Sequence(self.options['update_order'], seq)() # generator
-        self.order = self.options['tell_order']
+        self.order = self.opts['tell_order']
         self.countiter = 0
         self._remaining_indices_to_ask = range(self.num_kernels) # where we look when calling `ask`
-        
-        self.logger = cma.CMADataLogger(self.options['verb_filenameprefix'],
-                                                     modulo=self.options['verb_log']).register(self)
+        self.logger = SofomoreDataLogger(self.opts['verb_filenameprefix'],
+                                                     modulo=self.opts['verb_log']).register(self)
     def __iter__(self):
         """
         making `self` iterable. 
@@ -352,14 +360,14 @@ TODO        moes.result_pretty()
         """
         if len(solutions) == 0: # when asking a terminated kernel for example
             return 
-
-        NDA = BNDSL if len(objective_values[0]) == 2 else NDL
+        if self.nda is None:
+            self.nda = BNDSL if len(objective_values[0]) == 2 else NDL
         for i in range(len(self._told_indices)):
             self.kernels[self._told_indices[i]].objective_values = objective_values[i]
         
         if self.reference_point is None:
             pass #write here the max among the kernel.objective_values       
-        self.front = NDA([kernel.objective_values for kernel in self.kernels],
+        self.front = self.nda([kernel.objective_values for kernel in self.kernels],
                          self.reference_point)
             
         start = len(self._told_indices) # position of the first offspring
@@ -381,12 +389,12 @@ TODO        moes.result_pretty()
             
         self._told_indices = [u for (u,v) in self._offspring]
        
-        if self.options['archive']:
+        if self.active_archive:
             if not self.archive:
-                self.archive = NDA(objective_values, self.reference_point)
+                self.archive = self.nda(objective_values, self.reference_point)
             else:
                 self.archive.add_list(objective_values)
-            
+        self._last_fvalues = objective_values
         self.countiter += 1
 
     def stop(self):
@@ -545,7 +553,7 @@ TODO        moes.result_pretty()
         :See also: `disp_annotation`.
         """
         if modulo is None:
-            modulo = self.options['verb_disp']
+            modulo = self.opts['verb_disp']
 
         # console display
 
@@ -620,7 +628,8 @@ def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
     
     for i in range(num_kernels):
         defopts = cma.CMAOptions()
-        defopts.update({'verb_filenameprefix': 'kernels/kernel_' + str(number_created_kernels+i) + '/', 'conditioncov_alleviate': [np.inf, np.inf],
+        defopts.update({'verb_filenameprefix': os.path.join('kernels','kernel_', 
+                        str(number_created_kernels+i)), 'conditioncov_alleviate': [np.inf, np.inf],
                     'verbose':-1, 'tolx':1e-6})
         if isinstance(list_of_opts[i], dict):
             defopts.update(list_of_opts[i])
@@ -792,14 +801,7 @@ class RankPenalizedFitness:
 #f = RankPenalizedFitness(lambda x: cma.ff.sphere(np.asarray(x)), [lambda x: x[0] > 0]) 
 #f(2 * [[1,2,3], [-1, 1, 10]] + [[1,2,3], [-1.1, 1, 10]] + 1 * [[-1, 1, 101]])
         
-class Logger(interfaces.BaseDataLogger):
-    """
-    """
-    def __init__(self):
-        """
-        """
-        raise NotImplementedError
-        
+
 def order_generator(seq):
     """the generator for `randint_derandomized`
     code from the module cocopp, 
