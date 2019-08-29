@@ -158,10 +158,6 @@ TODO        moes.result_pretty()
                 kernel.objective_values = None
         self.reference_point = reference_point
         self.front = []
-       # update_order = lambda x: np.random.permutation(x)
-       # def tell_order(x):  
-        #    return x
-            #return np.random.permutation(x)
         defopts = {'archive': True, 'verb_filenameprefix': 'outsofomore' + os.sep, 
                    'verb_log': 1, 'verb_disp': 100, 'tell_order': None}
         try:
@@ -330,7 +326,7 @@ TODO        moes.result_pretty()
 #                self._offspring += [(ikernel, offspring)]
 #        return res
         
-    def tell(self, solutions, objective_values):
+    def tell(self, solutions, objective_values, constraints_values = []):
         """
         pass objective function values to update respectfully: `self.front`, 
         the state variables of some kernels, `self._told_indices` and eventually 
@@ -343,6 +339,11 @@ TODO        moes.result_pretty()
         `objective_values`
             list of multiobjective function values (of type `list`)
             corresponding to the respective points in `solutions`.
+        `constraints_values`
+            list of list of constraint values: each element is a list containing
+            the values of one constraint function, that are obtained by evaluation
+            on `solutions`.
+            
 
         Details
         -------
@@ -380,8 +381,14 @@ TODO        moes.result_pretty()
             hypervolume_improvements = [self.front.hypervolume_improvement(
                     point) for point in objective_values[start:start+len(offspring)]]
             self.front.add(fit) # in case num_kernels > 1
+            
+            g_values = [constraint[start:start+len(offspring)] \
+                        for constraint in constraints_values]
+            penalized_f_values = RankPenalizedFitness([-float(u) for u in 
+                                hypervolume_improvements], g_values)
+            kernel.tell(offspring, penalized_f_values())
+#            kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
             start += len(offspring)
-            kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
             try:
                 kernel.logger.add()
             except:
@@ -737,27 +744,28 @@ class RankPenalizedFitness:
     f-rank difference to the base f-value.
     """
 
-    def __init__(self, f, g_list):
-        self.f = f
-        self.g_list = g_list
+    def __init__(self, f_values, g_list_values):
+        self.f_values = f_values
+        self.g_list_values = g_list_values
         # control parameters
         self.base_prctile = 0.2  # best f-value an infeasible solution can get
         self.g_scale = 1.01  # factor for g-ranks penalty
-        self._debugging = True
+        self._debugging = False
         # internal state
         self.f_current_best = 0
 
-    def __call__(self, X):
-        """X is a list of solutions.
-        
+    def __call__(self):
+        """
         Assumes that at least one solution does not return nan as f-value
         """
         # TODO: what to do if there is no f-value for a feasible solution
-        f_values = [self.f(x) for x in X]
+     #   f_values = [self.f(x) for x in X]
+        f_values = self.f_values
         g_ranks_list = []
-        is_feasible = np.ones(len(X))
-        for g in self.g_list:
-            g_values = [g(x) for x in X]
+        is_feasible = np.ones(len(f_values))
+   #     for g in self.g_list:
+        for g_values in self.g_list_values:
+    #        g_values = [g(x) for x in X]         
             g_is_feas = np.asarray(g_values) <= 0
             is_feasible *= g_is_feas
             nb_feas = sum(g_is_feas)
@@ -774,7 +782,8 @@ class RankPenalizedFitness:
         try: self.f_current_best = sorted_feas_f_values[0]
         except IndexError: pass
         j0 = self.base_prctile * (len(idx_feas) - 1)
-        for i in set(range(len(X))).difference(idx_feas):
+        #         for i in set(range(len(X))).difference(idx_feas):
+        for i in set(range(len(f_values))).difference(idx_feas):
             j = j0 + self.g_scale * (
                     sum(g_ranks[i] for g_ranks in g_ranks_list) - 1)  # -1 makes base a possible value
             assert j >= self.base_prctile * (len(idx_feas) - 1)
