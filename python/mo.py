@@ -150,7 +150,7 @@ TODO        moes.result_pretty()
             initialization, by setting a value to `self.reference_point`.
         
         """
-        assert len(list_of_solvers_instances) > 1
+        assert len(list_of_solvers_instances) > 0
         self.kernels = list_of_solvers_instances
         self.num_kernels = len(self.kernels)
         for kernel in self.kernels:
@@ -175,9 +175,8 @@ TODO        moes.result_pretty()
         if self.active_archive:
             self.archive = []
         self.nda = None # the method for nondominated archiving
-        self._offspring = []
+        self.offspring = []
         self._told_indices = range(self.num_kernels)
-        self._last_fvalues = []
         
         #self._order = Sequence(self.options['update_order'], seq)() # generator
         self.order = self.opts['tell_order']
@@ -185,6 +184,9 @@ TODO        moes.result_pretty()
         self._remaining_indices_to_ask = range(self.num_kernels) # where we look when calling `ask`
         self.logger = SofomoreDataLogger(self.opts['verb_filenameprefix'],
                                                      modulo=self.opts['verb_log']).register(self)
+        self.max_hypervolume_front = 0.0
+        self.max_hypervolume_archive = 0.0
+        self._ratio_nondom_offspring_incumbent = self.num_kernels * [0]
     def __iter__(self):
         """
         making `self` iterable. 
@@ -260,7 +262,7 @@ TODO        moes.result_pretty()
             number_asks = self.num_kernels
             warnings.warn("value larger than the number of kernels {}. ".format(
                     self.num_kernels) + "Set to {}.".format(self.num_kernels))
-        self._offspring = []
+        self.offspring = []
         res = [self.kernels[i].incumbent for i in self._told_indices]
       
         sorted_indices = sorted(self._remaining_indices_to_ask, key = self.order)
@@ -281,7 +283,7 @@ TODO        moes.result_pretty()
             if not kernel.stop():
                 offspring = kernel.ask()
                 res.extend(offspring)
-                self._offspring += [(ikernel, offspring)]
+                self.offspring += [(ikernel, offspring)]
         self._remaining_indices_to_ask = remaining_indices
         return res
                
@@ -316,14 +318,14 @@ TODO        moes.result_pretty()
 #            number_asks = self.num_kernels
 #        if number_asks > self.num_kernels:
 #            warnings.warn('value larger than the number of kernels.')
-#        self._offspring = []
+#        self.offspring = []
 #        res = [self.kernels[i].incumbent for i in self._told_indices]
 #        for ikernel in [next(self._order) for _ in range(number_asks)]:
 #            kernel = self.kernels[ikernel]
 #            if not kernel.stop():
 #                offspring = kernel.ask()
 #                res.extend(offspring)
-#                self._offspring += [(ikernel, offspring)]
+#                self.offspring += [(ikernel, offspring)]
 #        return res
         
     def tell(self, solutions, objective_values, constraints_values = []):
@@ -372,7 +374,7 @@ TODO        moes.result_pretty()
                          self.reference_point)
             
         start = len(self._told_indices) # position of the first offspring
-        for ikernel, offspring in self._offspring:
+        for ikernel, offspring in self.offspring:
             kernel = self.kernels[ikernel]
             fit = kernel.objective_values
             if fit in self.front: # i.e. if fit is not dominated and dominates 
@@ -388,20 +390,22 @@ TODO        moes.result_pretty()
                                 hypervolume_improvements], g_values)
             kernel.tell(offspring, penalized_f_values())
 #            kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
-            start += len(offspring)
             try:
                 kernel.logger.add()
             except:
                 pass
+            kernel.last_offspring_f_values = objective_values[start:start+len(offspring)]
             
-        self._told_indices = [u for (u,v) in self._offspring]
-       
+            start += len(offspring)
+            
+        self._told_indices = [u for (u,v) in self.offspring]
+        self.max_hypervolume_front = max(self.max_hypervolume_front, self.front.hypervolume)
         if self.active_archive:
             if not self.archive:
                 self.archive = self.nda(objective_values, self.reference_point)
             else:
                 self.archive.add_list(objective_values)
-        self._last_fvalues = objective_values
+            self.max_hypervolume_archive = max(self.max_hypervolume_archive, self.archive.hypervolume)
         self.countiter += 1
 
     def stop(self):
@@ -440,8 +444,37 @@ TODO        moes.result_pretty()
             res[i] = self.kernels[i].stop()
         return res
     
-    
-    
+    @property
+    def median_stds(self):
+        """
+        """
+        tab = []
+        res = []
+        for kernel in self.kernels:
+            conv = np.sqrt(kernel.dC)
+            vec = []
+            for i in range(len(kernel.pc)):
+                xi = max(kernel.sigma_vec*kernel.pc[i], kernel.sigma_vec*conv[i])
+                vec += [kernel.sigma * xi / kernel.sigma0]
+            tab += [sorted(vec)]
+        for i in range(len(tab[0])):
+            vec = [u[i] for u in tab]
+            res += [np.median(vec)]
+        return res
+
+    @property
+    def max_max_stds(self):
+        """
+        """
+        res = 0.0
+        for kernel in self.kernels:
+            conv = np.sqrt(kernel.dC)
+            vec = []
+            for i in range(len(kernel.pc)):
+                xi = max(kernel.sigma_vec*kernel.pc[i], kernel.sigma_vec*conv[i])
+                vec += [kernel.sigma * xi / kernel.sigma0]
+            res = max(res, max(vec))
+        return res    
     
     def inactivate(self, kernel):
         """
@@ -635,9 +668,9 @@ def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
     
     for i in range(num_kernels):
         defopts = cma.CMAOptions()
-        defopts.update({'verb_filenameprefix': 'kernels' + os.sep + 
+        defopts.update({'verb_filenameprefix': 'cma_kernels' + os.sep + 
                         str(number_created_kernels+i), 'conditioncov_alleviate': [np.inf, np.inf],
-                    'verbose':-1, 'tolx':1e-6})
+                    'verbose': -1, 'tolx': 1e-6 / sigma_starts[i]}) # normalize 'tolx' value. 
         if isinstance(list_of_opts[i], dict):
             defopts.update(list_of_opts[i])
             
@@ -679,7 +712,10 @@ class CmaKernel(cma.CMAEvolutionStrategy):
             see class `cma.CMAOptions`.
             """
         cma.CMAEvolutionStrategy.__init__(self, x0, sigma0, inopts)
-        self.objective_values = None
+        self.objective_values = None # the objective value of self's incumbent
+        # (see below for definition of incumbent)
+        self.last_offspring_f_values = None # the fvalues of its offspring
+        # used in the last call of `tell`.  
     
     @property
     def incumbent(self):

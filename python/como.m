@@ -5,12 +5,12 @@
 py.importlib.import_module('mo');
 % py.importlib.import_module('cma');
 dim = py.int(10);
-num_kernels = py.int(5);
+num_kernels = py.int(0);
 sigma0 = py.float(0.2);
 reference_point = py.numpy.array([1.1,1.1]);
 dim = int64(dim);
 x0 = py.numpy.array(ones(1,dim));
-x_starts = py.list(repmat({x0},1,5));
+x_starts = py.list(repmat({x0},1,1));
 
 %bounds = evalin('caller', '[0.5, inf]');
 bounds = [0.5, inf];
