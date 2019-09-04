@@ -7,6 +7,7 @@ from cma import interfaces
 import os
 import time
 import matplotlib.pyplot as plt
+import ast
 
 class SofomoreDataLogger(interfaces.BaseDataLogger):
     """data logger for class `CMAEvolutionStrategy`.
@@ -278,22 +279,20 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             len_archive = len(es.archive)
         ratio_inactive = es.ratio_inactive
         ratio_nondom_incumbent = len(es.front)/es.num_kernels
-        
-        tab_nondom_offspring_incumbent = es._ratio_nondom_offspring_incumbent
-        
+                
         for i in range(len(es.offspring)):
             idx = es.offspring[i][0]
             kernel = es.kernels[idx]
+            
             temp_archive = es.nda(kernel.last_offspring_f_values, es.reference_point)
             temp_archive.add(kernel.objective_values)
-            tab_nondom_offspring_incumbent[idx] = len(temp_archive) / (
+            es._ratio_nondom_offspring_incumbent[idx] = len(temp_archive) / (
                     1 + len(kernel.last_offspring_f_values) )
     
-        first_quartile_ratio_offspring_incumbent = np.percentile(tab_nondom_offspring_incumbent, 25);
-        median_ratio_offspring_incumbent = np.percentile(tab_nondom_offspring_incumbent, 50);
-        last_quartile_ratio_offspring_incumbent = np.percentile(tab_nondom_offspring_incumbent, 75);
+        first_quartile_ratio_offspring_incumbent = np.percentile(es._ratio_nondom_offspring_incumbent, 25);
+        median_ratio_offspring_incumbent = np.percentile(es._ratio_nondom_offspring_incumbent, 50);
+        last_quartile_ratio_offspring_incumbent = np.percentile(es._ratio_nondom_offspring_incumbent, 75);
         
-        es._ratio_nondom_offspring_incumbent = tab_nondom_offspring_incumbent # might be unnecessary
         
         median_axis_ratios = np.median([kernel.D.max() / kernel.D.min() \
         if not kernel.opts['CMA_diagonal'] or kernel.countiter > kernel.opts['CMA_diagonal']
@@ -382,7 +381,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                             + str(evals) + ' '
                             + str(ratio_nondom_incumbent) + ' '
                             + '\n')
-            # ratio of nondominated [offspring + incumbent]
+            # ratio of nondominated [incumbent + its offspring]
             if iteration > self.last_iteration:
                 fn = self.name_prefix + 'ratio_nondom_offsp_incumb.dat' 
                 with open(fn, 'a') as f:
@@ -401,19 +400,23 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
 
         
     def load(self, filenames):
+        
         iteration = []
         countevals = []
         if isinstance(filenames, str):
             filenames = [filenames]
-        res = len(filenames) * [0]
+        res = []
         for i in range(len(filenames)):
             filename = filenames[i]
             with open(filename) as f:
                 tab = [line.rstrip() for line in f.readlines()[1:]] #the first 
                 # line of our file is a headline
-                newtab = [list(map(eval,line.split())) for line in tab]
-                res[i] = np.array([line[2] for line in newtab])
-                if i == 0:
+                newtab = [list(map(ast.literal_eval,line.split())) for line in tab]
+                length = len(newtab[0])
+                for k in range(2, length):
+                    res += [np.array([line[k] for line in newtab])]
+                    
+                if i == 0: # we define iteration, countevals just for the first filename
                     iteration = np.array([line[0] for line in newtab])
                     countevals = np.array([line[1] for line in newtab])
                 
@@ -421,12 +424,14 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         
     def plot(self, filename, x_iteration = 0):
         iteration, countevals, res = self.load(filename)
-        if not x_iteration:
-            plt.plot(countevals, res)
-        else:
-            plt.plot(iteration, res)
-        
+        for i in range(len(res)):   
+            if not x_iteration:
+                plt.plot(countevals, res)
+            else:
+                plt.plot(iteration, res)
+            
     def plot_all(self):
+        raise NotImplementedError
         moes = self.es
         try:
             plt.plot([u[0] for u in moes.archive], [u[1] for u in moes.archive],)
@@ -434,8 +439,11 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             pass
         plt.plot([u[0] for u in moes.front], [u[1] for u in moes.front], 'o')
         pass
-    
+        
     def plot_ratios(self, iabscissa=1):
+        
+        """
+        """
         
         # also put tolx/median(max_stds)
         
@@ -447,13 +455,16 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         iteration, countevals, res = self.load(filenames)
         absciss = countevals if iabscissa else iteration
         self._enter_plotting()
-        color = iter(pyplot.cm.plasma_r(np.linspace(0.35, 1, 3)))
+  #      color = iter(pyplot.cm.plasma_r(np.linspace(0.35, 1, 3)))
         self._xlabel(iabscissa)
         mylabel = ['ratio nondom incumbents', 'ratio inactive kernels',
-                   'ratio nondom evaluated points']
-        for i in range(3):
-            pyplot.plot(absciss, res[i],
-                        '-', color=next(color), label = mylabel[i])
+                   '1st quartile ratio nondom off+incumb',
+                   'median ratio nondom off+incumb',
+                   '3rd quartile ratio nondom off+incumb']
+        for i in range(5):
+            pyplot.plot(absciss, res[i], label = mylabel[i])
+          #  pyplot.plot(absciss, res[i],
+           #             '-', color=next(color), label = mylabel[i])
     #        pyplot.semilogy(absciss, res[i],
      #                       '-', color=next(color), label = mylabel[i])
         # pyplot.hold(True)
@@ -468,6 +479,42 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         self._finalize_plotting()
         return self
         
+    def plot_front(self, iabscissa=1):
+        
+        """
+        """
+        
+        from matplotlib import pyplot
+        fn_incumbent = self.name_prefix + 'ratio_nondom_incumb.dat'
+        fn_inactive = self.name_prefix + 'ratio_inactive_kernels.dat'
+        fn_nondom = self.name_prefix + 'ratio_nondom_offsp_incumb.dat' 
+        filenames = fn_incumbent, fn_inactive, fn_nondom
+        iteration, countevals, res = self.load(filenames)
+        absciss = countevals if iabscissa else iteration
+        self._enter_plotting()
+  #      color = iter(pyplot.cm.plasma_r(np.linspace(0.35, 1, 3)))
+        self._xlabel(iabscissa)
+        mylabel = ['ratio nondom incumbents', 'ratio inactive kernels',
+                   '1st quartile ratio nondom off+incumb',
+                   'median ratio nondom off+incumb',
+                   '3rd quartile ratio nondom off+incumb']
+        for i in range(5):
+            pyplot.plot(absciss, res[i], label = mylabel[i])
+          #  pyplot.plot(absciss, res[i],
+           #             '-', color=next(color), label = mylabel[i])
+    #        pyplot.semilogy(absciss, res[i],
+     #                       '-', color=next(color), label = mylabel[i])
+        # pyplot.hold(True)
+        pyplot.grid(True)
+        ax = np.array(pyplot.axis())
+        # ax[1] = max(minxend, ax[1])
+        pyplot.axis(ax)
+        # pyplot.title('')
+        pyplot.legend()
+        # pyplot.xticks(xticklocs)
+        self._xlabel(iabscissa)
+        self._finalize_plotting()
+        return self
         
     def _enter_plotting(self, fontsize=7):
         """assumes that a figure is open """
