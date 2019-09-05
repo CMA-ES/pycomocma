@@ -131,13 +131,10 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
 
         # write headers for output
                 
-        strseedtime = 'seed=%s, %s' % (str(es.opts['seed']), time.asctime())
-
         fn = self.name_prefix + 'median_sigmas.dat'
         try:
             with open(fn, 'w') as f:
                 f.write('% # columns="iteration, evaluation, median sigmas, ' +
-                        strseedtime +
                         ', ' + 
                         '\n')
         except (IOError, OSError):
@@ -147,7 +144,6 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         try:
             with open(fn, 'w') as f:
                 f.write('% # columns="iteration, evaluation, median axis ratios, ' +
-                        strseedtime +
                         ', ' + 
                         '\n')
         except (IOError, OSError):
@@ -157,7 +153,6 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         try:
             with open(fn, 'w') as f:
                 f.write('% # columns="iteration, evaluation, median min stds, ' +
-                        strseedtime +
                         ', ' + 
                         '\n')
         except (IOError, OSError):
@@ -167,7 +162,6 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         try:
             with open(fn, 'w') as f:
                 f.write('% # columns="iteration, evaluation, median max stds, ' +
-                        strseedtime +
                         ', ' + 
                         '\n')
         except (IOError, OSError):
@@ -177,7 +171,6 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         try:
             with open(fn, 'w') as f:
                 f.write('% # columns="iteration, evaluation, hypervolume, ' +
-                        strseedtime +
                         ', ' + 
                         '\n')
         except (IOError, OSError):
@@ -187,7 +180,6 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         try:
             with open(fn, 'w') as f:
                 f.write('% # columns="iteration, evaluation, hypervolume of archive' +
-                        strseedtime +
                         '\n')
         except (IOError, OSError):
             print('could not open/write file ' + fn)
@@ -197,7 +189,6 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         try:
             with open(fn, 'w') as f:
                 f.write('% # columns="iter, evals, length archive" ' +
-                        strseedtime +
                         ', ' + 
                         '\n')
         except (IOError, OSError):
@@ -207,7 +198,6 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         try:
             with open(fn, 'w') as f:
                 f.write('% # columns="iteration, evaluation, ratio active kernels, ' +
-                        strseedtime +
                         '\n')
         except (IOError, OSError):
             print('could not open/write file ' + fn)
@@ -216,7 +206,6 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         try:
             with open(fn, 'w') as f:
                 f.write('% # columns="iteration, evaluation, ratio nondominated incumbents, ' +
-                        strseedtime +
                         '\n')
         except (IOError, OSError):
             print('could not open/write file ' + fn)
@@ -228,7 +217,6 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                 f.write('% # columns="iter, evals, first quartile nondom ' + 
                         'offspring and incumbent, median nondom offspring and ' +
                         'incumbent, last quartile nondom offspring and incumbent' +
-                        strseedtime +
                         ', ' +
                         '\n')
         except (IOError, OSError):
@@ -271,14 +259,14 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
 #                                + str(type(es)), 'add', 'CMADataLogger')
         evals = es.countevals
         iteration = es.countiter
-        hypervolume = float(es.front.hypervolume)
+        hypervolume = float(es.pareto_front.hypervolume)
         hypervolume_archive = 0.0
         len_archive = 0
         if es.active_archive:
             hypervolume_archive = float(es.archive.hypervolume)
             len_archive = len(es.archive)
         ratio_inactive = es.ratio_inactive
-        ratio_nondom_incumbent = len(es.front)/es.num_kernels
+        ratio_nondom_incumbent = len(es.pareto_front)/es.num_kernels
                 
         for i in range(len(es.offspring)):
             idx = es.offspring[i][0]
@@ -437,7 +425,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             plt.plot([u[0] for u in moes.archive], [u[1] for u in moes.archive],)
         except:
             pass
-        plt.plot([u[0] for u in moes.front], [u[1] for u in moes.front], 'o')
+        plt.plot([u[0] for u in moes.pareto_front], [u[1] for u in moes.pareto_front], 'o')
         pass
         
     def plot_ratios(self, iabscissa=1):
@@ -478,6 +466,68 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         self._xlabel(iabscissa)
         self._finalize_plotting()
         return self
+    
+    def plot_divers(self, iabscissa=1):
+        """
+        """
+        # also put tolx/median(max_stds)
+ 
+        from matplotlib import pyplot
+        fn_axis_ratios = self.name_prefix + 'median_axis_ratios.dat'
+        fn_max_stds = self.name_prefix + 'median_max_stds.dat'
+        fn_min_stds = self.name_prefix + 'median_min_stds.dat' 
+        fn_sigmas = self.name_prefix + 'median_sigmas.dat'
+        fn_hypervolume = self.name_prefix + 'hypervolume.dat'
+        fn_archive = self.name_prefix + 'hypervolume_archive.dat' 
+        fn_len_archive = self.name_prefix + 'len_archive.dat' 
+
+        # we call `self.load` twice: for the median-related files and for the 
+        # hypervolume related ones: because the iteration and countevals might 
+        # be different, depending on the value of `iteration > self.last_iteration`
+        # inside the `add` method.
+        filenames_median = (fn_axis_ratios, fn_max_stds, fn_min_stds, fn_sigmas)
+        (iteration_median, countevals_median, 
+         res_median) = self.load(filenames_median)
+        absciss_median = countevals_median if iabscissa else iteration_median
+        
+        filenames_hypervolume = (fn_hypervolume, fn_archive, fn_len_archive)
+        (iteration_hypervolume, countevals_hypervolume, 
+         res_hypervolume) = self.load(filenames_hypervolume)
+        absciss_hypervolume = (countevals_hypervolume if iabscissa 
+                               else iteration_hypervolume)
+
+        self._enter_plotting()
+  #      color = iter(pyplot.cm.plasma_r(np.linspace(0.35, 1, 3)))
+        self._xlabel(iabscissa)
+        mylabel = ['median axis ratios', 'median max stds',
+                   'median min stds', 'median sigmas',
+                   'convergence gap', 'archive gap', 'inverse length archive']
+        for i in range(4):
+            pyplot.semilogy(absciss_median, res_median[i], label = mylabel[i])
+          #  pyplot.plot(absciss, res[i],
+           #             '-', color=next(color), label = mylabel[i])
+    #        pyplot.semilogy(absciss, res[i],
+     #                       '-', color=next(color), label = mylabel[i])
+        # pyplot.hold(True)
+        pyplot.semilogy(absciss_hypervolume, [self.es.max_hypervolume_pareto_front - u 
+                                          for u in res_hypervolume[0]],
+                    label = mylabel[4])
+        pyplot.semilogy(absciss_hypervolume, [self.es.max_hypervolume_archive - u 
+                                          for u in res_hypervolume[1]],
+                    label = mylabel[5])
+        pyplot.semilogy(absciss_hypervolume, [1/u for u in res_hypervolume[2]], 
+                    label = mylabel[6])
+        pyplot.grid(True)
+        ax = np.array(pyplot.axis())
+        # ax[1] = max(minxend, ax[1])
+        pyplot.axis(ax)
+        # pyplot.title('')
+        pyplot.legend()
+        # pyplot.xticks(xticklocs)
+        self._xlabel(iabscissa)
+        self._finalize_plotting()
+        return self
+    
         
     def plot_front(self, iabscissa=1):
         
