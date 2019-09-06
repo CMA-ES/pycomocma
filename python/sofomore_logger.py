@@ -8,6 +8,7 @@ import os
 import time
 import matplotlib.pyplot as plt
 import ast
+import warnings
 
 class SofomoreDataLogger(interfaces.BaseDataLogger):
     """data logger for class `CMAEvolutionStrategy`.
@@ -76,7 +77,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         self.file_names = ('hypervolume', 'hypervolume_archive', 'len_archive', 'ratio_active_kernel',
                            'ratio_nondom_incumb', 'ratio_nondom_offsp_incumb',
                            'median_sigmas', 'median_axis_ratios', 'median_min_stds',
-                           'median_max_stds')
+                           'median_max_stds', 'median_stds')
         self.modulo = modulo
         """how often to record data, allows calling `add` without args"""
         self.append = append
@@ -164,6 +165,14 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                 f.write('% # columns="iteration, evaluation, median max stds, ' +
                         ', ' + 
                         '\n')
+        except (IOError, OSError):
+            print('could not open file ' + fn)
+            
+        fn = self.name_prefix + 'median_stds.dat'
+        try:
+            with open(fn, 'w') as f:
+                f.write('% # columns="iteration, evaluation, median stds, ' +
+                '\n')
         except (IOError, OSError):
             print('could not open file ' + fn)
 
@@ -290,6 +299,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                                      for kernel in es.kernels])
         median_max_stds = np.median([kernel.sigma * max(kernel.sigma_vec * kernel.dC**0.5) \
                                      for kernel in es.kernels])
+        median_stds = self.es.median_stds
 
         
         # --- end interface ---
@@ -300,7 +310,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             with open(fn, 'a') as f:
                 f.write(str(iteration) + ' '
                         + str(evals) + ' '
-                        + str(median_axis_ratios) + ' '
+                        + str(median_axis_ratios)
                         + '\n')
             
             # median sigmas
@@ -308,7 +318,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             with open(fn, 'a') as f:
                 f.write(str(iteration) + ' '
                         + str(evals) + ' '
-                        + str(median_sigmas) + ' '
+                        + str(median_sigmas)
                         + '\n')
             
             # median min stds
@@ -316,7 +326,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             with open(fn, 'a') as f:
                 f.write(str(iteration) + ' '
                         + str(evals) + ' '
-                        + str(median_min_stds) + ' '
+                        + str(median_min_stds)
                         + '\n')
                 
             # median max stds
@@ -324,9 +334,16 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             with open(fn, 'a') as f:
                 f.write(str(iteration) + ' '
                         + str(evals) + ' '
-                        + str(median_max_stds) + ' '
+                        + str(median_max_stds)
                         + '\n')
-            
+
+            # median stds
+            fn = self.name_prefix + 'median_stds.dat'
+            with open(fn, 'a') as f:
+                f.write(str(iteration) + ' '
+                        + str(evals) + ' '
+                        + str(median_stds)
+                        + '\n')            
             # hypervolume
             if iteration > self.last_iteration:
                 fn = self.name_prefix + 'hypervolume.dat'
@@ -367,7 +384,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                 with open(fn, 'a') as f:
                     f.write(str(iteration) + ' '
                             + str(evals) + ' '
-                            + str(ratio_nondom_incumbent) + ' '
+                            + str(ratio_nondom_incumbent)
                             + '\n')
             # ratio of nondominated [incumbent + its offspring]
             if iteration > self.last_iteration:
@@ -377,7 +394,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                             + str(evals) + ' '
                             + str(first_quartile_ratio_offspring_incumbent) + ' '
                             + str(median_ratio_offspring_incumbent) + ' '
-                            + str(last_quartile_ratio_offspring_incumbent) + ' '
+                            + str(last_quartile_ratio_offspring_incumbent)
                             + '\n')
             
 
@@ -388,7 +405,8 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
 
         
     def load(self, filenames):
-        
+        """
+        """
         iteration = []
         countevals = []
         if isinstance(filenames, str):
@@ -399,7 +417,8 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             with open(filename) as f:
                 tab = [line.rstrip() for line in f.readlines()[1:]] #the first 
                 # line of our file is a headline
-                newtab = [list(map(ast.literal_eval,line.split())) for line in tab]
+                maxsplit = 2 if filename[-15:] == 'median_stds.dat' else -1
+                newtab = [list(map(ast.literal_eval,line.split(maxsplit = maxsplit))) for line in tab]
                 length = len(newtab[0])
                 for k in range(2, length):
                     res += [np.array([line[k] for line in newtab])]
@@ -411,6 +430,8 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         return iteration, countevals, res
         
     def plot(self, filename, x_iteration = 0):
+        """
+        """
         iteration, countevals, res = self.load(filename)
         for i in range(len(res)):   
             if not x_iteration:
@@ -418,8 +439,10 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             else:
                 plt.plot(iteration, res)
             
-    def plot_all(self):
-        raise NotImplementedError
+    def plot_front(self):
+        """
+        """
+
         moes = self.es
         try:
             plt.plot([u[0] for u in moes.archive], [u[1] for u in moes.archive],)
@@ -509,12 +532,18 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
     #        pyplot.semilogy(absciss, res[i],
      #                       '-', color=next(color), label = mylabel[i])
         # pyplot.hold(True)
-        pyplot.semilogy(absciss_hypervolume, [self.es.max_hypervolume_pareto_front - u 
+        offset_convergence_gap = self.es.best_hypervolume_pareto_front
+        pyplot.semilogy(absciss_hypervolume, [offset_convergence_gap - u 
                                           for u in res_hypervolume[0]],
-                    label = mylabel[4])
-        pyplot.semilogy(absciss_hypervolume, [self.es.max_hypervolume_archive - u 
-                                          for u in res_hypervolume[1]],
-                    label = mylabel[5])
+                    label = mylabel[4], nonposy = 'clip')
+        current_archive = res_hypervolume[1]
+        try:
+            offset_archive_gap = current_archive[-1]
+            pyplot.semilogy(absciss_hypervolume, 
+                            [offset_archive_gap - u for u in current_archive], 
+                            label = mylabel[5], nonposy = 'clip')
+        except IndexError:
+            warnings.warn("empty archive")
         pyplot.semilogy(absciss_hypervolume, [1/u for u in res_hypervolume[2]], 
                     label = mylabel[6])
         pyplot.grid(True)
@@ -529,27 +558,20 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         return self
     
         
-    def plot_front(self, iabscissa=1):
+    def plot_stds(self, iabscissa=1):
         
         """
         """
         
         from matplotlib import pyplot
-        fn_incumbent = self.name_prefix + 'ratio_nondom_incumb.dat'
-        fn_inactive = self.name_prefix + 'ratio_inactive_kernels.dat'
-        fn_nondom = self.name_prefix + 'ratio_nondom_offsp_incumb.dat' 
-        filenames = fn_incumbent, fn_inactive, fn_nondom
-        iteration, countevals, res = self.load(filenames)
+        filename = self.name_prefix + 'median_stds.dat'
+        iteration, countevals, res = self.load(filename)
         absciss = countevals if iabscissa else iteration
         self._enter_plotting()
   #      color = iter(pyplot.cm.plasma_r(np.linspace(0.35, 1, 3)))
         self._xlabel(iabscissa)
-        mylabel = ['ratio nondom incumbents', 'ratio inactive kernels',
-                   '1st quartile ratio nondom off+incumb',
-                   'median ratio nondom off+incumb',
-                   '3rd quartile ratio nondom off+incumb']
-        for i in range(5):
-            pyplot.plot(absciss, res[i], label = mylabel[i])
+        
+        pyplot.semilogy(absciss, res[0])
           #  pyplot.plot(absciss, res[i],
            #             '-', color=next(color), label = mylabel[i])
     #        pyplot.semilogy(absciss, res[i],
@@ -560,7 +582,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         # ax[1] = max(minxend, ax[1])
         pyplot.axis(ax)
         # pyplot.title('')
-        pyplot.legend()
+    #    pyplot.legend()
         # pyplot.xticks(xticklocs)
         self._xlabel(iabscissa)
         self._finalize_plotting()
