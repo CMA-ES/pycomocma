@@ -180,8 +180,9 @@ TODO        moes.result_pretty()
         self._remaining_indices_to_ask = range(self.num_kernels) # where we look when calling `ask`
         self.logger = SofomoreDataLogger(self.opts['verb_filenameprefix'],
                                                      modulo=self.opts['verb_log']).register(self)
-        self.max_hypervolume_pareto_front = 0.0
-        self.max_hypervolume_archive = 0.0
+        self.best_hypervolume_pareto_front = 0.0
+        self.epsilon_hypervolume_pareto_front = 0.1 # the minimum positive convergence gap
+        
         self._ratio_nondom_offspring_incumbent = self.num_kernels * [0]
     def __iter__(self):
         """
@@ -395,13 +396,18 @@ TODO        moes.result_pretty()
             start += len(offspring)
             
         self._told_indices = [u for (u,v) in self.offspring]
-        self.max_hypervolume_pareto_front = max(self.max_hypervolume_pareto_front, self.pareto_front.hypervolume)
+        current_hypervolume = self.pareto_front.hypervolume
+        epsilon = abs(current_hypervolume - self.best_hypervolume_pareto_front)
+        if epsilon:
+            self.epsilon_hypervolume_pareto_front = min(self.epsilon_hypervolume_pareto_front, 
+                                                        epsilon)
+        self.best_hypervolume_pareto_front = max(self.best_hypervolume_pareto_front,
+                                                 current_hypervolume)
         if self.active_archive:
             if not self.archive:
                 self.archive = self.nda(objective_values, self.reference_point)
             else:
                 self.archive.add_list(objective_values)
-            self.max_hypervolume_archive = max(self.max_hypervolume_archive, self.archive.hypervolume)
         self.countiter += 1
 
     def stop(self):
@@ -666,7 +672,7 @@ def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
         defopts = cma.CMAOptions()
         defopts.update({'verb_filenameprefix': 'cma_kernels' + os.sep + 
                         str(number_created_kernels+i), 'conditioncov_alleviate': [np.inf, np.inf],
-                    'verbose': -1, 'tolx': 1e-6 / sigma_starts[i]}) # normalize 'tolx' value. 
+                    'verbose': -1, 'tolx': 1e-6}) # default: normalize 'tolx' value. 
         if isinstance(list_of_opts[i], dict):
             defopts.update(list_of_opts[i])
             
