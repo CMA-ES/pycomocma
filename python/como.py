@@ -16,7 +16,6 @@ from sofomore_logger import SofomoreDataLogger
 #import sys
 
 class Sofomore(interfaces.OOOptimizer):
-    
     """ 
     Sofomore framework for multiobjective optimization, with the 
     ask-and-tell interface.
@@ -41,12 +40,12 @@ class Sofomore(interfaces.OOOptimizer):
         It's generally created via a factory function.
         Let's take the example of a factory function that returns cma-es 
         instances, called `get_cmas`. Then:
-        - ``list_of_solvers_instances = get_cmas(11*[x0], sigma0)`` 
-        creates a list of 11 cma-es instances of mean `x0` and step-size 
-        `sigma0`.
+        ``list_of_solvers_instances = get_cmas(11 * [x0], sigma0)`` 
+        creates a list of 11 cma-es instances of initial mean `x0` and initial 
+        step-size `sigma0`.
         A single-objective solver instance must have the following
         attributes and methods:
-            - `incumbent`: an attribute that gives the estimate of 
+            - `incumbent`: an attribute that gives an estimate of 
             the single-objective solver.
             - `objective_values`: an attribute that stores the objective 
             values of the incumbent.
@@ -61,7 +60,7 @@ class Sofomore(interfaces.OOOptimizer):
         Its default value is `None` but should be set by the user 
         beforehand to guarantee an optimal p-distribution convergence of 
         the Hypervolume indicator of `p` points towards the Pareto set/front.
-        However, it can be changed dynamically by the user if needed.
+        It can be changed dynamically by the user if needed.
         
     `opts`
         opts, a dictionary with optional settings related to the 
@@ -70,26 +69,27 @@ class Sofomore(interfaces.OOOptimizer):
             If its value is `True`, tracks the non-dominated
             points among the points evaluated so far during the 
             optimization.
-            Note that the archive will not interfere with the optimization 
+            The archive will not interfere with the optimization 
             process.
             - 'update_order': default value is `None`.
-            A real-valued function that takes an int instance as argument.
-            It guides the order in which the kernels will be updated during 
-            the optimization.
+            If not `None`, a real-valued function that takes an `int` instance
+            as argument. It guides the order in which the kernels will be 
+            updated during the optimization.
  
 
     Main interface / usage
     ======================
     The interface is inherited from the generic `OOOptimizer`
-    class (see also there). An object instance is generated from::
+    class. An object instance is generated from::
         
-        list_of_solvers_instances = get_cmas(11*[x0], sigma0)
-        moes = mo.Sofomore(list_of_solvers_instances,
+        list_of_solvers_instances = como.get_cmas(11 * [x0], sigma0)
+        moes = como.Sofomore(list_of_solvers_instances,
                            reference_point = reference_point)
 
     The least verbose interface is via the optimize method::
 
          moes.optimize(objective_func)
+         where `objective_func` is a callable multiobjective function
 TODO     res = moes.result
 
     More verbosely, the optimization is done using the
@@ -98,7 +98,7 @@ TODO     res = moes.result
         
         while not moes.stop():
             solutions = moes.ask()
-            objective_values = [[f(x) for f in fun] for x in solutions]
+            objective_values = [objective_func(x) for x in solutions]
             moes.tell(solutions, objective_values)
             moes.disp()
 TODO        moes.result_pretty()
@@ -148,7 +148,6 @@ TODO        moes.result_pretty()
             or not tracking an archive, and the order of update of the kernels.
             - The reference_point can be changed by the user after 
             initialization, by setting a value to `self.reference_point`.
-        
         """
         assert len(list_of_solvers_instances) > 0
         self.kernels = list_of_solvers_instances
@@ -159,7 +158,7 @@ TODO        moes.result_pretty()
         self.reference_point = reference_point
         self.pareto_front = []
         defopts = {'archive': True, 'verb_filenameprefix': 'outsofomore' + os.sep, 
-                   'verb_log': 1, 'verb_disp': 100, 'update_order': None}
+                   'verb_log': 1, 'verb_disp': 100, 'update_order': sort_random}
         if opts is None:
             opts = {}
         if isinstance(opts, dict):
@@ -174,7 +173,6 @@ TODO        moes.result_pretty()
         self.offspring = []
         self._told_indices = range(self.num_kernels)
         
-        #self._order = Sequence(self.options['update_order'], seq)() # generator
         self.key_sort_indices = self.opts['update_order']
         self.countiter = 0
         self._remaining_indices_to_ask = range(self.num_kernels) # where we look when calling `ask`
@@ -190,32 +188,6 @@ TODO        moes.result_pretty()
         Future work: it would be interesting to make it subscriptable.
         """
         return iter(self.kernels)
-        
-#        
-#    def _modulo(self, number_asks):
-#        """
-#        `number_asks` is an int.
-#        
-#        returns the list `[self._start_ask % self.num_kernels, ..., 
-#        (self._start_ask + number_asks - 1) % self.num_kernels]`.
-#        
-#        Designed to be used in the `ask` method:
-#        self._modulo(number_asks) returns `number asks` successive integers, 
-#        starting from `self._start_ask`, and whenever `self.num_kernels` is 
-#        reached, we replace it by `0` and continue the sequence from `0`: 
-#        it's a torus.
-#        
-#        Example:
-#        --------    
-#        If self.num_kernels = 5 and self._start_ask = 3:
-#        self._modulo(5) = [3, 4, 0, 1, 2]
-#        """
-#        res = []
-#        assert number_asks > 0
-#        for k in range(number_asks):
-#            res += [(self._start_ask + k) % self.num_kernels]
-#        return res
-        
         
     def ask(self, number_asks = 1):
         """
@@ -283,47 +255,6 @@ TODO        moes.result_pretty()
                 self.offspring += [(ikernel, offspring)]
         self._remaining_indices_to_ask = remaining_indices
         return res
-               
-        
-        
-#    def askkk(self, number_asks = 1):
-#        """
-#        get the kernels' incumbents to be evaluated for the update of 
-#        `self.pareto_front` and sample new candidate solutions from 
-#        `number_asks` kernels.
-#        The sampling is done by calling the `ask` method of the
-#        `cma.CMAEvolutionStrategy` class.
-#        The indices of the considered kernels' incumbents are given by the 
-#        `_told_indices` attribute.
-#        
-#        Arguments
-#        ---------
-#        - `number_asks`: the number of kernels where we sample 
-#        solutions from.
-#        
-#        Return
-#        ------
-#        The list of the kernels' incumbents to be evaluated, extended with a
-#        list of N-dimensional (N is the dimension of the search space) 
-#        candidate solutions generated from `number_asks` kernels 
-#        to be evaluated.
-#    
-#        :See: the `ask` method from the class `cma.CMAEvolutionStrategy`,
-#            in `evolution_strategy.py` from the `cma` module.
-#        """
-#        if number_asks == "all":
-#            number_asks = self.num_kernels
-#        if number_asks > self.num_kernels:
-#            warnings.warn('value larger than the number of kernels.')
-#        self.offspring = []
-#        res = [self.kernels[i].incumbent for i in self._told_indices]
-#        for ikernel in [next(self._order) for _ in range(number_asks)]:
-#            kernel = self.kernels[ikernel]
-#            if not kernel.stop():
-#                offspring = kernel.ask()
-#                res.extend(offspring)
-#                self.offspring += [(ikernel, offspring)]
-#        return res
         
     def tell(self, solutions, objective_values, constraints_values = []):
         """
@@ -578,12 +509,7 @@ TODO        moes.result_pretty()
         print('Iterat #Fevals   Hypervolume   axis ratios '
              '  sigmas   min&max stds\n'+'(median)'.rjust(42) +
              '(median)'.rjust(10) + '(median)'.rjust(12))
-     #   try:
-          #  sys.stdout.flush() : error in matlab:
-          # Python Error: AttributeError: 'MexPrinter' object has no attribute 'flush'
 
-      #  except AttributeError:
-       #     pass
     def disp(self, modulo=None):
         """
         copy-pasted from `cma.evolution_strategy`.
@@ -630,6 +556,32 @@ TODO        moes.result_pretty()
           #          pass
         return self
 
+# callbacks for sorting indices to pick in the `tell` method
+        
+def sort_pair_odds(i):
+    """
+    """
+    return i % 2
+
+def sort_odds_pair(i):
+    """
+    """
+    return - (i % 2)
+
+def sort_random(i):
+    """
+    """
+    return np.random.rand()
+
+def sort_increasing(i):
+    """
+    """
+    return i
+
+def sort_decreasing(i):
+    """
+    """
+    return - i
 
 def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
     """
@@ -743,33 +695,12 @@ class FitFun:
     """
     Define a callable multiobjective function from single objective ones.
     Example:
-        fitness = FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)).
+        fitness = como.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)).
     """
     def __init__(self, *args):
         self.callables = args
     def __call__(self, x):
         return [f(x) for f in self.callables]
-
-#class Order(object):
-#    """
-#    `Order(optimizer)` is a function that takes an index `i` as argument, and returns
-#    the opposite contributing hypervolume of `optimizer.kernels[i].objective_values`
-#    into `optimizer.pareto_front`.
-#    Example:
-#        list_of_solvers = mo.get_cmas(num_kernels * [dimension * [0.3]], 0.2)
-#        moes = mo.Sofomore(list_of_solvers, reference_point = [11,11])
-#        moes.order = Order(moes)
-#
-#    """
-#    def __init__(self, optimizer):
-#        self.optimizer = optimizer
-#    def __call__(self,i):
-#        if self.optimizer.kernels[i].objective_values not in self.optimizer.pareto_front:
-#            # meaning that the point is not nondominated
-#            return 0
-#        else: # the point is nondominated: the (opposite) contributing hypervolume is a non zero value
-#            index = self.optimizer.pareto_front.bisect_left(self.optimizer.kernels[i].objective_values)
-#            return - self.optimizer.pareto_front.contributing_hypervolume(index)
 
 class RankPenalizedFitness:
     """compute f-values of infeasible solutions as rank_f-inverse(const + sum g-ranks).
@@ -845,37 +776,4 @@ class RankPenalizedFitness:
             return self.f_current_best + i
         return f_values[min((imax, i))] + max((i - imax, 0))
         
-#f = RankPenalizedFitness(lambda x: cma.ff.sphere(np.asarray(x)), [lambda x: x[0] > 0]) 
-#f(2 * [[1,2,3], [-1, 1, 10]] + [[1,2,3], [-1.1, 1, 10]] + 1 * [[-1, 1, 101]])
-        
 
-#def order_generator(seq):
-#    """the generator for `randint_derandomized`
-#    code from the module cocopp, 
-#    in: cocopp.toolsstats._randint_derandomized_generator
-#    """
-#    size = len(seq)
-#    delivered = 0
-#    while delivered < size:
-#        for i in seq:
-#            delivered += 1
-#            yield i
-#            if delivered >= size:
-#                break
-#            
-#class Sequence(object):
-#    """
-#    TODO: docstring + comments to be done.
-#    """
-#    def __init__(self, permutation, seq):
-#        self.delivered = 0
-#        self.permutation = permutation
-#        self.seq = seq
-#        self.generator = order_generator(permutation(seq))
-#    def __call__(self):
-#        while True:
-#            for i in self.generator:
-#                self.delivered += 1
-#                yield i
-#                if self.delivered % len(self.seq) == 0:
-#                    self = Sequence(self.permutation, self.seq)
