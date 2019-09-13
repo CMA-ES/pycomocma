@@ -5,7 +5,6 @@ import numpy as np
 import cma
 from cma import interfaces
 import os
-import time
 import matplotlib.pyplot as plt
 import ast
 import warnings
@@ -271,20 +270,21 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         hypervolume = float(es.pareto_front.hypervolume)
         hypervolume_archive = 0.0
         len_archive = 0
-        if es.active_archive:
+        if es.isarchive:
             hypervolume_archive = float(es.archive.hypervolume)
             len_archive = len(es.archive)
-        ratio_inactive = es.ratio_inactive
+        ratio_inactive = 1 - len(es._active_indices) / es.num_kernels
         ratio_nondom_incumbent = len(es.pareto_front)/es.num_kernels
                 
         for i in range(len(es.offspring)):
             idx = es.offspring[i][0]
             kernel = es.kernels[idx]
             
-            temp_archive = es.nda(kernel.last_offspring_f_values, es.reference_point)
+            temp_archive = es.nda(kernel._last_offspring_f_values, es.reference_point)
             temp_archive.add(kernel.objective_values)
             es._ratio_nondom_offspring_incumbent[idx] = len(temp_archive) / (
-                    1 + len(kernel.last_offspring_f_values) )
+                    1 + len(kernel._last_offspring_f_values) )
+                
     
         first_quartile_ratio_offspring_incumbent = np.percentile(es._ratio_nondom_offspring_incumbent, 25);
         median_ratio_offspring_incumbent = np.percentile(es._ratio_nondom_offspring_incumbent, 50);
@@ -445,7 +445,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
 
         moes = self.es
         try:
-            plt.plot([u[0] for u in moes.archive], [u[1] for u in moes.archive],)
+            plt.plot([u[0] for u in moes.archive], [u[1] for u in moes.archive])
         except:
             pass
         plt.plot([u[0] for u in moes.pareto_front], [u[1] for u in moes.pareto_front], 'o')

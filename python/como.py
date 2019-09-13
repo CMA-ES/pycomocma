@@ -152,6 +152,8 @@ TODO        moes.result_pretty()
         assert len(list_of_solvers_instances) > 0
         self.kernels = list_of_solvers_instances
         self.num_kernels = len(self.kernels)
+        self._active_indices = list(range(self.num_kernels))
+
         for kernel in self.kernels:
             if not hasattr(kernel, 'objective_values'):
                 kernel.objective_values = None
@@ -166,8 +168,8 @@ TODO        moes.result_pretty()
         else:
             warnings.warn("options should be either a dictionary or None.")
         self.opts = defopts
-        self.active_archive = self.opts['archive']
-        if self.active_archive:
+        self.isarchive = self.opts['archive']
+        if self.isarchive:
             self.archive = []
         self.nda = None # the method for nondominated archiving
         self.offspring = []
@@ -180,7 +182,7 @@ TODO        moes.result_pretty()
                                                      modulo=self.opts['verb_log']).register(self)
         self.best_hypervolume_pareto_front = 0.0
         self.epsilon_hypervolume_pareto_front = 0.1 # the minimum positive convergence gap
-        
+                
         self._ratio_nondom_offspring_incumbent = self.num_kernels * [0]
     def __iter__(self):
         """
@@ -189,34 +191,34 @@ TODO        moes.result_pretty()
         """
         return iter(self.kernels)
         
-    def ask(self, number_asks = 1):
+    def ask(self, number_to_ask = 1):
         """
         get the kernels' incumbents to be evaluated for the update of 
         `self.pareto_front` and sample new candidate solutions from 
-        `number_asks` kernels.
+        `number_to_ask` kernels.
         The sampling is done by calling the `ask` method of the
         `cma.CMAEvolutionStrategy` class.
         The indices of the considered kernels' incumbents are given by the 
         `_told_indices` attribute.
         
-        To get the `number_asks` kernels, we use the function `self.key_sort_indices` as
+        To get the `number_to_ask` kernels, we use the function `self.key_sort_indices` as
         a key to sort `self._remaining_indices_to_ask` (which is the list of
-        kernels' indices wherein we choose the first `number_asks` elements.
-        And if `number_asks` is larger than `len(self._remaining_indices_to_ask)`,
+        kernels' indices wherein we choose the first `number_to_ask` elements.
+        And if `number_to_ask` is larger than `len(self._remaining_indices_to_ask)`,
         we select the list `self._remaining_indices_to_ask` extended with the  
-        first `number_asks - len(self._remaining_indices_to_ask)` elements
+        first `number_to_ask - len(self._remaining_indices_to_ask)` elements
         of `range(self.num_kernels)`, sorted with `self.key_sort_indices` as key.
 
         Arguments
         ---------
-        - `number_asks`: the number of kernels where we sample 
+        - `number_to_ask`: the number of kernels where we sample 
         solutions from, it's of type int and is smaller or equal to `self.num_kernels`
         
         Return
         ------
         The list of the kernels' incumbents to be evaluated, extended with a
         list of N-dimensional (N is the dimension of the search space) 
-        candidate solutions generated from `number_asks` kernels 
+        candidate solutions generated from `number_to_ask` kernels 
         to be evaluated.
     
         :See: the `ask` method from the class `cma.CMAEvolutionStrategy`,
@@ -224,36 +226,22 @@ TODO        moes.result_pretty()
             
         TODO: only ask `active` kernels
         """
-        if number_asks == "all":
-            number_asks = self.num_kernels
-        assert number_asks > 0
-        if number_asks > self.num_kernels:
-            number_asks = self.num_kernels
-            warnings.warn("value larger than the number of kernels {}. ".format(
-                    self.num_kernels) + "Set to {}.".format(self.num_kernels))
+        if number_to_ask == "all":
+            number_to_ask = len(self._active_indices)
+        assert number_to_ask > 0
+        if number_to_ask > len(self._active_indices):
+            number_to_ask = len(self._active_indices)
+            warnings.warn("value larger than the number of active kernels {}. ".format(
+                    len(self._active_indices)) + "Set to {}.".format(len(self._active_indices)))
         self.offspring = []
         res = [self.kernels[i].incumbent for i in self._told_indices]
-      
-        sorted_indices = sorted(self._remaining_indices_to_ask, key = self.key_sort_indices)
-        indices_to_ask = []
-        remaining_indices = []
-        if number_asks <= len(sorted_indices):
-            indices_to_ask = sorted_indices[:number_asks]
-            remaining_indices = sorted_indices[number_asks:]
-        else:
-            val = number_asks - len(sorted_indices)
-            indices_to_ask = sorted_indices
-            sorted_indices = sorted(range(self.num_kernels), key = self.key_sort_indices)
-            indices_to_ask += sorted_indices[:val]
-            remaining_indices = sorted_indices[val:]
-            
+        indices_to_ask = self._indices_to_ask(number_to_ask)
         for ikernel in indices_to_ask:
             kernel = self.kernels[ikernel]
-            if not kernel.stop():
-                offspring = kernel.ask()
-                res.extend(offspring)
-                self.offspring += [(ikernel, offspring)]
-        self._remaining_indices_to_ask = remaining_indices
+            offspring = kernel.ask()
+            res.extend(offspring)
+            self.offspring += [(ikernel, offspring)]
+
         return res
         
     def tell(self, solutions, objective_values, constraints_values = []):
@@ -318,11 +306,16 @@ TODO        moes.result_pretty()
                                 hypervolume_improvements], g_values)
             kernel.tell(offspring, penalized_f_values())
 #            kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
+            
+            # invistigate whether `kernel` hits its stopping criteria
+            if kernel.stop():
+                self._active_indices.remove(ikernel) # ikernel must be in `_active_indices`
+            
             try:
                 kernel.logger.add()
             except:
                 pass
-            kernel.last_offspring_f_values = objective_values[start:start+len(offspring)]
+            kernel._last_offspring_f_values = objective_values[start:start+len(offspring)]
             
             start += len(offspring)
             
@@ -334,7 +327,7 @@ TODO        moes.result_pretty()
                                                         epsilon)
         self.best_hypervolume_pareto_front = max(self.best_hypervolume_pareto_front,
                                                  current_hypervolume)
-        if self.active_archive:
+        if self.isarchive:
             if not self.archive:
                 self.archive = self.nda(objective_values, self.reference_point)
             else:
@@ -409,6 +402,25 @@ TODO        moes.result_pretty()
             res = max(res, max(vec))
         return res    
     
+    def _indices_to_ask(self, number_to_ask):
+        """
+        """
+        sorted_indices = sorted(self._remaining_indices_to_ask, key = self.key_sort_indices)
+        indices_to_ask = []
+        remaining_indices = []
+        if number_to_ask <= len(sorted_indices):
+            indices_to_ask = sorted_indices[:number_to_ask]
+            remaining_indices = sorted_indices[number_to_ask:]
+        else:
+            val = number_to_ask - len(sorted_indices)
+            indices_to_ask = sorted_indices
+            sorted_indices = sorted(self._active_indices, key = self.key_sort_indices)
+            indices_to_ask += sorted_indices[:val]
+            remaining_indices = sorted_indices[val:]
+        
+        self._remaining_indices_to_ask = remaining_indices
+        return indices_to_ask
+    
     def inactivate(self, kernel):
         """
         inactivate `kernel`, assuming that it's an element of `self.kernels`,
@@ -419,17 +431,16 @@ TODO        moes.result_pretty()
     
         """
         if kernel in self.kernels:
-            try:
-                kernel.opts['termination_callback'] += (lambda _: 'kernel turned off',)
-            except (AttributeError, TypeError):
-                warnings.warn("their is a problem with opts.")
-        else:
-            try:
-                kernel = self.kernels[kernel]
-                kernel.opts['termination_callback'] += (lambda _: 'kernel turned off',)
-            except (AttributeError, TypeError):
-                warnings.warn("their is a problem with opts.")
-                
+            ikernel = self.kernels.index(kernel)
+
+        try:
+            self._active_indices.remove(ikernel)
+            self.kernels[ikernel].opts['termination_callback'] += (lambda _: 'kernel turned off',)
+        except (AttributeError, TypeError, KeyError, ValueError):
+            warnings.warn("check again if `opts['termination_callback']` is"+
+                          " correctly used, or if the kernel is not already"+
+                          " turned off.")
+            
     def activate(self, kernel):
         """
         activate `kernel` when it was inactivated beforehand. Otherwise 
@@ -439,8 +450,14 @@ TODO        moes.result_pretty()
         kernel.stop() = {'callback': ['kernel turned off']}
         """
         raise NotImplementedError
-        
-        
+        if kernel in self.kernels:
+            ikernel = self.kernels.index(kernel)
+        new_list = [callback for callback in self.kernels[ikernel].opts['termination_callback']\
+                if callback(kernel) == 'kernel turned off']
+        kernel.opts['termination_callback'] = new_list
+        if not kernel.stop():
+            self._active_indices += [ikernel]
+                        
 
     def add(self, kernels):
         """
@@ -453,6 +470,9 @@ TODO        moes.result_pretty()
             kernels = [kernels]
         self.kernels += kernels
         self.num_kernels += len(kernels)
+        # update `_active_indices` from scratch: inactive kernels might be added
+        self._active_indices = [idx for idx in range(self.num_kernels) if \
+                                not self.kernels[idx].stop()]
         
     def remove(self, kernels):
         """
@@ -469,6 +489,9 @@ TODO        moes.result_pretty()
                 if kernel.objective_values in self.pareto_front:
                     self.pareto_front.remove(kernel.objective_values)
             self.num_kernels -= 1
+        # update `_active_indices`
+        self._active_indices = [idx for idx in range(self.num_kernels) if \
+                                not self.kernels[idx].stop()]
 
     @property
     def pareto_set(self):
@@ -480,16 +503,6 @@ TODO        moes.result_pretty()
         return [kernel.incumbent for kernel in self.kernels if \
                 kernel.objective_values in self.pareto_front]
 
-    @property
-    def ratio_inactive(self):
-        """
-        return the ratio of inactive kernels among all kernels.
-        """
-        ratio = 0
-        for kernel in self.kernels:
-            if kernel.stop():
-                ratio += 1/self.num_kernels
-        return ratio
     @property
     def countevals(self):
         """
@@ -558,12 +571,12 @@ TODO        moes.result_pretty()
 
 # callbacks for sorting indices to pick in the `tell` method
         
-def sort_pair_odds(i):
+def sort_even_odds(i):
     """
     """
     return i % 2
 
-def sort_odds_pair(i):
+def sort_odds_even(i):
     """
     """
     return - (i % 2)
@@ -624,7 +637,7 @@ def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
         defopts = cma.CMAOptions()
         defopts.update({'verb_filenameprefix': 'cma_kernels' + os.sep + 
                         str(number_created_kernels+i), 'conditioncov_alleviate': [np.inf, np.inf],
-                    'verbose': -1, 'tolx': 1e-6}) # default: normalize 'tolx' value. 
+                    'verbose': -1, 'tolx': 1e-5})  
         if isinstance(list_of_opts[i], dict):
             defopts.update(list_of_opts[i])
             
@@ -668,7 +681,7 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         cma.CMAEvolutionStrategy.__init__(self, x0, sigma0, inopts)
         self.objective_values = None # the objective value of self's incumbent
         # (see below for definition of incumbent)
-        self.last_offspring_f_values = None # the fvalues of its offspring
+        self._last_offspring_f_values = None # the fvalues of its offspring
         # used in the last call of `tell`.  
     
     @property
