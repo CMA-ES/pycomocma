@@ -12,4 +12,4 @@ opts.okresume = 0; % option for resume: `1` means we save the optimization
 % after each iteration (for difficult problems), and for `0` we skip the saving
 %opts.display = 1;
 % opts.verb_disp = 100;
-[paretoFront, paretoSet, out] = COMOCMAES('bi_sphere', nObj, xstart, sigma0, opts);
+[paretoFront, paretoSet, out] = COMOCMAES('bisphere', nObj, xstart, sigma0, opts);

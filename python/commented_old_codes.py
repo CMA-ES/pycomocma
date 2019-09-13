@@ -85,6 +85,15 @@ Created on Fri Sep  6 18:17:35 2019
         #self._order = Sequence(self.options['update_order'], seq)() # generator
 
 
-
-
+#
+#    @property
+#    def ratio_inactive(self):
+#        """
+#        return the ratio of inactive kernels among all kernels.
+#        """
+#        ratio = 0
+#        for kernel in self.kernels:
+#            if kernel.stop():
+#                ratio += 1/self.num_kernels
+#        return ratio
 
