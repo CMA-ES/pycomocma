@@ -71,19 +71,21 @@ class Sofomore(interfaces.OOOptimizer):
             optimization.
             The archive will not interfere with the optimization 
             process.
-            - 'update_order': default value is `None`.
-            If not `None`, a real-valued function that takes an `int` instance
-            as argument. It guides the order in which the kernels will be 
-            updated during the optimization.
+            - 'update_order': default value is a function that takes a natural 
+            integer as input and return a random number between 0 and 1.
+            It is used as a `key value` `sorted(..., key = ...)` and guides the
+            order in which the kernels will be updated during the optimization.
  
 
     Main interface / usage
     ======================
     The interface is inherited from the generic `OOOptimizer`
-    class. An object instance is generated from::
+    class, which is the same interface used by the python cma. An object 
+    instance is generated as following:
         
         list_of_solvers_instances = como.get_cmas(11 * [x0], sigma0)
         moes = como.Sofomore(list_of_solvers_instances,
+                             opts = opts,
                            reference_point = reference_point)
 
     The least verbose interface is via the optimize method::
@@ -92,13 +94,12 @@ class Sofomore(interfaces.OOOptimizer):
          where `objective_func` is a callable multiobjective function
 TODO     res = moes.result
 
-    More verbosely, the optimization is done using the
-    methods `stop`, `ask`, and `tell`::
-
+    More verbosely, the optimization of the multiobjective function 
+    `objective_funcs` is done using the methods `stop`, `ask`, and `tell`::
         
         while not moes.stop():
             solutions = moes.ask()
-            objective_values = [objective_func(x) for x in solutions]
+            objective_values = [objective_funcs(x) for x in solutions]
             moes.tell(solutions, objective_values)
             moes.disp()
 TODO        moes.result_pretty()
@@ -637,7 +638,7 @@ def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
         defopts = cma.CMAOptions()
         defopts.update({'verb_filenameprefix': 'cma_kernels' + os.sep + 
                         str(number_created_kernels+i), 'conditioncov_alleviate': [np.inf, np.inf],
-                    'verbose': -1, 'tolx': 1e-5})  
+                    'verbose': -1, 'tolx': 1e-3})  
         if isinstance(list_of_opts[i], dict):
             defopts.update(list_of_opts[i])
             

@@ -445,12 +445,14 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
 
         moes = self.es
         try:
-            plt.plot([u[0] for u in moes.archive], [u[1] for u in moes.archive])
+            plt.plot([u[0] for u in moes.archive], [u[1] for u in moes.archive],
+                     label = "archive")
         except:
             pass
-        plt.plot([u[0] for u in moes.pareto_front], [u[1] for u in moes.pareto_front], 'o')
+        plt.plot([u[0] for u in moes.pareto_front], [u[1] for u in moes.pareto_front], 'o',
+                 label = "cma-es incumbents")
         pass
-        
+        plt.legend()
     def plot_ratios(self, iabscissa=1):
         
         """
@@ -585,6 +587,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
     #    pyplot.legend()
         # pyplot.xticks(xticklocs)
         self._xlabel(iabscissa)
+        pyplot.title("median (sorted) standard deviations in all coordinates")
         self._finalize_plotting()
         return self
         
