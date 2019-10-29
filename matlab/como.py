@@ -26,9 +26,9 @@ class Sofomore(interfaces.OOOptimizer):
     Calling Sequences
     =================
 
-    - ``moes = Sofomore(list_of_solvers_instances, opts, reference_point)``
-
     - ``moes = Sofomore(list_of_solvers_instances, reference_point)``
+
+    - ``moes = Sofomore(list_of_solvers_instances, reference_point, opts)``
 
     - ``moes = Sofomore(list_of_solvers_instances, 
                              reference_point).optimize(objective_fcts)``
@@ -55,7 +55,13 @@ class Sofomore(interfaces.OOOptimizer):
             - `tell`: passes the objective values and updates the states of the
             single-objective solvers.
                 
-            
+    `reference_point`  
+        reference point of the multiobjective optimization.
+        Its default value is `None` but should be set by the user 
+        beforehand to guarantee an optimal p-distribution convergence of 
+        the Hypervolume indicator of `p` points towards the Pareto set/front.
+        It can be changed dynamically by the user if needed.
+        
     `opts`
         opts, a dictionary with optional settings related to the 
         Sofomore framework. It contains the following keys:
@@ -70,14 +76,6 @@ class Sofomore(interfaces.OOOptimizer):
             It is used as a `key value` `sorted(..., key = ...)` and guides the
             order in which the kernels will be updated during the optimization.
  
-
-    `reference_point`  
-        reference point of the multiobjective optimization.
-        Its default value is `None` but should be set by the user 
-        beforehand to guarantee an optimal p-distribution convergence of 
-        the Hypervolume indicator of `p` points towards the Pareto set/front.
-        It can be changed dynamically by the user if needed.
-        
 
     Main interface / usage
     ======================
