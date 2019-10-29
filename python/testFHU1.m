@@ -2,20 +2,20 @@
 % ProblemName='DOUBLESPHERE';
 ProblemName='MYPB';
 opts = COMOCMAES();
-opts.nPop = 15;
+opts.nPop = 48;
 nObj = 2;
 nVar = 20;
 opts.tolx=1e-4;
-sigma0 = 0.2;
+sigma0 = 1;
 opts.elitist=0;
 
 %opts.number_asks =opts.nPop;%'1 % pour sequentiel'
 %opts.maxiter=fix(10000/opts.number_asks);
 %opts.number_asks = 1;
-opts.maxiter = 500;
-xstart = rand(1, nVar);
+opts.maxiter = 900;
+xstart = -10 + 5 * rand(opts.nPop, nVar);
 
-opts.logger = 10; % to write data every opts`.logger` iterations
+%opts.logger = 10; % to write data every opts`.logger` iterations
 opts.okresume = 0; % option for resume: `1` means we save the optimization
 opts.resumefile='';
 opts.verb_disp=50;
@@ -44,7 +44,7 @@ if strcmp(ProblemName,'DOUBLESPHERE')
 else
     if nObj==2
         % pour MYPB a 2 objectifs
-        opts.refpoint    =[30; 60];
+        opts.refpoint    =[110; 110];
     elseif nObj==3
         % pour MYPB a 3 objectifs
         opts.refpoint    =[20;30;-100];
