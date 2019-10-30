@@ -205,7 +205,7 @@ from .logger import CMADataLogger  # , disp, plot
 from .utilities.utils import BlancClass as _BlancClass
 from .utilities.utils import rglen  #, global_verbosity
 from .utilities.utils import pprint
-# from .utilities.math import Mh
+from .utilities.math import Mh
 from .sigma_adaptation import *
 from . import restricted_gaussian_sampler as _rgs
 
@@ -939,9 +939,9 @@ else:
           CMAEvolutionStrategy.sp.weights.mueff ~ 0.3 * popsize.
         - 7 ``stop`` termination conditions in a dictionary
 
-        The best solution of the last completed iteration can be accessed via
-        attribute ``pop_sorted[0]`` of `CMAEvolutionStrategy` and the
-        respective objective function value via ``fit.fit[0]``.
+        The penalized best solution of the last completed iteration can be
+        accessed via attribute ``pop_sorted[0]`` of `CMAEvolutionStrategy`
+        and the respective objective function value via ``fit.fit[0]``.
 
         Details:
 
@@ -970,9 +970,9 @@ class _CMAEvolutionStrategyResult(tuple):
       ~ std_i * dimension**0.5 / min(popsize / 0.4, dimension) / 5, where
       mueff = CMAEvolutionStrategy.sp.weights.mueff ~ 0.3 * popsize.
 
-    The best solution of the last completed iteration can be accessed via
-    attribute ``pop_sorted[0]`` of `CMAEvolutionStrategy` and the
-    respective objective function value via ``fit.fit[0]``.
+    The penalized best solution of the last completed iteration can be
+    accessed via attribute ``pop_sorted[0]`` of `CMAEvolutionStrategy`
+    and the respective objective function value via ``fit.fit[0]``.
 
     Details:
 
@@ -1318,7 +1318,7 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         the conditions.
 
         """
-        if (check and self.countiter > 0 and self.opts['termination_callback'] and
+        if (check and self.countiter > 0 and
                 self.opts['termination_callback'] != str(self.opts['termination_callback'])):
             self.callbackstop = utils.ListOfCallables(self.opts['termination_callback'])(self)
 
@@ -1624,10 +1624,10 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         self.logger = CMADataLogger(opts['verb_filenameprefix'],
                                                      modulo=opts['verb_log']).register(self)
 
-        # attribute for stopping criteria in function stop
         self._stopdict = _CMAStopDict()
-        self.callbackstop = (False,)  # None and 0 in the tuple work as well
-
+        "    attribute for stopping criteria in function stop"
+        self.callbackstop = ()
+        "    return values of callbacks, used like ``if any(callbackstop)``"
         self.fit = _BlancClass()
         self.fit.fit = []  # not really necessary
         self.fit.hist = []  # short history of best
@@ -1707,29 +1707,46 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         except NotImplementedError:
             pass
     
-    def _copy_light(self, inopts=None):
+    def _copy_light(self, sigma=None, inopts=None):
         """tentative copy of self, versatile (interface and functionalities may change).
         
-        This may not work depending on the used sampler.
-        
-        Copy mean and sample distribution parameters and input options.
+        `sigma` overwrites the original initial `sigma`.
+        `inopts` allows to overwrite any of the original options.
 
-        Do not copy evolution paths, termination status or other state variables.
+        This copy may not work as expected depending on the used sampler.
+        
+        Copy mean and sample distribution parameters and input options. Do
+        not copy evolution paths, termination status or other state variables.
+
+        >>> import cma
+        >>> es = cma.CMAEvolutionStrategy(3 * [1], 0.1,
+        ...          {'verbose':-9}).optimize(cma.ff.elli, iterations=10)
+        >>> es2 = es._copy_light()
+        >>> assert es2.sigma == es.sigma
+        >>> assert sum((es.sm.C - es2.sm.C).flat < 1e-12)
+        >>> es3 = es._copy_light(sigma=10)
+        >>> assert es3.sigma == es3.sigma0 == 10
+        >>> es4 = es._copy_light(inopts={'CMA_on': False})
+        >>> assert es4.sp.c1 == es4.sp.cmu == 0
+
         """
+        if sigma is None:
+            sigma = self.sigma
         opts = dict(self.inopts)
         if inopts is not None:
             opts.update(inopts)
-        es = CMAEvolutionStrategy(self.mean[:], self.sigma, opts)
+        es = type(self)(self.mean[:], sigma, opts)
         es.sigma_vec = transformations.DiagonalDecoding(self.sigma_vec.scaling)
         try: es.sm.C = self.sm.C.copy()
         except: warnings.warn("self.sm.C.copy failed")
         es.sm.update_now(-1)  # make B and D consistent with C
+        es._updateBDfromSM()
         return es    
     
     # ____________________________________________________________
     # ____________________________________________________________
     def ask(self, number=None, xmean=None, sigma_fac=1,
-            gradf=None, args=()):
+            gradf=None, args=(), **kwargs):
         """get/sample new candidate solutions.
 
         Solutions are sampled from a multi-variate
@@ -1772,6 +1789,11 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
 
         """
         assert self.countiter >= 0
+        if kwargs:
+            utils.print_warning("""Optional argument%s \n\n  %s\n\nignored""" % (
+                                    '(s)' if len(kwargs) > 1 else '', str(kwargs)),
+                                "ask", "CMAEvolutionStrategy",
+                                self.countiter, maxwarns=1)
         if self.countiter == 0:
             self.timer = utils.ElapsedWCTime()
         else:
@@ -2047,7 +2069,7 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                         " are not mirrors.",
                         "ask_geno", "CMAEvolutionStrategy",
                         self.countiter)
-                    arinj[1] /= sum(arinj[0]**2)**0.5 / s1  # revert change
+                    # arinj[1] /= sum(arinj[0]**2)**0.5 / s1  # revert change
             self.number_of_injections_delivered += len(arinj)
             assert (self.countiter < 2 or not self.mean_shift_samples
                     or self.number_of_injections_delivered >= 2)
@@ -2247,13 +2269,12 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
             xmean = self.mean  # might have changed in self.ask
         X = []
         if parallel_mode:
+            if hasattr(func, 'evaluations'):
+                evals0 = func.evaluations
             fit_first = func(X_first, *args)
             # the rest is only book keeping and warnings spitting
-            if hasattr(func, 'last_evaluations'):
-                self.countevals += func.last_evaluations - self.popsize
-            elif hasattr(func, 'evaluations'):
-                if self.countevals < func.evaluations:
-                    self.countevals = func.evaluations - self.popsize
+            if hasattr(func, 'evaluations'):
+                self.countevals += func.evaluations - evals0 - self.popsize  # why not .sp.popsize ?
             if nmirrors and self.opts['CMA_mirrormethod'] > 0 and self.countiter < 2:
                 utils.print_warning(
                     "selective mirrors will not work in parallel mode",
@@ -2535,7 +2556,7 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         # self.out['recent_f'] = fit.fit[0]
 
         # fitness histories
-        fit.hist.insert(0, fit.fit[0])
+        fit.hist.insert(0, fit.fit[0])  # caveat: this may neither be the best nor the best in-bound fitness, TODO
         # if len(self.fit.histbest) < 120+30*N/sp.popsize or  # does not help, as tablet in the beginning is the critical counter-case
         if ((self.countiter % 5) == 0):  # 20 percent of 1e5 gen.
             fit.histbest.insert(0, fit.fit[0])
@@ -2968,8 +2989,8 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                            "manage_plateaus", "CMAEvolutionStrategy",
                                 self.countiter)
             return
-        idx = Mh.sround(sample_fraction * (self.popsize - 1))
-        if self.fit.fit[0] == self.fit.fit[idx]:
+        f0, fm = Mh.prctile(self.fit.fit, [0, sample_fraction * 100])
+        if f0 == fm:
             self.sigma *= sigma_fac
 
     @property
@@ -3416,7 +3437,7 @@ class _CMAStopDict(dict):
                       any(es.sigma * es.sigma_vec.scaling * es.dC**0.5 >
                           es.sigma0 * es.sigma_vec0 * opts['tolfacupx']))
         self._addstop('tolfun',
-                      es.fit.fit[-1] - es.fit.fit[0] < opts['tolfun'] and
+                      max(es.fit.fit) - min(es.fit.fit) < opts['tolfun'] and  # fit.fit is sorted including bound penalties
                       max(es.fit.hist) - min(es.fit.hist) < opts['tolfun'])
         self._addstop('tolfunhist',
                       len(es.fit.hist) > 9 and
@@ -3486,7 +3507,7 @@ class _CMAStopDict(dict):
 
         if 1 < 3 or len(self): # only if another termination criterion is satisfied
             if 1 < 3:  # warn, in case
-                if es.fit.fit[0] == es.fit.fit[-1] == es.best.last.f:
+                if max(es.fit.fit) == min(es.fit.fit) == es.best.last.f:
                     utils.print_warning(
                     """flat fitness (f=%f, sigma=%.2e).
                     For small sigma, this could indicate numerical convergence.
@@ -3496,7 +3517,7 @@ class _CMAStopDict(dict):
                 self._addstop('flat fitness',  # message via stopdict
                          len(es.fit.hist) > 9 and
                          max(es.fit.hist) == min(es.fit.hist) and
-                              es.fit.fit[0] == es.fit.fit[-2],
+                              max(es.fit.fit) == min(es.fit.fit),
                          "please (re)consider how to compute the fitness more elaborately if sigma=%.2e is large" % es.sigma)
         if 11 < 3 and opts['vv'] == 321:
             self._addstop('||xmean||^2<ftarget', sum(es.mean**2) <= opts['ftarget'])
@@ -4591,7 +4612,7 @@ class old_CMADataLogger(interfaces.BaseDataLogger):
         # TODO: find a different way to communicate current x and f?
         try:
             besteverf = es.best.f
-            bestf = es.fit.fit[0]
+            bestf = es.fit.fit[0]  # caveat: fit.fit is sorted with added the bound penalty
             worstf = es.fit.fit[-1]
             medianf = es.fit.fit[es.sp.popsize // 2]
         except:
