@@ -26,9 +26,9 @@ class Sofomore(interfaces.OOOptimizer):
     Calling Sequences
     =================
 
-    - ``moes = Sofomore(list_of_solvers_instances, reference_point)``
+    - ``moes = Sofomore(list_of_solvers_instances, opts, reference_point)``
 
-    - ``moes = Sofomore(list_of_solvers_instances, reference_point, opts)``
+    - ``moes = Sofomore(list_of_solvers_instances, reference_point)``
 
     - ``moes = Sofomore(list_of_solvers_instances, 
                              reference_point).optimize(objective_fcts)``
@@ -55,13 +55,7 @@ class Sofomore(interfaces.OOOptimizer):
             - `tell`: passes the objective values and updates the states of the
             single-objective solvers.
                 
-    `reference_point`  
-        reference point of the multiobjective optimization.
-        Its default value is `None` but should be set by the user 
-        beforehand to guarantee an optimal p-distribution convergence of 
-        the Hypervolume indicator of `p` points towards the Pareto set/front.
-        It can be changed dynamically by the user if needed.
-        
+            
     `opts`
         opts, a dictionary with optional settings related to the 
         Sofomore framework. It contains the following keys:
@@ -76,6 +70,14 @@ class Sofomore(interfaces.OOOptimizer):
             It is used as a `key value` `sorted(..., key = ...)` and guides the
             order in which the kernels will be updated during the optimization.
  
+
+    `reference_point`  
+        reference point of the multiobjective optimization.
+        Its default value is `None` but should be set by the user 
+        beforehand to guarantee an optimal p-distribution convergence of 
+        the Hypervolume indicator of `p` points towards the Pareto set/front.
+        It can be changed dynamically by the user if needed.
+        
 
     Main interface / usage
     ======================
@@ -705,7 +707,7 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         
         return cma.CMAEvolutionStrategy.stop(self, check, ignore_list = to_be_ignored)
     
-    def _copy_light(self, inopts=None):
+    def _copy_light(self, sigma=None, inopts=None):
         """tentative copy of self, versatile (interface and functionalities may change).
         
         This may not work depending on the used sampler.
@@ -714,14 +716,8 @@ class CmaKernel(cma.CMAEvolutionStrategy):
 
         Do not copy evolution paths, termination status or other state variables.
         """
-        opts = dict(self.inopts)
-        if inopts is not None:
-            opts.update(inopts)
-        es = CmaKernel(self.mean[:], self.sigma, opts)
-        es.sigma_vec = cma.transformations.DiagonalDecoding(self.sigma_vec.scaling)
-        try: es.sm.C = self.sm.C.copy()
-        except: warnings.warn("self.sm.C.copy failed")
-        es.sm.update_now(-1)  # make B and D consistent with C
+        es = super(CmaKernel, self)._copy_light(sigma, inopts)
+
         es.objective_values = self.objective_values
         es._last_offspring_f_values = self._last_offspring_f_values
         return es  
