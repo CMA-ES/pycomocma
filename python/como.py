@@ -137,9 +137,9 @@ TODO        moes.result_pretty()
     select the first indices during the call of the `ask` method.
     """   
     def __init__(self,
-               list_of_solvers_instances, # usally come from a factory function 
+               list_of_solvers_instances, # usually come from a factory function 
                                          #  creating single solvers' instances
-               opts = None, # keeping an archive, etc.
+               opts = None, # keeping an archive, decide whether we use restart, etc.
                reference_point = None,    
                ):
         """
@@ -162,7 +162,7 @@ TODO        moes.result_pretty()
                 kernel.objective_values = None
         self.reference_point = reference_point
         self.pareto_front = []
-        defopts = {'archive': True, 'verb_filenameprefix': 'outsofomore' + os.sep, 
+        defopts = {'archive': True, 'restart': None, 'verb_filenameprefix': 'outsofomore' + os.sep, 
                    'verb_log': 1, 'verb_disp': 100, 'update_order': sort_random}
         if opts is None:
             opts = {}
@@ -171,6 +171,7 @@ TODO        moes.result_pretty()
         else:
             warnings.warn("options should be either a dictionary or None.")
         self.opts = defopts
+        self.restart = self.opts['restart']
         self.isarchive = self.opts['archive']
         if self.isarchive:
             self.archive = []
@@ -293,6 +294,7 @@ TODO        moes.result_pretty()
                          self.reference_point)
             
         start = len(self._told_indices) # position of the first offspring
+        new_kernels_indices = []
         for ikernel, offspring in self.offspring:
             kernel = self.kernels[ikernel]
             fit = kernel.objective_values
@@ -313,6 +315,14 @@ TODO        moes.result_pretty()
             # invistigate whether `kernel` hits its stopping criteria
             if kernel.stop():
                 self._active_indices.remove(ikernel) # ikernel must be in `_active_indices`
+                if self.restart:
+                    new_mean = self.restart[0] + (self.restart[0] + self.restart[1])\
+                    * np.random.rand(len(kernel.mean))
+                    sigma0 = kernel.sigma0 / 1.  # decrease the initial  step-size ?
+                    new_kernel = get_cmas(new_mean, sigma0, number_created_kernels = self.num_kernels)
+                    new_kernels_indices += [self.num_kernels]
+                    self.add(new_kernel)
+                
             
             try:
                 kernel.logger.add()
@@ -322,7 +332,7 @@ TODO        moes.result_pretty()
             
             start += len(offspring)
             
-        self._told_indices = [u for (u,v) in self.offspring]
+        self._told_indices = new_kernels_indices + [u for (u,v) in self.offspring]
         current_hypervolume = self.pareto_front.hypervolume
         epsilon = abs(current_hypervolume - self.best_hypervolume_pareto_front)
         if epsilon:
@@ -373,6 +383,41 @@ TODO        moes.result_pretty()
             res[i] = self.kernels[i].stop()
         return res
     
+    def add(self, kernels):
+        """
+        add `kernels` of type `list` to `self.kernels` and update `self.pareto_front`
+        and `self.num_kernels`.
+        Generally, `kernels` are created from a factory function.
+        If `kernels` is of length 1, the brackets can be omitted.
+        """
+        if not isinstance(kernels, list):
+            kernels = [kernels]
+        self.kernels += kernels
+        self.num_kernels += len(kernels)
+        # update `_active_indices` from scratch: inactive kernels might be added
+        self._active_indices = [idx for idx in range(self.num_kernels) if \
+                                not self.kernels[idx].stop()]
+        self._ratio_nondom_offspring_incumbent = self.num_kernels * [0] # self.num_kernels changed
+        
+    def remove(self, kernels):
+        """
+        remove elements of the `kernels` (type `list`) that belong to
+        `self.kernels`, and update `self.pareto_front` and
+        `self.num_kernels` accordingly.
+        If `kernels` is of length 1, the brackets can be omitted.
+        """
+        if not isinstance(kernels, list):
+            kernels = [kernels]
+        for kernel in kernels:
+            if kernel in self.kernels:
+                self.kernels.remove(kernel)
+                if kernel.objective_values in self.pareto_front:
+                    self.pareto_front.remove(kernel.objective_values)
+            self.num_kernels -= 1
+        # update `_active_indices`
+        self._active_indices = [idx for idx in range(self.num_kernels) if \
+                                not self.kernels[idx].stop()]
+
     @property
     def median_stds(self):
         """
@@ -461,41 +506,6 @@ TODO        moes.result_pretty()
         if not kernel.stop():
             self._active_indices += [ikernel]
                         
-
-    def add(self, kernels):
-        """
-        add `kernels` of type `list` to `self.kernels` and update `self.pareto_front`
-        and `self.num_kernels`.
-        Generally, `kernels` are created from a factory function.
-        If `kernels` is of length 1, the brackets can be omitted.
-        """
-        if not isinstance(kernels, list):
-            kernels = [kernels]
-        self.kernels += kernels
-        self.num_kernels += len(kernels)
-        # update `_active_indices` from scratch: inactive kernels might be added
-        self._active_indices = [idx for idx in range(self.num_kernels) if \
-                                not self.kernels[idx].stop()]
-        
-    def remove(self, kernels):
-        """
-        remove elements of the `kernels` (type `list`) that belong to
-        `self.kernels`, and update `self.pareto_front` and
-        `self.num_kernels` accordingly.
-        If `kernels` is of length 1, the brackets can be omitted.
-        """
-        if not isinstance(kernels, list):
-            kernels = [kernels]
-        for kernel in kernels:
-            if kernel in self.kernels:
-                self.kernels.remove(kernel)
-                if kernel.objective_values in self.pareto_front:
-                    self.pareto_front.remove(kernel.objective_values)
-            self.num_kernels -= 1
-        # update `_active_indices`
-        self._active_indices = [idx for idx in range(self.num_kernels) if \
-                                not self.kernels[idx].stop()]
-
     @property
     def pareto_set(self):
         """
@@ -640,7 +650,7 @@ def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
         defopts = cma.CMAOptions()
         defopts.update({'verb_filenameprefix': 'cma_kernels' + os.sep + 
                         str(number_created_kernels+i), 'conditioncov_alleviate': [np.inf, np.inf],
-                    'verbose': -1, 'tolx': 1e-3})  
+                    'verbose': -1, 'tolx': 1e-6})  
         if isinstance(list_of_opts[i], dict):
             defopts.update(list_of_opts[i])
             
