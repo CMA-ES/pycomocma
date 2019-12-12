@@ -445,14 +445,14 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
 
         moes = self.es
         try:
-            plt.plot([u[0] for u in moes.archive], [u[1] for u in moes.archive],
+            plt.plot([u[0] for u in moes.archive], [u[1] for u in moes.archive], '.',
                      label = "archive")
         except:
             pass
         plt.plot([u[0] for u in moes.pareto_front], [u[1] for u in moes.pareto_front], 'o',
                  label = "cma-es incumbents")
         pass
-        plt.legend()
+     #   plt.legend()
     def plot_ratios(self, iabscissa=1):
         
         """
