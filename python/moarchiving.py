@@ -489,7 +489,7 @@ class BiobjectiveNondominatedSortedList(list):
         assert dHV >= 0
         return dHV
 
-    def distance_to_pareto_front(self, f_pair, ref_factor=3):
+    def distance_to_pareto_front(self, f_pair, ref_factor=1):
         """of a dominated `f_pair` also considering the reference domain.
 
         Non-dominated points have (by definition) a distance of zero,

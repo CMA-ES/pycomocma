@@ -7,8 +7,8 @@
 import numpy as np
 import cma
 from cma import interfaces
-from nondominatedarchive import NonDominatedList as NDL
-from moarchiving import BiobjectiveNondominatedSortedList as BNDSL
+from nondominatedarchive import NonDominatedList
+from moarchiving import BiobjectiveNondominatedSortedList
 import warnings
 import cma.utilities.utils
 import os
@@ -228,7 +228,6 @@ TODO        moes.result_pretty()
         :See: the `ask` method from the class `cma.CMAEvolutionStrategy`,
             in `evolution_strategy.py` from the `cma` module.
             
-        TODO: only ask `active` kernels
         """
         if number_to_ask == "all":
             number_to_ask = len(self._active_indices)
@@ -284,7 +283,8 @@ TODO        moes.result_pretty()
         if len(solutions) == 0: # when asking a terminated kernel for example
             return 
         if self.nda is None:
-            self.nda = BNDSL if len(objective_values[0]) == 2 else NDL
+            self.nda = BiobjectiveNondominatedSortedList if len(
+                    objective_values[0]) == 2 else NonDominatedList
         for i in range(len(self._told_indices)):
             self.kernels[self._told_indices[i]].objective_values = objective_values[i]
         
@@ -703,7 +703,8 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         it gives the 'repaired' mean of a cma-es. For a problem with bound
         constraints, `self.incumbent` in inside the bounds.
         """
-        return self.boundary_handler.repair(self.mean)
+#        return self.boundary_handler.repair(self.mean)
+        return self.mean
     
     def stop(self, check=True, ignore_list=()):
         """
