@@ -650,7 +650,7 @@ def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
         defopts = cma.CMAOptions()
         defopts.update({'verb_filenameprefix': 'cma_kernels' + os.sep + 
                         str(number_created_kernels+i), 'conditioncov_alleviate': [np.inf, np.inf],
-                    'verbose': -1, 'tolx': 1e-6})  
+                    'verbose': -1, 'tolx': 1e-4})  
         if isinstance(list_of_opts[i], dict):
             defopts.update(list_of_opts[i])
             
