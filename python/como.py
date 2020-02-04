@@ -161,7 +161,6 @@ TODO        moes.result_pretty()
             if not hasattr(kernel, 'objective_values'):
                 kernel.objective_values = None
         self.reference_point = reference_point
-        self.pareto_front = []
         defopts = {'archive': True, 'restart': None, 'verb_filenameprefix': 'outsofomore' + os.sep, 
                    'verb_log': 1, 'verb_disp': 100, 'update_order': sort_random}
         if opts is None:
@@ -290,25 +289,20 @@ TODO        moes.result_pretty()
         
         if self.reference_point is None:
             pass #write here the max among the kernel.objective_values       
-        self.pareto_front = self.nda([kernel.objective_values for kernel in self.kernels],
-                         self.reference_point)
             
         start = len(self._told_indices) # position of the first offspring
         new_kernels_indices = []
         for ikernel, offspring in self.offspring:
-            kernel = self.kernels[ikernel]
-            fit = kernel.objective_values
-            if fit in self.pareto_front: # i.e. if fit is not dominated and dominates 
-                                  # the reference point
-                self.pareto_front.remove(fit)
-            hypervolume_improvements = [self.pareto_front.hypervolume_improvement(
+            front_observed = self.nda([self.kernels[i].objective_values for i in range(self.num_kernels) if i is not ikernel],
+                         self.reference_point)
+            hypervolume_improvements = [front_observed.hypervolume_improvement(
                     point) for point in objective_values[start:start+len(offspring)]]
-            self.pareto_front.add(fit) # in case num_kernels > 1
             
             g_values = [constraint[start:start+len(offspring)] \
                         for constraint in constraints_values]
             penalized_f_values = RankPenalizedFitness([-float(u) for u in 
                                 hypervolume_improvements], g_values)
+            kernel = self.kernels[ikernel]
             kernel.tell(offspring, penalized_f_values())
 #            kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
             
@@ -320,6 +314,7 @@ TODO        moes.result_pretty()
                     * np.random.rand(len(kernel.mean))
                     sigma0 = kernel.sigma0 / 1.  # decrease the initial  step-size ?
                     new_kernel = get_cmas(new_mean, sigma0, number_created_kernels = self.num_kernels)
+                  #  new_kernel.sigma = 2 * kernel.sigma
                     new_kernels_indices += [self.num_kernels]
                     self.add(new_kernel)
                 
@@ -346,6 +341,23 @@ TODO        moes.result_pretty()
             else:
                 self.archive.add_list(objective_values)
         self.countiter += 1
+        
+    @property
+    def pareto_front(self):
+        """
+        """
+        return self.nda([kernel.objective_values for kernel in self.kernels],
+                         self.reference_point)
+
+    @property
+    def pareto_set(self):
+        """
+        return the estimated Pareto set of the algorithm, among the kernels'
+        incumbents.
+        It's the pre-image of `self.pareto_front`.
+        """
+        return [kernel.incumbent for kernel in self.kernels if \
+                kernel.objective_values in self.pareto_front]
 
     def stop(self):
         """
@@ -505,16 +517,6 @@ TODO        moes.result_pretty()
         kernel.opts['termination_callback'] = new_list
         if not kernel.stop():
             self._active_indices += [ikernel]
-                        
-    @property
-    def pareto_set(self):
-        """
-        return the estimated Pareto set of the algorithm, among the kernels'
-        incumbents.
-        It's the pre-image of `self.pareto_front`.
-        """
-        return [kernel.incumbent for kernel in self.kernels if \
-                kernel.objective_values in self.pareto_front]
 
     @property
     def countevals(self):
