@@ -309,15 +309,13 @@ TODO        moes.result_pretty()
             # invistigate whether `kernel` hits its stopping criteria
             if kernel.stop():
                 self._active_indices.remove(ikernel) # ikernel must be in `_active_indices`
-                if self.restart:
-                    new_mean = self.restart[0] + (self.restart[0] + self.restart[1])\
-                    * np.random.rand(len(kernel.mean))
-                    sigma0 = kernel.sigma0 / 1.  # decrease the initial  step-size ?
-                    new_kernel = get_cmas(new_mean, sigma0, number_created_kernels = self.num_kernels)
-                  #  new_kernel.sigma = 2 * kernel.sigma
+                if self.restart is not None:
+                    if self.restart == "best_hvc":
+                        ker_to_add = self.best_hvc_restart()
+                    else:
+                        ker_to_add = self.random_restart(kernel)
                     new_kernels_indices += [self.num_kernels]
-                    self.add(new_kernel)
-                
+                    self.add(ker_to_add)
             
             try:
                 kernel.logger.add()
@@ -358,6 +356,30 @@ TODO        moes.result_pretty()
         """
         return [kernel.incumbent for kernel in self.kernels if \
                 kernel.objective_values in self.pareto_front]
+    
+    def best_hvc_restart(self):
+        """
+        Pick the kernel with the highest hypervolume contribution.
+        """
+        hvc = []
+        for idx in range(self.num_kernels):
+            front = self.nda([self.kernels[i].objective_values for i in range(self.num_kernels) if i != idx],
+                                self.reference_point)
+            f_pair = self.kernels[idx].objective_values
+            hvc.append(front.hypervolume_improvement(f_pair))
+        idx_best = np.argmax(hvc)
+        ker = self.kernels[idx_best]
+        return ker._copy_light(sigma=ker.sigma0)
+    
+    def random_restart(self, kernel):
+        """
+        Add a kernel randomly between `self.restart[0]` and `self.restart[1]`.
+        """
+        new_mean = self.restart[0] + (self.restart[0] + self.restart[1])\
+        * np.random.rand(len(kernel.mean))
+        sigma0 = kernel.sigma0 / 1.  # decrease the initial  step-size ?
+        return get_cmas(new_mean, sigma0, number_created_kernels = self.num_kernels)
+
 
     def stop(self):
         """
