@@ -155,6 +155,7 @@ TODO        moes.result_pretty()
         assert len(list_of_solvers_instances) > 0
         self.kernels = list_of_solvers_instances
         self.num_kernels = len(self.kernels)
+        self.dimension = self.kernels[0].N
         self._active_indices = list(range(self.num_kernels))
 
         for kernel in self.kernels:
@@ -174,7 +175,7 @@ TODO        moes.result_pretty()
         self.isarchive = self.opts['archive']
         if self.isarchive:
             self.archive = []
-        self.nda = None # the method for nondominated archiving
+        self.NDA = None # the method for nondominated archiving
         self.offspring = []
         self._told_indices = range(self.num_kernels)
         
@@ -281,8 +282,8 @@ TODO        moes.result_pretty()
         """
         if len(solutions) == 0: # when asking a terminated kernel for example
             return 
-        if self.nda is None:
-            self.nda = BiobjectiveNondominatedSortedList if len(
+        if self.NDA is None:
+            self.NDA = BiobjectiveNondominatedSortedList if len(
                     objective_values[0]) == 2 else NonDominatedList
         for i in range(len(self._told_indices)):
             self.kernels[self._told_indices[i]].objective_values = objective_values[i]
@@ -293,7 +294,7 @@ TODO        moes.result_pretty()
         start = len(self._told_indices) # position of the first offspring
         new_kernels_indices = []
         for ikernel, offspring in self.offspring:
-            front_observed = self.nda([self.kernels[i].objective_values for i in range(self.num_kernels) if i is not ikernel],
+            front_observed = self.NDA([self.kernels[i].objective_values for i in range(self.num_kernels) if i != ikernel],
                          self.reference_point)
             hypervolume_improvements = [front_observed.hypervolume_improvement(
                     point) for point in objective_values[start:start+len(offspring)]]
@@ -310,12 +311,12 @@ TODO        moes.result_pretty()
             if kernel.stop():
                 self._active_indices.remove(ikernel) # ikernel must be in `_active_indices`
                 if self.restart is not None:
-                    if self.restart == "best_hvc":
-                        ker_to_add = self.best_hvc_restart()
-                    else:
-                        ker_to_add = self.random_restart(kernel)
-                    new_kernels_indices += [self.num_kernels]
-                    self.add(ker_to_add)
+                    try:
+                        kernel_to_add = self.restart(self)
+                        new_kernels_indices += [self.num_kernels]
+                        self.add(kernel_to_add)
+                    except:
+                        warnings.warn('check if `self.restart` is returning a CMAKernel')
             
             try:
                 kernel.logger.add()
@@ -335,7 +336,7 @@ TODO        moes.result_pretty()
                                                  current_hypervolume)
         if self.isarchive:
             if not self.archive:
-                self.archive = self.nda(objective_values, self.reference_point)
+                self.archive = self.NDA(objective_values, self.reference_point)
             else:
                 self.archive.add_list(objective_values)
         self.countiter += 1
@@ -344,7 +345,7 @@ TODO        moes.result_pretty()
     def pareto_front(self):
         """
         """
-        return self.nda([kernel.objective_values for kernel in self.kernels],
+        return self.NDA([kernel.objective_values for kernel in self.kernels],
                          self.reference_point)
 
     @property
@@ -356,30 +357,6 @@ TODO        moes.result_pretty()
         """
         return [kernel.incumbent for kernel in self.kernels if \
                 kernel.objective_values in self.pareto_front]
-    
-    def best_hvc_restart(self):
-        """
-        Pick the kernel with the highest hypervolume contribution.
-        """
-        hvc = []
-        for idx in range(self.num_kernels):
-            front = self.nda([self.kernels[i].objective_values for i in range(self.num_kernels) if i != idx],
-                                self.reference_point)
-            f_pair = self.kernels[idx].objective_values
-            hvc.append(front.hypervolume_improvement(f_pair))
-        idx_best = np.argmax(hvc)
-        ker = self.kernels[idx_best]
-        return ker._copy_light(sigma=ker.sigma0)
-    
-    def random_restart(self, kernel):
-        """
-        Add a kernel randomly between `self.restart[0]` and `self.restart[1]`.
-        """
-        new_mean = self.restart[0] + (self.restart[0] + self.restart[1])\
-        * np.random.rand(len(kernel.mean))
-        sigma0 = kernel.sigma0 / 1.  # decrease the initial  step-size ?
-        return get_cmas(new_mean, sigma0, number_created_kernels = self.num_kernels)
-
 
     def stop(self):
         """
@@ -605,6 +582,32 @@ TODO        moes.result_pretty()
          #       except AttributeError:
           #          pass
         return self
+    
+    
+def random_restart_kernel(moes, x0_fct=None, sigma0=None, **kwargs):
+    """return a new "random" kernel"""
+    if x0_fct is not None:
+        x0 = x0_fct(moes.dimension)  # or however we can access the current search space dimension
+    else:
+        x0 = 2 * np.zeros(moes.dimension) - 1  # or whatever we want as default
+    if sigma0 is None: 
+        kernel = moes.kernels[0]
+        sigma0 = kernel.sigma0 / 1.  # decrease the initial  step-size ?
+    return get_cmas(x0, sigma0, number_created_kernels = moes.num_kernels)
+    
+def best_chv_restart_kernel(moes, sigma_factor=2, **kwargs):
+    """return a new kernel derived from the kernel with largest contributing HV"""
+
+    hvc = []
+    for idx in range(moes.num_kernels):
+        front = moes.NDA([moes.kernels[i].objective_values for i in range(moes.num_kernels) if i != idx],
+                            moes.reference_point)
+        f_pair = moes.kernels[idx].objective_values
+        hvc += [front.hypervolume_improvement(f_pair)]
+    idx_best = np.argmax(hvc)
+    ker = moes.kernels[idx_best]
+    return ker._copy_light(sigma=sigma_factor * ker.sigma, inopts={'verb_filenameprefix': 'cma_kernels' + os.sep + 
+                        str(moes.num_kernels)})
 
 # callbacks for sorting indices to pick in the `tell` method
         
@@ -714,7 +717,7 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         `inopts`
             options, a dictionary with optional settings,
             see class `cma.CMAOptions`.
-            """
+        """
         cma.CMAEvolutionStrategy.__init__(self, x0, sigma0, inopts)
         self.objective_values = None # the objective value of self's incumbent
         # (see below for definition of incumbent)
@@ -727,8 +730,7 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         it gives the 'repaired' mean of a cma-es. For a problem with bound
         constraints, `self.incumbent` in inside the bounds.
         """
-#        return self.boundary_handler.repair(self.mean)
-        return self.mean
+        return self.boundary_handler.repair(self.mean)
     
     def stop(self, check=True, ignore_list=()):
         """

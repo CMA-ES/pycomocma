@@ -280,7 +280,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             idx = es.offspring[i][0]
             kernel = es.kernels[idx]
             
-            temp_archive = es.nda(kernel._last_offspring_f_values, es.reference_point)
+            temp_archive = es.NDA(kernel._last_offspring_f_values, es.reference_point)
             temp_archive.add(kernel.objective_values)
             es._ratio_nondom_offspring_incumbent[idx] = len(temp_archive) / (
                     1 + len(kernel._last_offspring_f_values) )
@@ -439,10 +439,15 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             else:
                 plt.plot(iteration, res)
             
-    def plot_front(self):
+    def plot_front(self, aspect=None):
         """
         """
-
+        if aspect is not None:
+            myaxes = plt.gca()
+            try:
+                myaxes.set_aspect(aspect) # usually, aspect = 'equal'
+            except:
+                pass
         moes = self.es
         try:
             plt.plot([u[0] for u in moes.archive], [u[1] for u in moes.archive], '.',
