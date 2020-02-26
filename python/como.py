@@ -292,7 +292,7 @@ TODO        moes.result_pretty()
             pass #write here the max among the kernel.objective_values       
             
         start = len(self._told_indices) # position of the first offspring
-        new_kernels_indices = []
+        self._told_indices = []
         for ikernel, offspring in self.offspring:
             front_observed = self.NDA([self.kernels[i].objective_values for i in range(self.num_kernels) if i != ikernel],
                          self.reference_point)
@@ -313,7 +313,7 @@ TODO        moes.result_pretty()
                 if self.restart is not None:
                     try:
                         kernel_to_add = self.restart(self)
-                        new_kernels_indices += [self.num_kernels]
+                        self._told_indices += [self.num_kernels]
                         self.add(kernel_to_add)
                     except:
                         warnings.warn('check if `self.restart` is returning a CMAKernel')
@@ -326,7 +326,7 @@ TODO        moes.result_pretty()
             
             start += len(offspring)
             
-        self._told_indices = new_kernels_indices + [u for (u,v) in self.offspring]
+        self._told_indices += [u for (u,v) in self.offspring]
         current_hypervolume = self.pareto_front.hypervolume
         epsilon = abs(current_hypervolume - self.best_hypervolume_pareto_front)
         if epsilon:
