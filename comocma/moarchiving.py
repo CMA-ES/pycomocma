@@ -35,7 +35,7 @@ class BiobjectiveNondominatedSortedList(list):
     Afterwards, the methods `add` and `add_list` keep the list always
     in a consistent state. If a reference point was given on initialization,
     also the hypervolume of the archive is computed and updated.
-    
+
     Removing elements with `pop` or `del` keeps the archive sorted and
     non-dominated but does not update the hypervolume, which hence
     becomes inconsistent.
@@ -63,7 +63,12 @@ class BiobjectiveNondominatedSortedList(list):
     DONE: implement large-precision hypervolume computation.
     DONE (method remove): implement a `delete` method that also updates the hypervolume.
     TODO (DONE): implement a copy method
-    TODO: currently, points beyond the reference point (which do not contribute
+    TODO: compute a hypervolume also without a reference point. Using the
+          two extreme points as reference should just work fine also for
+          hypervolume improvement, as making them more extreme improves
+          the volume. This is not equivalent with putting the reference
+          to infty, as the contribution from a new extreme could be small.
+    TODO (discarded): currently, points beyond the reference point (which do not contribute
     to the hypervolume) are discarded. We may want to keep them, for simplicity
     in a separate list?
 
@@ -190,12 +195,18 @@ class BiobjectiveNondominatedSortedList(list):
         >>> assert [2, 3] in nda and f_pair not in nda
         >>> if f_pair in nda:
         ...     nda.remove(f_pair)
+        >>> nda = BiobjectiveNondominatedSortedList._random_archive(p_ref_point=1)
+        >>> for pair in list(nda):
+        ...     len_ = len(nda)
+        ...     state = nda._state()
+        ...     nda.remove(pair)
+        ...     assert len(nda) == len_ - 1
+        ...     if 100 * pair[0] - int(100 * pair[0]) < 0.7:
+        ...         res = nda.add(pair)
+        ...         assert all(state[i] == nda._state()[i] for i in [0, 2, 3])
 
         Return `None` (like `list.remove`).
         """
-        if not hasattr(self, '_remove_test_warning'):
-            _warnings.warn("BiobjectiveNondominatedSortedList.remove has never been tested")
-            self._remove_test_warning = True
         idx = self.index(f_pair)
         self._subtract_HV(idx)
         self._removed = [self[idx]]
@@ -478,26 +489,56 @@ class BiobjectiveNondominatedSortedList(list):
         assert dHV >= 0
         return dHV
 
-    def distance_to_pareto_front(self, f_pair, ref_factor=3):
+    def distance_to_pareto_front(self, f_pair, ref_factor=1):
         """of a dominated `f_pair` also considering the reference domain.
 
-        Non-dominated points have (by definition) a distance of zero.
+        Non-dominated points have (by definition) a distance of zero,
+        unless the archive is empty and the point does not dominate the
+        reference point.
 
-        Details: the distance is computed by iterating over some kink
-        points ``(self[i+1][0], self[i][1])``.
+        Assumes that extreme points in the archive are in the reference
+        domain.
+
+        Details: the distance for dominated points is computed by
+        iterating over the relevant kink points ``(self[i+1][0],
+        self[i][1])``. In case of minimization, the boundary with two
+        non-dominated points can be depicted like::
+
+            ...______.      . <- reference point
+                     |
+                     x__. <- kink point
+                        |
+                        x___. <- kink point
+                            |
+                            |
+                            :
+                            :
+
+        The three kink points which are possibly used for the computations
+        are denoted by a dot. The outer kink points use one coordinate of
+        the reference point.
         """
         if self.in_domain(f_pair) and not self.dominates(f_pair):
             return 0  # return minimum distance
 
-        ref_dxy = (ref_factor * max((0, f_pair[0] - self.reference_point[0])),
-                   ref_factor * max((0, f_pair[1] - self.reference_point[1]))) \
-                        if self.reference_point else [0, 0]
-        if len(self) == 0:  # otherwise we get an index error below
-            return sum(x**2 for x in ref_dxy)**0.5
+        if self.reference_point:
+            ref_d0 = ref_factor * max((0, f_pair[0] - self.reference_point[0]))
+            ref_d1 = ref_factor * max((0, f_pair[1] - self.reference_point[1]))
+        else:
+            ref_d0 = 0
+            ref_d1 = 0
 
-        # distances to the front boundary given by the extreme points:
-        squared_distances = [max((0, f_pair[0] - self[0][0]))**2 + ref_dxy[1]**2,
-                             ref_dxy[0]**2 + max((0, f_pair[1] - self[-1][1]))**2]
+        if len(self) == 0:  # otherwise we get an index error below
+            return (ref_d0**2 + ref_d1**2)**0.5
+
+        # distances to the two outer kink points, given by the extreme
+        # points and the respective the reference point coordinate, for
+        # the left (and up) most point:
+        squared_distances = [max((0, f_pair[0] - self[0][0]))**2 +
+                              ref_d1**2]
+        # and the right most (and lowest) point
+        squared_distances += [ref_d0**2 +
+                             max((0, f_pair[1] - self[-1][1]))**2]
         if len(self) == 1:
             return min(squared_distances)**0.5
         for idx in range(self.bisect_left(f_pair), 0, -1):
@@ -508,7 +549,7 @@ class BiobjectiveNondominatedSortedList(list):
                 max((0, f_pair[0] - self[idx][0]))**2)
             if self[idx][1] >= f_pair[1] or idx == 1:
                 break
-        if self.make_expensive_asserts:
+        if self.make_expensive_asserts and len(squared_distances) > 2:
             assert min(squared_distances[2:]) == min(
                         [max((0, f_pair[0] - self[i + 1][0]))**2 +
                          max((0, f_pair[1] - self[i][1]))**2
@@ -528,11 +569,6 @@ class BiobjectiveNondominatedSortedList(list):
         Else if not in domain, return distance to the reference point
         dominating area times -1.
         """
-        if not hasattr(self, '_hypervolume_improvement_test_warning'):
-            self._hypervolume_improvement_test_warning = True
-            _warnings.warn("BiobjectiveNondominatedSortedList.hypervolume_"
-                           "improvement has never been tested")
-
         dist = self.distance_to_pareto_front(f_pair)
         if dist:
             return -dist
@@ -544,7 +580,8 @@ class BiobjectiveNondominatedSortedList(list):
         else: add_back = []
         assert len(add_back) + len(self) - added == state[0]
         hv1 = self.hypervolume
-        self.remove(f_pair)
+        if added:
+            self.remove(f_pair)
         if add_back:
             self.add_list(add_back)
         self._removed = removed
@@ -748,6 +785,16 @@ class BiobjectiveNondominatedSortedList(list):
     def _state(self):
         return len(self), self.discarded, self.hypervolume, self.reference_point
 
+    @staticmethod
+    def _random_archive(max_size=500, p_ref_point=0.5):
+        from numpy import random as npr
+        N = npr.randint(max_size)
+        ref_point = list(npr.randn(2) + 1) if npr.rand() < p_ref_point else None
+        return BiobjectiveNondominatedSortedList(
+            [list(0.01 * npr.randn(2) + npr.rand(1) * [i, -i])
+             for i in range(N)],
+            reference_point=ref_point)
+
     def _asserts(self):
         """make all kind of consistency assertions.
 
@@ -764,15 +811,19 @@ class BiobjectiveNondominatedSortedList(list):
         >>> for p in list(a):
         ...     a.remove(p)
         >>> assert len(a) == 0
+        >>> try: a.remove([0, 0])
+        ... except ValueError: pass
+        ... else: raise AssertionError("remove did not raise ValueError")
 
         >>> from numpy.random import rand
-        >>> a = moarchiving.BiobjectiveNondominatedSortedList([list(r) for r in rand(30, 2)],
-        ...                                                   reference_point=[2, 2])
-        >>> a.make_expensive_asserts = True
-        >>> for f_pair in rand(30, 2):
-        ...     h0 = a.hypervolume
-        ...     hi = a.hypervolume_improvement(list(f_pair))
-        ...     assert a.hypervolume == h0  # works OK with Fraction
+        >>> for _ in range(120):
+        ...     a = moarchiving.BiobjectiveNondominatedSortedList._random_archive()
+        ...     a.make_expensive_asserts = True
+        ...     if a.reference_point:
+        ...         for f_pair in rand(10, 2):
+        ...             h0 = a.hypervolume
+        ...             hi = a.hypervolume_improvement(list(f_pair))
+        ...             assert a.hypervolume == h0  # works OK with Fraction
 
 
         """
@@ -795,7 +846,12 @@ class BiobjectiveNondominatedSortedList(list):
         # for i in range(len(self)):
         #     assert self.contributing_hypervolume(i) == self.contributing_hypervolumes[i]
 
-        # asserts that use numpy for convenience
+        if self.reference_point:
+            tmp, self.make_expensive_asserts = self.make_expensive_asserts, False
+            self.hypervolume_improvement([0, 0])  # does state assert
+            self.make_expensive_asserts = tmp
+
+        # asserts using numpy for convenience
         try:
             import numpy as np
         except ImportError:
