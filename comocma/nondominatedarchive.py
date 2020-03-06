@@ -5,6 +5,8 @@
 from hv import HyperVolume
 import itertools
 
+import numpy as np
+
 class NonDominatedList(list):
     """
     A list of objective values in an empirical Pareto front,
@@ -26,7 +28,7 @@ class NonDominatedList(list):
         """
         if list_of_f_tuples is not None and len(list_of_f_tuples):
             try:
-                list_of_f_tuples = list_of_f_tuples.tolist()
+                list_of_f_tuples = [tuple(e) for e in list_of_f_tuples]
             except:
                 pass
             list.__init__(self, list_of_f_tuples)
@@ -42,10 +44,10 @@ class NonDominatedList(list):
     def add(self, f_tuple):
         """add `f_tuple` in `self` if it is not dominated in all objectives.
         """
-        f_tuple = list(f_tuple)  # convert array to list
+        f_tuple = tuple(f_tuple)  # convert array to list
         
         if not self.dominates(f_tuple):
-            self += [f_tuple]
+            self.append(f_tuple)
             self._hypervolume = None
             self._kink_points = None
         self.prune()
@@ -75,7 +77,7 @@ class NonDominatedList(list):
     
         Return `None` (like `list.remove`).
         """
-        f_tuple = list(f_tuple)  # convert array to list
+        f_tuple = tuple(f_tuple)  # convert array to list
         list.remove(self, f_tuple)
         self._hypervolume = None
         self._kink_points = None
@@ -87,9 +89,9 @@ class NonDominatedList(list):
         self.prune() several times.
         """
         for f_tuple in list_of_f_tuples:
-            f_tuple = list(f_tuple)
+            f_tuple = tuple(f_tuple)
             if not self.dominates(f_tuple):
-                self += [f_tuple]
+                self.append(f_tuple)
                 self._hypervolume = None
                 self._kink_points = None
         self.prune()        
@@ -113,8 +115,6 @@ class NonDominatedList(list):
                     length -= 1
                     break
             i += 1
-            
-                    
             
             
     def dominates(self, f_tuple):
@@ -146,13 +146,33 @@ class NonDominatedList(list):
         >>> from nondominatedarchive import NonDominatedList as NDA
         >>> NDA().dominates_with(0, [1, 2]) is None  # empty NDA
         True
+        
+        :todo: add more doctests that actually test the functionality and
+               not only whether the return value is correct if empty
 
         """
-        if idx < 0 or idx >= len(self):
+        if self is None or idx < 0 or idx >= len(self):
             return None
+        return self.dominates_with_for(idx, f_tuple)
+        
+    def dominates_with_old(self, idx, f_tuple):
+        ''' deprecated code, now taken over by dominates_wit_for '''
         if all(self[idx][k] <= f_tuple[k] for k in range(len(f_tuple))):
             return True
         return False
+
+    def dominates_with_for(self, idx, f_tuple):
+        ''' returns true if self[idx] weakly dominates f_tuple
+
+            replaces dominates_with_old because it turned out
+            to run quicker
+        '''
+        for k in range(len(f_tuple)):
+            if self[idx][k] > f_tuple[k]:
+                return False
+        else:  # yes, indentation is correct, else is not quite necessary in this case
+            return True
+
 
     def dominators(self, f_tuple, number_only=False):
         """return the list of all `f_tuple`-dominating elements in `self`,
@@ -168,7 +188,7 @@ class NonDominatedList(list):
         >>> a.dominators([2, 3]) == a
         True
         >>> a.dominators([0.5, 1])
-        [[0.5, 1]]
+        [(0.5, 1)]
         >>> len(a.dominators([0.6, 3])), a.dominators([0.6, 3], number_only=True)
         (1, 1)
         >>> a.dominators([0.5, 0.9])
