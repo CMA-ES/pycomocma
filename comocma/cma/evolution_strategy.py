@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """CMA-ES (evolution strategy), the main sub-module of `cma` providing
 in particular `CMAOptions`, `CMAEvolutionStrategy`, and `fmin`
 """
@@ -173,6 +174,7 @@ from __future__ import (absolute_import, division, print_function,
 from .utilities.python3for2 import range  # redefine range in Python 2
 
 import sys
+import os
 import time  # not really essential
 import warnings  # catch numpy warnings
 import ast  # for literal_eval
@@ -205,6 +207,7 @@ from .logger import CMADataLogger  # , disp, plot
 from .utilities.utils import BlancClass as _BlancClass
 from .utilities.utils import rglen  #, global_verbosity
 from .utilities.utils import pprint
+from .utilities.utils import seval as eval
 from .utilities.math import Mh
 from .sigma_adaptation import *
 from . import restricted_gaussian_sampler as _rgs
@@ -458,14 +461,16 @@ cma_default_options = {
     'scaling_of_variables': '''None  # depreciated, rather use fitness_transformations.ScaleCoordinates instead (or possibly CMA_stds).
             Scale for each variable in that effective_sigma0 = sigma0*scaling. Internally the variables are divided by scaling_of_variables and sigma is unchanged, default is `np.ones(N)`''',
     'seed': 'time  # random number seed for `numpy.random`; `None` and `0` equate to `time`, `np.nan` means "do nothing", see also option "randn"',
-    'signals_filename': 'None  # cma_signals.in  # read versatile options from this file which contains a single options dict, e.g. ``{"timeout": 0}`` to stop, string-values are evaluated, e.g. "np.inf" is valid',
+    'signals_filename': 'cma_signals.in  # read versatile options from this file (use `None` or `""` for no file) which contains a single options dict, e.g. ``{"timeout": 0}`` to stop, string-values are evaluated, e.g. "np.inf" is valid',
     'termination_callback': '[]  #v a function or list of functions returning True for termination, called in `stop` with `self` as argument, could be abused for side effects',
     'timeout': 'inf  #v stop if timeout seconds are exceeded, the string "2.5 * 60**2" evaluates to 2 hours and 30 minutes',
     'tolconditioncov': '1e14  #v stop if the condition of the covariance matrix is above `tolconditioncov`',
     'tolfacupx': '1e3  #v termination when step-size increases by tolfacupx (diverges). That is, the initial step-size was chosen far too small and better solutions were found far away from the initial solution x0',
     'tolupsigma': '1e20  #v sigma/sigma0 > tolupsigma * max(eivenvals(C)**0.5) indicates "creeping behavior" with usually minor improvements',
+    'tolflatfitness': '1  #v iterations tolerated with flat fitness before termination',
     'tolfun': '1e-11  #v termination criterion: tolerance in function value, quite useful',
     'tolfunhist': '1e-12  #v termination criterion: tolerance in function value history',
+    'tolfunrel': '0  #v termination criterion: relative tolerance in function value: Delta f current < tolfunrel * (median0 - median_min)',
     'tolstagnation': 'int(100 + 100 * N**1.5 / popsize)  #v termination if no improvement over tolstagnation iterations',
     'tolx': '1e-11  #v termination criterion: tolerance in x-changes',
     'transformation': '''None  # depreciated, use cma.fitness_transformations.FitnessTransformation instead.
@@ -478,6 +483,7 @@ cma_default_options = {
     'verb_disp': '100  #v verbosity: display console output every verb_disp iteration',
     'verb_filenameprefix': CMADataLogger.default_prefix + '  # output path and filenames prefix',
     'verb_log': '1  #v verbosity: write data to files every verb_log iteration, writing can be time critical on fast to evaluate functions',
+    'verb_log_expensive': 'N * (N <= 50)  # allow to execute eigendecomposition for logging every verb_log_expensive iteration, 0 or False for never',
     'verb_plot': '0  #v in fmin(): plot() is called every verb_plot iteration',
     'verb_time': 'True  #v output timings on console',
     'vv': '{}  #? versatile set or dictionary for hacking purposes, value found in self.opts["vv"]'
@@ -995,7 +1001,7 @@ class _CMAEvolutionStrategyResult(tuple):
             self.best.get() + (  # (x, f, evals) triple
             self.countevals,
             self.countiter,
-            self.gp.pheno(self.mean),
+            self.gp.pheno(self.mean, into_bounds=self.boundary_handler.repair),
             self.gp.scales * self.sigma * self.sigma_vec.scaling *
                 self.dC**0.5))
 
@@ -1338,6 +1344,8 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
             inopts = {}
         self.inopts = inopts
         opts = CMAOptions(inopts).complement()  # CMAOptions() == fmin([],[]) == defaultOptions()
+        if opts.eval('verbose') is None:
+            opts['verbose'] = CMAOptions()['verbose']
         utils.global_verbosity = global_verbosity = opts.eval('verbose')
         if global_verbosity < -8:
             opts['verb_disp'] = 0
@@ -1437,23 +1445,28 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         self.sp = _CMAParameters(N, opts, verbose=opts['verbose'] > 0)
         self.sp0 = self.sp  # looks useless, as it is not a copy
 
-        self.adapt_sigma = opts['AdaptSigma']
-        if self.adapt_sigma is None:
-            utils.print_warning("""Value `None` for option 'AdaptSigma' is
-    ambiguous and hence depreciated. AdaptSigma can be set to `True` or
-    `False` or a class or class instance which inherited from
-    cma.sigma_adaptation.CMAAdaptSigmaBase""")
-            self.adapt_sigma = CMAAdaptSigmaCSA
-        elif self.adapt_sigma is True:
-            if opts['CMA_diagonal'] is True and N > 299:
-                self.adapt_sigma = CMAAdaptSigmaTPA
-            else:
-                self.adapt_sigma = CMAAdaptSigmaCSA
-        elif self.adapt_sigma is False:
-            self.adapt_sigma = CMAAdaptSigmaNone()
-        if isinstance(self.adapt_sigma, type):  # Is a class?
-            # Then we want the instance.
-            self.adapt_sigma = self.adapt_sigma(dimension=N, popsize=self.sp.popsize)
+        def instantiate_adapt_sigma(adapt_sigma, self):
+            """return instantiated sigma adaptation object"""
+            if adapt_sigma is None:
+                utils.print_warning(
+                    "Value `None` for option 'AdaptSigma' is ambiguous and\n"
+                    "hence deprecated. AdaptSigma can be set to `True` or\n"
+                    "`False` or a class or class instance which inherited from\n"
+                    "`cma.sigma_adaptation.CMAAdaptSigmaBase`")
+                adapt_sigma = CMAAdaptSigmaCSA
+            elif adapt_sigma is True:
+                if self.opts['CMA_diagonal'] is True and self.N > 299:
+                    adapt_sigma = CMAAdaptSigmaTPA
+                else:
+                    adapt_sigma = CMAAdaptSigmaCSA
+            elif adapt_sigma is False:
+                adapt_sigma = CMAAdaptSigmaNone()
+            if isinstance(adapt_sigma, type):  # is a class?
+                # then we want the instance
+                adapt_sigma = adapt_sigma(dimension=self.N, popsize=self.sp.popsize)
+            return adapt_sigma
+        self.adapt_sigma = instantiate_adapt_sigma(opts['AdaptSigma'], self)
+
         self.mean_shift_samples = True if (isinstance(self.adapt_sigma, CMAAdaptSigmaTPA) or
             opts['mean_shift_line_samples']) else False
 
@@ -1536,14 +1549,14 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                                                       self.sp.c1_sep,
                                                       self.sp.cmu_sep,
                                                       pos_def=False)
+            elif self.opts['CMA_diagonal'] == 1:
+                raise ValueError("""Option 'CMA_diagonal' == 1 is disallowed.
+                Use either `True` or an iteration number > 1 up to which C should be diagonal.
+                Only `True` has linear memory demand.""")
             else:  # would ideally be done when switching
                 self.sp.weights.finalize_negative_weights(N,
                                                       self.sp.c1,
                                                       self.sp.cmu)
-            if self.opts['CMA_diagonal'] is 1:
-                raise ValueError("""Option 'CMA_diagonal' == 1 is disallowed.
-                Use either `True` or an iteration number > 1 up to which C should be diagonal.
-                Only `True` has linear memory demand.""")
         else:
             if 11 < 3:
                 if hasattr(self.opts['vv'], '__getitem__') and \
@@ -1622,7 +1635,8 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         self.const.chiN = N**0.5 * (1 - 1. / (4.*N) + 1. / (21.*N**2))  # expectation of norm(randn(N,1))
 
         self.logger = CMADataLogger(opts['verb_filenameprefix'],
-                                                     modulo=opts['verb_log']).register(self)
+                                    modulo=opts['verb_log'],
+                                    expensive_modulo=opts['verb_log_expensive']).register(self)
 
         self._stopdict = _CMAStopDict()
         "    attribute for stopping criteria in function stop"
@@ -1633,6 +1647,10 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         self.fit.hist = []  # short history of best
         self.fit.histbest = []  # long history of best
         self.fit.histmedian = []  # long history of median
+        self.fit.median = None
+        self.fit.median0 = None
+        self.fit.median_min = np.inf
+        self.fit.flatfit_iterations = 0
 
         self.more_to_write = utils.MoreToWrite()  # [1, 1, 1, 1]  #  N*[1]  # needed when writing takes place before setting
 
@@ -2062,7 +2080,7 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                 # for TPA, set both vectors to the same length and don't
                 # ever keep the original length
                 arinj[0] *= self._random_rescaling_factor_to_mahalanobis_size(arinj[0]) / self.sigma
-                arinj[1] *= (sum(arinj[0]**2) / sum(arinj[1]**2))**0.5
+                arinj[1] *= (np.sum(arinj[0]**2) / np.sum(arinj[1]**2))**0.5
                 if not Mh.vequals_approximately(arinj[0], -arinj[1]):
                     utils.print_warning(
                         "mean_shift_samples, but the first two solutions"
@@ -2124,7 +2142,7 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                            "_random_rescaling_factor_to_mahalanobis_size",
                                 iteration=self.countiter)
             return 1.0
-        return sum(self.randn(1, len(y))[0]**2)**0.5 / self.mahalanobis_norm(y)
+        return np.sum(self.randn(1, len(y))[0]**2)**0.5 / self.mahalanobis_norm(y)
 
 
     def get_mirror(self, x, preserve_length=False):
@@ -2557,16 +2575,22 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
 
         # fitness histories
         fit.hist.insert(0, fit.fit[0])  # caveat: this may neither be the best nor the best in-bound fitness, TODO
+        fit.median = (fit.fit[self.popsize // 2] if self.popsize % 2
+                      else np.mean(fit.fit[self.popsize // 2 - 1: self.popsize // 2 + 1]))
         # if len(self.fit.histbest) < 120+30*N/sp.popsize or  # does not help, as tablet in the beginning is the critical counter-case
         if ((self.countiter % 5) == 0):  # 20 percent of 1e5 gen.
             fit.histbest.insert(0, fit.fit[0])
-            fit.histmedian.insert(0, fit.fit[self.popsize // 2] if self.popsize % 2
-                                     else np.mean(fit.fit[self.popsize // 2 - 1: self.popsize // 2 + 1]))
+            fit.histmedian.insert(0, fit.median)
         if len(fit.histbest) > 2e4:  # 10 + 30*N/sp.popsize:
             fit.histbest.pop()
             fit.histmedian.pop()
         if len(fit.hist) > 10 + 30 * N / sp.popsize:
             fit.hist.pop()
+        if self.countiter == 1:
+            fit.median0 = fit.median
+            fit.median_min = fit.median
+        if fit.median_min > fit.median:
+            fit.median_min = fit.median
 
         ### line 2665
 
@@ -2585,18 +2609,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                     # self.sent_solutions.pop(s)
                 except KeyError:
                     pass
-            else:  # to be removed:
-                x = self.sent_solutions.pop(s, None)  # 12.7s vs 11.3s with N,lambda=20,200
-                if x is not None:
-                    pop.append(x['geno'])
-                    if x['iteration'] + 1 < self.countiter and check_points not in (False, 0, [], ()):
-                        self.repair_genotyp(pop[-1])
-                    # TODO: keep additional infos or don't pop s from sent_solutions in the first place
-                else:
-                    # this case is expected for injected solutions
-                    pop.append(self.gp.geno(s, self.boundary_handler.inverse, copy=copy))  # cannot recover the original genotype with boundary handling
-                    if check_points not in (False, 0, [], ()):
-                        self.repair_genotype(pop[-1])  # necessary if pop[-1] was changed or injected by the user.
         # check that TPA mirrors are available
         self.pop = pop  # used in check_consistency of CMAAdaptSigmaTPA
         self.adapt_sigma.check_consistency(self)
@@ -2887,7 +2899,7 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         res = self.best.get() + (  # (x, f, evals) triple
             self.countevals,
             self.countiter,
-            self.gp.pheno(self.mean),
+            self.gp.pheno(self.mean, into_bounds=self.boundary_handler.repair),
             self.gp.scales * self.sigma * self.sigma_vec.scaling *
                 self.dC**0.5,
             self.stop())
@@ -2948,16 +2960,6 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                 # adapt also sigma: which are the trust-worthy/injected solutions?
             elif 11 < 3:
                 return np.exp(np.tanh(((upper_length * fac)**2 / self.N - 1) / 2) / 2)
-        else:
-            if 'checktail' not in self.__dict__:  # hasattr(self, 'checktail')
-                raise NotImplementedError
-                # from check_tail_smooth import CheckTail  # for the time being
-                # self.checktail = CheckTail()
-                # print('untested feature checktail is on')
-            fac = self.checktail.addchin(self.mahalanobis_norm(x - mold))
-
-            if fac < 1:
-                x = fac * (x - mold) + mold
 
         return x
 
@@ -2973,14 +2975,12 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         >>> import cma
         >>> def f(X):
         ...     return (len(X) - 1) * [1] + [2]
-        >>> es = cma.CMAEvolutionStrategy(4 * [0], 1)  #doctest: +ELLIPSIS
-        (4_w,...
+        >>> es = cma.CMAEvolutionStrategy(4 * [0], 5, {'verbose':-9, 'tolflatfitness':1e4})
         >>> while not es.stop():
         ...     X = es.ask()
         ...     es.tell(X, f(X))
-        ...     es.logger.add()
         ...     es.manage_plateaus()
-        >>> assert es.sigma > 1.5**5
+        >>> if es.sigma < 1.5**es.countiter: print((es.sigma, 1.5**es.countiter, es.stop()))
 
         """
         if not self._flgtelldone:
@@ -3013,10 +3013,10 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         As a result, `C` is a correlation matrix, i.e., all diagonal
         entries of `C` are `1`.
         """
-        if condition and np.isfinite(condition) and max(self.dC) / min(self.dC) > condition:
+        if condition and np.isfinite(condition) and np.max(self.dC) / np.min(self.dC) > condition:
             # allows for much larger condition numbers, if axis-parallel
             if hasattr(self, 'sm') and isinstance(self.sm, sampler.GaussFullSampler):
-                old_coordinate_condition = max(self.dC) / min(self.dC)
+                old_coordinate_condition = np.max(self.dC) / np.min(self.dC)
                 old_condition = self.sm.condition_number
                 factors = self.sm.to_correlation_matrix()
                 self.sigma_vec *= factors
@@ -3025,9 +3025,14 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                 utils.print_message('\ncondition in coordinate system exceeded'
                                     ' %.1e, rescaled to %.1e, '
                                     '\ncondition changed from %.1e to %.1e'
-                                      % (old_coordinate_condition, max(self.dC) / min(self.dC),
+                                      % (old_coordinate_condition, np.max(self.dC) / np.min(self.dC),
                                          old_condition, self.sm.condition_number),
                                     iteration=self.countiter)
+
+    def _tfp(self, x):
+        return np.dot(self.gp._tf_matrix, x)
+    def _tfg(self, x):
+        return np.dot(self.gp._tf_matrix_inv, x)
 
     def alleviate_conditioning(self, condition=1e12):
         """pass conditioning of `C` to linear transformation in `self.gp`.
@@ -3067,8 +3072,8 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
 
         # TODO: refactor old_scales * old_sigma_vec into sigma_vec0 to prevent tolfacupx stopping
 
-        self.gp.tf_pheno = lambda x: np.dot(self.gp._tf_matrix, x)
-        self.gp.tf_geno = lambda x: np.dot(self.gp._tf_matrix_inv, x)  # not really necessary
+        self.gp.tf_pheno = self._tfp  # lambda x: np.dot(self.gp._tf_matrix, x)
+        self.gp.tf_geno = self._tfg  # lambda x: np.dot(self.gp._tf_matrix_inv, x)  # not really necessary
         self.gp.isidentity = False
         assert self.mean is not self.mean_old
 
@@ -3302,13 +3307,13 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
                 # if self.countiter < 4:
                 sys.stdout.flush()
         return self
-    def plot(self):
+    def plot(self, *args, **kwargs):
         """plot current state variables using `matplotlib`.
 
         Details: calls `self.logger.plot`.
         """
         try:
-            self.logger.plot()
+            self.logger.plot(*args, **kwargs)
         except AttributeError:
             utils.print_warning('plotting failed, no logger attribute found')
         except:
@@ -3398,26 +3403,27 @@ class _CMAStopDict(dict):
         opts = es.opts
         self.opts = opts  # a hack to get _addstop going
 
-        # check user signals
+        # check user versatile options from signals file
         try:
-            # adds about 40% time in 5-D, 15% if file is not present
-            # simple resolution: set signals_filename to None or ''
-            if 1 < 3 and self.opts['signals_filename']:
-                with open(self.opts['signals_filename'], 'r') as f:
+            # in 5-D: adds 0% if file does not exist and 25% = 0.2ms per iteration if it exists and verbose=-9
+            # old measure: adds about 40% time in 5-D, 15% if file is not present
+            # to avoid any file checking set signals_filename to None or ''
+            if opts['signals_filename'] and os.path.isfile(self.opts['signals_filename']):
+                with open(opts['signals_filename'], 'r') as f:
                     s = f.read()
                 d = dict(ast.literal_eval(s.strip()))
                 for key in list(d):
                     if key not in opts.versatile_options():
-                        utils.print_warning(
-        """\n        unkown or non-versatile option '%s' found in file %s.
-        Check out the #v annotation in ``cma.CMAOptions()``.
-        """ % (key, self.opts['signals_filename']))
+                        utils.print_warning("        unkown or non-versatile option '%s' found in file %s.\n"
+                                            "        Check out the #v annotation in ``cma.CMAOptions()``."
+                                            % (key, self.opts['signals_filename']))
                         d.pop(key)
                 opts.update(d)
                 for key in d:
                     opts.eval(key, {'N': N, 'dim': N})
-        except IOError:
-            pass  # no warning, as signals file doesn't need to be present
+        except SyntaxError:
+            warnings.warn("SyntaxError when `ast.literal_eval` contents\n"
+                          "of file %s" % str(self.opts['signals_filename']))
 
         # fitness: generic criterion, user defined w/o default
         self._addstop('ftarget',
@@ -3431,14 +3437,16 @@ class _CMAStopDict(dict):
         # tolx, tolfacupx: generic criteria
         # tolfun, tolfunhist (CEC:tolfun includes hist)
         self._addstop('tolx',
-                      all([es.sigma * xi < opts['tolx'] for xi in es.sigma_vec * es.pc]) and
-                      all([es.sigma * xi < opts['tolx'] for xi in es.sigma_vec * np.sqrt(es.dC)]))
+                      np.all(es.sigma * (es.sigma_vec * es.pc) < opts['tolx']) and
+                      np.all(es.sigma * (es.sigma_vec * np.sqrt(es.dC)) < opts['tolx']))
         self._addstop('tolfacupx',
-                      any(es.sigma * es.sigma_vec.scaling * es.dC**0.5 >
+                      np.any(es.sigma * es.sigma_vec.scaling * es.dC**0.5 >
                           es.sigma0 * es.sigma_vec0 * opts['tolfacupx']))
         self._addstop('tolfun',
                       max(es.fit.fit) - min(es.fit.fit) < opts['tolfun'] and  # fit.fit is sorted including bound penalties
                       max(es.fit.hist) - min(es.fit.hist) < opts['tolfun'])
+        self._addstop('tolfunrel',
+                      max(es.fit.fit) - min(es.fit.fit) < opts['tolfunrel'] * (es.fit.median0 - es.fit.median_min))
         self._addstop('tolfunhist',
                       len(es.fit.hist) > 9 and
                       max(es.fit.hist) - min(es.fit.hist) < opts['tolfunhist'])
@@ -3494,7 +3502,7 @@ class _CMAStopDict(dict):
                 i = es.countiter % N
                 try:
                     self._addstop('noeffectaxis',
-                                 sum(es.mean == es.mean + 0.1 * es.sigma *
+                                 np.sum(es.mean == es.mean + 0.1 * es.sigma *
                                      es.sm.D[i] * es.sigma_vec.scaling *
                                      (es.sm.B[:, i] if len(es.sm.B.shape) > 1 else es.sm.B[0])) == N)
                 except AttributeError:
@@ -3506,14 +3514,24 @@ class _CMAStopDict(dict):
             self._addstop('callback', any(es.callbackstop), es.callbackstop)  # termination_callback
 
         if 1 < 3 or len(self): # only if another termination criterion is satisfied
-            if 1 < 3:  # warn, in case
-                if max(es.fit.fit) == min(es.fit.fit) == es.best.last.f:
-                    utils.print_warning(
-                    """flat fitness (f=%f, sigma=%.2e).
-                    For small sigma, this could indicate numerical convergence.
-                    Otherwise, please (re)consider how to compute the fitness more elaborately.""" %
-                    (es.fit.fit[0], es.sigma), iteration=es.countiter)
-            if 1 < 3:  # add stop condition, in case
+            if 1 < 3:
+                if es.fit.fit[0] < es.fit.fit[int(0.75 * es.popsize)]:
+                    es.fit.flatfit_iterations = 0
+                else:
+                    # print(es.fit.fit)
+                    es.fit.flatfit_iterations += 1
+                    if (es.fit.flatfit_iterations > opts['tolflatfitness'] # or
+                        # mainly for historical reasons:
+                        # max(es.fit.hist[:1 + int(opts['tolflatfitness'])]) == min(es.fit.hist[:1 + int(opts['tolflatfitness'])])
+                       ):
+                        self._addstop('tolflatfitness')
+                        if 11 < 3 and max(es.fit.fit) == min(es.fit.fit) == es.best.last.f:  # keep warning for historical reasons for the time being
+                            utils.print_warning(
+                                "flat fitness (f=%f, sigma=%.2e). "
+                                "For small sigma, this could indicate numerical convergence. \n"
+                                "Otherwise, please (re)consider how to compute the fitness more elaborately." %
+                                (es.fit.fit[0], es.sigma), iteration=es.countiter)
+            if 11 < 3:  # add stop condition, in case, replaced by above, subject to removal
                 self._addstop('flat fitness',  # message via stopdict
                          len(es.fit.hist) > 9 and
                          max(es.fit.hist) == min(es.fit.hist) and
@@ -3524,7 +3542,7 @@ class _CMAStopDict(dict):
 
         return self
 
-    def _addstop(self, key, cond, val=None):
+    def _addstop(self, key, cond=True, val=None):
         if cond:
             self.stoplist.append(key)  # can have the same key twice
             self[key] = val if val is not None \
@@ -4200,15 +4218,15 @@ def fmin(objective_function, x0, sigma0,
                             X[0] = 0 + opts['vv'] * es.sigma**0 * np.random.randn(es.N)
                             fit[0] = objective_function(X[0], *args)
                             # print fit[0]
-                    if es.opts['verbose'] > 4:
-                        if es.countiter > 1 and min(fit) > es.best.last.f:
-                            unsuccessful_iterations_count += 1
-                            if unsuccessful_iterations_count > 4:
-                                utils.print_message('%d unsuccessful iterations'
-                                                    % unsuccessful_iterations_count,
+                    if es.opts['verbose'] > 4:  # may be undesirable with dynamic fitness (e.g. Augmented Lagrangian)
+                        if es.countiter < 2 or min(fit) <= es.best.last.f:
+                            degrading_iterations_count = 0  # comes first to avoid code check complaint
+                        else:  # min(fit) > es.best.last.f:
+                            degrading_iterations_count += 1
+                            if degrading_iterations_count > 4:
+                                utils.print_message('%d f-degrading iterations (set verbose<=4 to suppress)'
+                                                    % degrading_iterations_count,
                                                     iteration=es.countiter)
-                        else:
-                            unsuccessful_iterations_count = 0
                     es.tell(X, fit)  # prepare for next iteration
                     if noise_handling:  # it would be better to also use these f-evaluations in tell
                         es.sigma *= noisehandler(X, fit, objective_function, es.ask,

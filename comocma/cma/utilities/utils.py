@@ -4,11 +4,10 @@ from __future__ import (absolute_import, division, print_function,
                         )  #unicode_literals, with_statement)
 import os, sys, time
 import warnings
-from collections import defaultdict  # since Python 2.5
-from collections import MutableMapping  # since Python 2.4?
 import ast  # ast.literal_eval is safe eval
 import numpy as np
-from .python3for2 import range
+from collections import defaultdict  # since Python 2.5
+from .python3for2 import abc, range
 del absolute_import, division, print_function  #, unicode_literals, with_statement
 
 PY2 = sys.version_info[0] == 2
@@ -25,6 +24,12 @@ global_verbosity = 1
 # which is also True for array([]) and None, but also for 0 and False,
 # and False for NaN, and an exception for array([0,1]), see also
 # http://google-styleguide.googlecode.com/svn/trunk/pyguide.html#True/False_evaluations
+
+def seval(s, *args, **kwargs):
+    if any(substring in s for substring in ("import", "sys.", "sys ", "shutil", "val(")):
+        raise ValueError('"%s" seems unsafe to evaluate' % s)
+    return eval(s, *args, **kwargs)
+
 def is_(var):
     """intuitive handling of variable truth value also for `numpy` arrays.
 
@@ -45,6 +50,10 @@ def is_(var):
         return True if len(var) else False
     except TypeError:  # cases None, False, 0
         return True if var else False
+def is_one(var):
+    """return True if var == 1 or ones vector"""
+    try: return np.all(np.asarray(var) == 1)
+    except: return var == 1  # should never happen!?
 def is_not(var):
     """see `is_`"""
     return not is_(var)
@@ -285,7 +294,7 @@ def num2str(val, significant_digits=2, force_rounding=False,
 
     # now the second, %e format
     s = ('%.' + str(significant_digits - 1) + 'e') % val
-    if eval(s) == val and s.find('.') > 0:
+    if seval(s) == val and s.find('.') > 0:
         while s.find('0e') > 0:
             s = s.replace('0e', 'e')
     s = s.replace('.e', 'e')
@@ -443,7 +452,7 @@ class DictClass(dict):
     def __dir__(self):
         return self.keys()
 
-class DerivedDictBase(MutableMapping):
+class DerivedDictBase(abc.MutableMapping):
     """for conveniently adding methods/functionality to a dictionary.
 
     The actual dictionary is in ``self.data``. Derive from this
@@ -455,7 +464,7 @@ class DerivedDictBase(MutableMapping):
 
     """
     def __init__(self, *args, **kwargs):
-        # MutableMapping.__init__(self)
+        # abc.MutableMapping.__init__(self)
         super(DerivedDictBase, self).__init__()
         # super(SolutionDict, self).__init__()  # the same
         self.data = dict()
@@ -502,13 +511,18 @@ class SolutionDict(DerivedDictBase):
         super(SolutionDict, self).__init__(*args, **kwargs)
         self.data_with_same_key = {}
         self.last_iteration = 0
+    @staticmethod
+    def _hash(x):
+        return x
     def key(self, x):
         """compute key of ``x``"""
         try:
-            return tuple(x)
-            # using sum(x) is slower, using x[0] is slightly faster
-        except TypeError:
-            return x
+            return self._hash(np.ascontiguousarray(x).data.tobytes())  # much faster than tuple(.)
+        except AttributeError:
+            try:
+                return self._hash(tuple(x))  # using sum(x) is slower, using x[0] is slightly faster
+            except TypeError:
+                return self._hash(x)
     def __setitem__(self, key, value):
         """define ``self[key] = value``"""
         key = self.key(key)

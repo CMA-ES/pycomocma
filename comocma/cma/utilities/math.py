@@ -8,7 +8,10 @@ import numpy as np
 from .python3for2 import range
 del absolute_import, division, print_function  #, unicode_literals
 
-def randhss(n, dim, norm_=lambda x: len(x)**0.5, randn=np.random.randn):
+def _sqrt_len(x):  # makes randhss option pickable
+    return len(x)**0.5
+
+def randhss(n, dim, norm_=_sqrt_len, randn=np.random.randn):
     """`n` iid `dim`-dimensional vectors with length ``norm_(vector)``.
 
     The vectors are uniformly distributed on a hypersphere surface.
@@ -26,7 +29,7 @@ def randhss(n, dim, norm_=lambda x: len(x)**0.5, randn=np.random.randn):
         v *= norm_(v) / np.sum(v**2)**0.5
     return arv
 
-def randhss_mixin(n, dim, norm_=lambda x: len(x)**0.5,
+def randhss_mixin(n, dim, norm_=_sqrt_len,
                   c=lambda d: 1. / d, randn=np.random.randn):
     """`n` iid vectors uniformly distributed on the hypersphere surface with
     mixing in of normal distribution, which can be beneficial in smaller
@@ -41,6 +44,16 @@ def randhss_mixin(n, dim, norm_=lambda x: len(x)**0.5,
             v *= (1 - c**2)**0.5 # has 2 / c longer time horizon than 1 - c
             v += c * randn(1, dim)[0]  # c is sqrt(2/c) times smaller than sqrt(c * (2 - c))
     return arv
+
+def to_correlation_matrix(c):
+    """change C in place into a correlation matrix, AKA whitening"""
+    for i in range(c.shape[0]):
+        fac = c[i, i]**0.5
+        c[:, i] /= fac
+        c[i, :] /= fac
+    c = (c + c.T) / 2.0
+    assert np.allclose(np.diag(c), 1)
+    return c
 
 # ____________________________________________________________
 # ____________________________________________________________
@@ -509,6 +522,7 @@ class MathHelperFunctions(object):
         """interquartile range"""
         q25, q75 = percentile_function(data, [25, 75])
         return np.asarray(q75) - np.asarray(q25)
+    @staticmethod
     def interdecilerange(data, percentile_function=np.percentile):
         """return 10% to 90% range width"""
         q10, q90 = percentile_function(data, [10, 90])

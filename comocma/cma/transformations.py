@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function  #, unicode_lit
 import numpy as np
 from numpy import array, isfinite, log
 
-from .utilities.utils import rglen, print_warning
+from .utilities.utils import rglen, print_warning, is_one
 from .utilities.python3for2 import range
 del absolute_import, division, print_function  #, unicode_literals
 
@@ -210,8 +210,8 @@ class BoxConstraintsLinQuadTransformation(BoxConstraintsTransformationBase):
     >>> with warnings.catch_warnings(record=True) as warns:
     ...     x, es = cma.fmin2(cma.ff.elli, 9 * [2], 1,
     ...                 {'transformation': [tf.transform, tf.inverse],
-    ...                  'verb_disp':0, 'verbose': -2})
-    >>> str(warns[0].message).startswith(('in class GenoPheno: user defi',
+    ...                  'verb_disp':0, 'tolflatfitness': 1e9, 'verbose': -2})
+    >>> not warns or str(warns[0].message).startswith(('in class GenoPheno: user defi',
     ...                                   'flat fitness'))
     True
 
@@ -219,13 +219,12 @@ class BoxConstraintsLinQuadTransformation(BoxConstraintsTransformationBase):
 
     >>> es = cma.CMAEvolutionStrategy(9 * [2], 1)  # doctest: +ELLIPSIS
     (5_w,10)-aCMA-ES (mu_w=...
-    >>> with warnings.catch_warnings(record=True) as warns:
+    >>> with warnings.catch_warnings(record=True) as warns:  # flat fitness warning, not necessary anymore
     ...     while not es.stop():
     ...         X = es.ask()
     ...         f = [cma.ff.elli(tf(x)) for x in X]  # tf(x)==tf.transform(x)
     ...         es.tell(X, f)
-    >>> warns[0].message  # doctest: +ELLIPSIS
-    UserWarning('flat fitness (f=...
+    >>> if 'tolflatfitness' not in es.stop(): print(es.stop())
 
     Example of the internal workings:
 
@@ -560,7 +559,7 @@ class DiagonalDecoding(AdaptiveDecoding):
         self.scaling = np.array(scaling, dtype=float)
         self.dim = np.size(self.scaling)
         self.is_identity = False
-        if np.all(self.scaling == 1):
+        if is_one(self.scaling):
             self.is_identity = True
 
     def transform(self, x):
@@ -819,19 +818,19 @@ class GenoPheno(object):
         self.scales = array(scaling) if scaling is not None else None
         if vec_is_default(self.scales, 1):
             self.scales = 1  # CAVE: 1 is not array(1)
-        elif self.scales.shape is not () and len(self.scales) != self.N:
+        elif self.scales.shape != () and len(self.scales) != self.N:
             raise ValueError('len(scales) == ' + str(len(self.scales)) +
                          ' does not match dimension N == ' + str(self.N))
 
         self.typical_x = array(typical_x) if typical_x is not None else None
         if vec_is_default(self.typical_x, 0):
             self.typical_x = 0
-        elif self.typical_x.shape is not () and len(self.typical_x) != self.N:
+        elif self.typical_x.shape != () and len(self.typical_x) != self.N:
             raise ValueError('len(typical_x) == ' + str(len(self.typical_x)) +
                          ' does not match dimension N == ' + str(self.N))
 
-        if (self.scales is 1 and
-                self.typical_x is 0 and
+        if (is_one(self.scales) and
+                not np.any(self.typical_x) and
                 self.fixed_values is None and
                 self.tf_pheno is None):
             self.isidentity = True
@@ -869,10 +868,10 @@ class GenoPheno(object):
                 y = array(y, copy=False)
             copy = False
 
-            if self.scales is not 1:  # just for efficiency
+            if not is_one(self.scales):  # just for efficiency
                 y *= self.scales
 
-            if self.typical_x is not 0:
+            if np.any(self.typical_x):
                 y += self.typical_x
 
             if self.tf_pheno is not None:
@@ -948,9 +947,9 @@ class GenoPheno(object):
             raise ValueError('t1 of options transformation was not defined but is needed as being the inverse of t0')
 
         # affine-linear transformation: shift and scaling
-        if self.typical_x is not 0:
+        if np.any(self.typical_x):
             x -= self.typical_x
-        if self.scales is not 1:  # just for efficiency
+        if not is_one(self.scales):  # just for efficiency
             x /= self.scales
 
         # kick out fixed_values

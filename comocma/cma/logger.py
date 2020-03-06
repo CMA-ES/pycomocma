@@ -14,7 +14,7 @@ import time
 import numpy as np
 from . import interfaces
 from .utilities import utils
-from .optimization_tools import semilogy_signed
+from .utilities import math as _mathutils
 from . import restricted_gaussian_sampler as _rgs
 
 _where = np.nonzero  # to make pypy work, this is how where is used here anyway
@@ -69,10 +69,13 @@ class CMADataLogger(interfaces.BaseDataLogger):
     # names = ('axlen','fit','stddev','xmean','xrecentbest')
     # key_names_with_annotation = ('std', 'xmean', 'xrecent')
 
-    def __init__(self, name_prefix=default_prefix, modulo=1, append=False):
-        """initialize logging of data from a `CMAEvolutionStrategy`
-        instance, default ``modulo=1`` means logging with each call
+    def __init__(self, name_prefix=default_prefix, modulo=1, append=False, expensive_modulo=1):
+        """initialize logging of data from a `CMAEvolutionStrategy` instance.
 
+        Default ``modulo=1`` means logging with each call of `add`. If
+        ``append is True`` data is appended to already existing data of a
+        logger with the same name. Additional eigendecompositions are
+        allowed only every `expensive_modulo`-th logged iteration.
         """
         # super(CMAData, self).__init__({'iter':[], 'stds':[], 'D':[],
         #        'sig':[], 'fit':[], 'xm':[]})
@@ -84,10 +87,10 @@ class CMADataLogger(interfaces.BaseDataLogger):
         self.name_prefix = os.path.abspath(os.path.join(*os.path.split(name_prefix)))
         if name_prefix is not None and name_prefix.endswith((os.sep, '/')):
             self.name_prefix = self.name_prefix + os.sep
-        self.file_names = ('axlen', 'axlencorr', 'fit', 'stddev', 'xmean',
+        self.file_names = ('axlen', 'axlencorr', 'axlenprec', 'fit', 'stddev', 'xmean',
                 'xrecentbest')
         """used in load, however hard-coded in add, because data must agree with name"""
-        self.key_names = ('D', 'corrspec', 'f', 'std', 'xmean', 'xrecent')
+        self.key_names = ('D', 'corrspec', 'precspec', 'f', 'std', 'xmean', 'xrecent')
         """used in load, however hard-coded in plot"""
         self._key_names_with_annotation = ('std', 'xmean', 'xrecent')
         """used in load to add one data row to be modified in plot"""
@@ -95,11 +98,13 @@ class CMADataLogger(interfaces.BaseDataLogger):
         """how often to record data, allows calling `add` without args"""
         self.append = append
         """append to previous data"""
+        self.expensive_modulo = expensive_modulo
+        """log also values that need an eigendecomposition to be generated every `expensive` iteration"""
         self.counter = 0
         """number of calls to `add`"""
         self.last_iteration = 0
         self.registered = False
-        self.last_correlation_spectrum = None
+        self.last_correlation_spectrum = {}
         self._eigen_counter = 1  # reduce costs
         self.persistent_communication_dict = utils.DictFromTagsInString()
     @property
@@ -182,16 +187,17 @@ class CMADataLogger(interfaces.BaseDataLogger):
                         '\n')
         except (IOError, OSError):
             print('could not open/write file ' + fn)
-        fn = self.name_prefix + 'axlencorr.dat'
-        try:
-            with open(fn, 'w') as f:
-                f.write('% # columns="iteration, evaluation, min max(neg(.)) min(pos(.))' +
-                        ' max correlation, correlation matrix principle axes lengths ' +
-                        ' (sorted square roots of eigenvalues of correlation matrix)", ' +
-                        strseedtime +
-                        '\n')
-        except (IOError, OSError):
-            print('could not open file ' + fn)
+        for name in ['axlencorr.dat', 'axlenprec.dat']:
+            fn = self.name_prefix + name
+            try:
+                with open(fn, 'w') as f:
+                    f.write('% # columns="iteration, evaluation, min max(neg(.)) min(pos(.))' +
+                            ' max correlation, correlation matrix principle axes lengths ' +
+                            ' (sorted square roots of eigenvalues of correlation matrix)", ' +
+                            strseedtime +
+                            '\n')
+            except (IOError, OSError):
+                print('could not open file ' + fn)
         fn = self.name_prefix + 'stddev.dat'
         try:
             with open(fn, 'w') as f:
@@ -256,7 +262,7 @@ class CMADataLogger(interfaces.BaseDataLogger):
             try:
                 # list of rows to append another row latter
                 with warnings.catch_warnings():
-                    if self.file_names[i] == 'axlencorr':
+                    if self.file_names[i] in ['axlencorr', 'axlenprec']:
                         warnings.simplefilter("ignore")
                     try:
                         self.__dict__[self.key_names[i]] = list(
@@ -329,7 +335,8 @@ class CMADataLogger(interfaces.BaseDataLogger):
 #                                + str(type(es)), 'add', 'CMADataLogger')
         evals = es.countevals
         iteration = es.countiter
-        eigen_decompositions = es.count_eigen
+        try: eigen_decompositions = es.sm.count_eigen
+        except: eigen_decompositions = 0  # no correlations will be plotted
         sigma = es.sigma
         if es.opts['CMA_diagonal'] is True or es.countiter <= es.opts['CMA_diagonal']:
             stds = es.sigma_vec.scaling * es.sm.variances**0.5
@@ -376,10 +383,21 @@ class CMADataLogger(interfaces.BaseDataLogger):
                 diagD = [1]
             maxD = max(diagD)
             minD = min(diagD)
-        try:
-            correlation_matrix = es.sm.correlation_matrix
-        except (AttributeError, NotImplemented, NotImplementedError):
-            correlation_matrix = None
+        correlation_matrix = None
+        if not hasattr(self, 'last_precision_matrix'):
+            self.last_precision_matrix = None
+        if self.expensive_modulo:
+            try:
+                correlation_matrix = es.sm.correlation_matrix
+                if correlation_matrix is not None and (
+                        self.last_precision_matrix is None or eigen_decompositions % self.expensive_modulo == 0):
+                    try:
+                        self.last_precision_matrix = np.linalg.inv(correlation_matrix)
+                        self.last_precision_matrix = _mathutils.to_correlation_matrix(self.last_precision_matrix)
+                    except:  # diagonal case
+                        warnings.warn("CMADataLogger failed to compute precision matrix")
+            except (AttributeError, NotImplementedError):
+                pass
         more_to_write = es.more_to_write
         es.more_to_write = utils.MoreToWrite()
         # --- end interface ---
@@ -415,43 +433,51 @@ class CMADataLogger(interfaces.BaseDataLogger):
                             + ' '.join(map(str, diagD))
                             + '\n')
             # correlation matrix eigenvalues
-            if 1 < 3:
-                fn = self.name_prefix + 'axlencorr.dat'
-                if (correlation_matrix is not None
-                    and not np.isscalar(correlation_matrix)
-                    and len(correlation_matrix) > 1):
-                    # accept at most 50% internal loss
-                    if 11 < 3 or self._eigen_counter < eigen_decompositions / 2:
-                        self.last_correlation_spectrum = \
-                            sorted(es.opts['CMA_eigenmethod'](c)[0]**0.5)
-                        self._eigen_counter += 1
-                    if self.last_correlation_spectrum is None:
-                        self.last_correlation_spectrum = len(diagD) * [1]
-                    c = np.asarray(correlation_matrix)
-                    c = c[np.triu_indices(c.shape[0], 1)]
-                    c_min = np.min(c)
-                    c_max = np.max(c)
-                    if np.min(abs(c)) == 0:
-                        c_medminus = 0  # thereby zero "is negative"
-                        c_medplus = 0  # thereby zero "is positive"
-                    else:
-                        cinv = 1 / c
-                        c_medminus = 1 / np.min(cinv)  # negative close to zero
-                        c_medplus = 1 / np.max(cinv)  # positive close to zero
-                    if c_max <= 0:  # no positive values
-                        c_max = c_medplus = 0  # set both "positive" values to zero
-                    elif c_min >=0:  # no negative values
-                        c_min = c_medminus = 0
-                    with open(fn, 'a') as f:
-                        f.write(str(iteration) + ' '
-                                + str(evals) + ' '
-                                + str(c_min) + ' '
-                                + str(c_medminus) + ' ' # the one closest to 0
-                                + str(c_medplus) + ' ' # the one closest to 0
-                                + str(c_max) + ' '
-                                + ' '.join(map(str,
-                                        self.last_correlation_spectrum))
-                                + '\n')
+            if self.expensive_modulo:
+                for name, matrix in [['axlencorr.dat', correlation_matrix],
+                                     ['axlenprec.dat', self.last_precision_matrix]]:
+                    fn = self.name_prefix + name
+                    if (matrix is not None
+                        and not np.isscalar(matrix)
+                        and len(matrix) > 1):
+                        if (name not in self.last_correlation_spectrum
+                            or eigen_decompositions % self.expensive_modulo == 0):
+                            self.last_correlation_spectrum[name] = \
+                                sorted(es.opts['CMA_eigenmethod'](matrix)[0]**0.5)
+                            self._eigen_counter += matrix is self.last_precision_matrix  # hack to add only once per for loop
+                        c = np.asarray(matrix)
+                        c = c[np.triu_indices(c.shape[0], 1)]
+                        if 11 < 3:  # old version
+                            c_min = np.min(c)
+                            c_max = np.max(c)
+                            if np.min(abs(c)) == 0:
+                                c_medminus = 0  # thereby zero "is negative"
+                                c_medplus = 0  # thereby zero "is positive"
+                            else:
+                                cinv = 1 / c
+                                c_medminus = 1 / np.min(cinv)  # negative close to zero
+                                c_medplus = 1 / np.max(cinv)  # positive close to zero
+                            if c_max <= 0:  # no positive values
+                                c_max = c_medplus = 0  # set both "positive" values to zero
+                            elif c_min >=0:  # no negative values
+                                c_min = c_medminus = 0
+                        c_min, c_medminus, c_medplus, c_max = _mathutils.Mh.prctile(c, [0, 25, 75, 100])
+                        if 11 < 3:  # log correlations instead of eigenvalues, messes up KL display
+                            KL = 1e-3 - 0.5 * np.mean(np.log(self.last_correlation_spectrum[name]))  # doesn't work as expected
+                            cs = np.asarray(sorted(c))
+                            self.last_correlation_spectrum[name] = (1 + cs) / (1 - cs)
+                            # c_min, c_medminus, c_medplus, c_max = 4 * [(KL - 1) / (KL + 1)]  # something is wrong
+                            # c_min = (KL - 1) / (KL + 1)
+                        with open(fn, 'a') as f:
+                            f.write(str(iteration) + ' '
+                                    + str(evals) + ' '
+                                    + str(c_min) + ' '
+                                    + str(c_medminus) + ' ' # the one closest to 0
+                                    + str(c_medplus) + ' ' # the one closest to 0
+                                    + str(c_max) + ' '
+                                    + ' '.join(map(str,
+                                            self.last_correlation_spectrum[name]))
+                                    + '\n')
 
             # stddev
             fn = self.name_prefix + 'stddev.dat'
@@ -543,11 +569,17 @@ class CMADataLogger(interfaces.BaseDataLogger):
                                            dat.corrspec[:, 0]])[0], :]
         except AttributeError:
             pass
+        try:
+            dat.precspec = dat.x[_where([x in iteridx for x in
+                                           dat.precspec[:, 0]])[0], :]
+        except AttributeError:
+            pass
     def plot(self, fig=None, iabscissa=1, iteridx=None,
              plot_mean=False, # was: plot_mean=True
              foffset=1e-19, x_opt=None, fontsize=7,
              downsample_to=1e7,
-             xsemilog=False):
+             xsemilog=False,
+             addcols=0):
         """plot data from a `CMADataLogger` (using the files written
         by the logger).
 
@@ -560,6 +592,11 @@ class CMADataLogger(interfaces.BaseDataLogger):
             ``1==plot`` versus function evaluation number
         `iteridx`
             iteration indices to plot, e.g. ``range(100)`` for the first 100 evaluations.
+        `x_opt`
+            if ``len(x_opt) == dimension``, the difference to `x_opt` is
+            plotted, otherwise the first row of ``x_opt`` are the indices of
+            the variables to be plotted and the second row, if present, is used
+            to take the difference.
 
         Return `CMADataLogger` itself.
 
@@ -627,22 +664,24 @@ class CMADataLogger(interfaces.BaseDataLogger):
         self.fighandle = gcf()  # fighandle.number
         self.fighandle.clear()
 
-        subplot(2, 2, 1)
+        subplot(2, 2 + addcols, 1)
         self.plot_divers(iabscissa, foffset)
         pyplot.xlabel('')
 
         # Scaling
-        subplot(2, 2, 3)
+        subplot(2, 2 + addcols, 3 + addcols)
         self.plot_axes_scaling(iabscissa)
 
         # spectrum of correlation matrix
-        if 11 < 3 and hasattr(dat, 'corrspec'):
-            figure(fig+10000)
-            pyplot.gcf().clear()  # == clf(), replaces hold(False)
+        if 1 < 3 and addcols and hasattr(dat, 'corrspec'):
+            # figure(fig+10000)
+            # pyplot.gcf().clear()  # == clf(), replaces hold(False)
+            subplot(2, 2 + addcols, 3)
             self.plot_correlations(iabscissa)
-        figure(fig)
+            subplot(2, 2 + addcols, 6)
+            self.plot_correlations(iabscissa, name='precspec')
 
-        subplot(2, 2, 2)
+        subplot(2, 2 + addcols, 2)
         if plot_mean:
             self.plot_mean(iabscissa, x_opt, xsemilog=xsemilog)
         else:
@@ -651,8 +690,8 @@ class CMADataLogger(interfaces.BaseDataLogger):
         # pyplot.xticks(xticklocs)
 
         # standard deviations
-        subplot(2, 2, 4)
-        self.plot_stds(iabscissa)
+        subplot(2, 2 + addcols, 4 + addcols)
+        self.plot_stds(iabscissa, idx=x_opt)
 
         self._finalize_plotting = finalize
         self._finalize_plotting()
@@ -672,6 +711,11 @@ class CMADataLogger(interfaces.BaseDataLogger):
             ``1==plot`` versus function evaluation number
         `iteridx`
             iteration indices to plot
+        `x_opt`
+            if ``len(x_opt) == dimension``, the difference to `x_opt` is
+            plotted, otherwise the first row of ``x_opt`` are the indices of
+            the variables to be plotted and the second row, if present, is used
+            to take the difference.
 
         Return `CMADataLogger` itself.
 
@@ -752,7 +796,7 @@ class CMADataLogger(interfaces.BaseDataLogger):
 
             # standard deviations
             subplot(3, 2, 6)
-            self.plot_stds(iabscissa)
+            self.plot_stds(iabscissa, idx=x_opt)
         else:
             subplot(2, 3, 1)
             self.plot_divers(iabscissa, foffset)
@@ -760,7 +804,7 @@ class CMADataLogger(interfaces.BaseDataLogger):
 
             # standard deviations
             subplot(2, 3, 4)
-            self.plot_stds(iabscissa)
+            self.plot_stds(iabscissa, idx=x_opt)
 
             # Scaling
             subplot(2, 3, 2)
@@ -808,15 +852,22 @@ class CMADataLogger(interfaces.BaseDataLogger):
         self._xlabel(iabscissa)
         self._finalize_plotting()
         return self
-    def plot_stds(self, iabscissa=1):
+    def plot_stds(self, iabscissa=1, idx=None):
+        """``iabscissa==0`` means vs iterations, `idx` picks variables to plot"""
         from matplotlib import pyplot
         if not hasattr(self, 'std'):
             self.load()
         # quick fix of not cp issue without changing much code
         class _tmp: pass
         dat = _tmp()
-        dat.std = np.asarray(self.std).copy()
+        dat.std = np.array(self.std, copy=True)
         self._enter_plotting()
+        try:
+            if len(np.shape(idx)) > 1:
+                idx = idx[0]  # take only first row
+            if len(idx) < dat.std.shape[1] - 5:  # idx reduces the displayed variables
+                dat.std = dat.std[:, list(range(5)) + [5 + i for i in idx]]
+        except TypeError: pass  # idx has no len
         # remove sigma from stds (graphs become much better readible)
         dat.std[:, 5:] = np.transpose(dat.std[:, 5:].T / dat.std[:, 2].T)
         # ax = array(pyplot.axis())
@@ -881,35 +932,52 @@ class CMADataLogger(interfaces.BaseDataLogger):
         self._plot_x(iabscissa, x_opt, 'curr best', annotations=annotations, xsemilog=xsemilog)
         self._xlabel(iabscissa)
         return self
-    def plot_correlations(self, iabscissa=1):
-        """spectrum of correlation matrix and largest correlation"""
-        if not hasattr(self, 'corrspec'):
+    def plot_correlations(self, iabscissa=1, name='corrspec'):
+        """spectrum of correlation or precision matrix and percentiles of off-diagonal entries"""
+        if not hasattr(self, name):
             self.load()
-        if len(self.corrspec) < 2:
+        if len(getattr(self, name)) < 2:
             return self
-        x = self.corrspec[:, iabscissa]
-        y = self.corrspec[:, 6:]  # principle axes
-        ys = self.corrspec[:, :6]  # "special" values
+        from matplotlib import pyplot
+        x = getattr(self, name)[:, iabscissa]
+        y = getattr(self, name)[:, 6:]  # principle axes
+        ys = getattr(self, name)[:, :6]  # "special" values
 
         from matplotlib.pyplot import semilogy, text, grid, axis, title
         self._enter_plotting()
+        if 11 < 3:  # to be removed
+            semilogy(x[:], np.max(y, 1) / np.min(y, 1), '-r')
+            # text(x[-1], np.max(y[-1, :]) / np.min(y[-1, :]), 'axis ratio')
+            labels = ['axis ratio']
+        else:
+            semilogy(x[:], 1e-3 - 0.5 * np.mean(np.log(y), axis=1), '-r')
+            labels = [r'$10^{-3}$' + ' + KL(K || I) / D']  # mutual information / dimension
         if ys is not None:
-            semilogy(x, 1 + ys[:, 2], '-b')
-            text(x[-1], 1 + ys[-1, 2], '1 + min(corr)')
-            semilogy(x, 1 - ys[:, 5], '-b')
-            text(x[-1], 1 - ys[-1, 5], '1 - max(corr)')
-            semilogy(x[:], 1 + ys[:, 3], '-k')
-            text(x[-1], 1 + ys[-1, 3], '1 + max(neg corr)')
-            semilogy(x[:], 1 - ys[:, 4], '-k')
-            text(x[-1], 1 - ys[-1, 4], '1 - min(pos corr)')
-        semilogy(x, y, '-c')
-        semilogy(x[:], np.max(y, 1) / np.min(y, 1), '-r')
-        text(x[-1], np.max(y[-1, :]) / np.min(y[-1, :]), 'axis ratio')
+            if 11 < 3:  # to be removed
+                semilogy(x, 1 + ys[:, 2], '-b')
+                text(x[-1], 1 + ys[-1, 2], '1 + min(corr)')
+                semilogy(x, 1 - ys[:, 5], '-b')
+                text(x[-1], 1 - ys[-1, 5], '1 - max(corr)')
+                semilogy(x[:], 1 + ys[:, 3], '-k')
+                text(x[-1], 1 + ys[-1, 3], '1 + max(neg corr)')
+                semilogy(x[:], 1 - ys[:, 4], '-k')
+                text(x[-1], 1 - ys[-1, 4], '1 - min(pos corr)')
+            else:
+                minmaxcorrs = ys[:, 2:6]  # 0, 25, 75, and 100 percentile correlation
+                semilogy(x, (1 + minmaxcorrs) / (1 - minmaxcorrs), 'c',
+                         linewidth=0.5)
+                labels += ['(1 + c) / (1 - c)']
+        pyplot.legend(labels, framealpha=0.3)
+        # semilogy(x, y, '-c')
+        color = iter(pyplot.cm.plasma_r(np.linspace(0.35, 1,
+                                                    y.shape[1])))
+        for i in range(y.shape[1]):
+            semilogy(x, y[:, i], '-', color=next(color), zorder=1)
         grid(True)
         ax = array(axis())
         # ax[1] = max(minxend, ax[1])
         axis(ax)
-        title('Spectrum (roots) of correlation matrix')
+        title('Spectrum (roots) of %s matrix' % ('white precision' if name.startswith('prec') else 'correlation'))
         # pyplot.xticks(xticklocs)
         self._xlabel(iabscissa)
         self._finalize_plotting()
@@ -1020,7 +1088,7 @@ class CMADataLogger(interfaces.BaseDataLogger):
             [dfit1, r'$f_\mathsf{best} - f_\mathsf{min}$']]:
             idx = np.isfinite(dfit)
             if any(idx):
-                idx_nan = _where(~idx)[0]  # gaps
+                idx_nan = _where(np.logical_not(idx))[0]  # gaps
                 if not len(idx_nan):  # should never happen
                     semilogy(dat.f[:, iabscissa][idx], dfit[idx], '-c')
                 else:
@@ -1101,14 +1169,16 @@ class CMADataLogger(interfaces.BaseDataLogger):
         pyplot.draw()  # update "screen"
         pyplot.ion()  # prevents that the execution stops after plotting
         pyplot.show()
-        pyplot.rcParams['font.size'] = self.original_fontsize
+        pyplot.rcParams['font.size'] = self.original_fontsize  # changes font size in current figure which defeats the original purpose
     def _xlabel(self, iabscissa=1):
         from matplotlib import pyplot
         pyplot.xlabel('iterations' if iabscissa == 0
                       else 'function evaluations')
     def _plot_x(self, iabscissa=1, x_opt=None, remark=None,
                 annotations=None, xsemilog=None):
-        """If ``x_opt is not None`` the difference to x_opt is plotted
+        """If ``len(x_opt) == dimension``, the difference to `x_opt` is plotted.
+        Otherwise, the first row of ``x_opt`` is taken as indices and the second
+        row, if present, is used to take the difference.
         """
         if not hasattr(self, 'x'):
             utils.print_warning('no x-attributed found, use methods ' +
@@ -1117,13 +1187,26 @@ class CMADataLogger(interfaces.BaseDataLogger):
             return
         if annotations is None:
             annotations = self.persistent_communication_dict.get('variable_annotations')
-        from matplotlib.pyplot import plot, semilogy, text, grid, axis, title
+        from matplotlib.pyplot import plot, semilogy, yscale, text, grid, axis, title
         dat = self  # for convenience and historical reasons
-        if x_opt is None or x_opt is 0:
+        if not np.any(x_opt):
             dat_x = dat.x
         else:
             dat_x = dat.x[:,:]
-            dat_x[:, 5:] -= x_opt
+            try:
+                dat_x[:, 5:] -= x_opt
+            except ValueError:  # interpret x_opt as index
+                def apply_xopt(dat_x, x_opt_idx):
+                    """first row of `x_opt_idx` are indices, second (optional) row are values"""
+                    x_opt_vals = None
+                    if len(np.shape(x_opt_idx)) > 1:
+                        x_opt_vals = x_opt_idx[1]
+                        x_opt_idx = np.asarray(x_opt_idx[0])
+                    dat_x = dat_x[:, list(range(5)) + [5 + i for i in x_opt_idx]]
+                    if x_opt_vals is not None:
+                        dat_x[:, 5:] -= x_opt_vals
+                    return dat_x
+                dat_x = apply_xopt(dat_x, x_opt)
 
         # modify fake last entry in x for line extension-annotation
         if dat_x.shape[1] < 100:
@@ -1137,33 +1220,30 @@ class CMADataLogger(interfaces.BaseDataLogger):
         else:
             minxend = 0
         self._enter_plotting()
+        plot(dat_x[:, iabscissa], dat_x[:, 5:], '-')
         if xsemilog or (xsemilog is None and remark and remark.startswith('mean')):
-            semilogy_signed(dat_x[:, iabscissa], dat_x[:, 5:])
-        else:
-            plot(dat_x[:, iabscissa], dat_x[:, 5:], '-')
-        # hold(True)
-        grid(True)
-        ax = array(axis())
-        # ax[1] = max(minxend, ax[1])
-        axis(ax)
-        ax[1] -= 1e-6  # to prevent last x-tick annotation, probably superfluous
-        if dat_x.shape[1] < 100:
+            d = dat_x[:, 5:]
+            yscale('symlog', linthreshy=np.min(np.abs(d[d != 0])))  # see matplotlib.scale.SymmetricalLogScale
+        if dat_x.shape[1] < 100:  # annotations
+            ax = array(axis())
+            axis(ax)
             # yy = np.linspace(ax[2] + 1e-6, ax[3] - 1e-6, dat_x.shape[1] - 5)
             # yyl = np.sort(dat_x[-1,5:])
             # plot([dat_x[-1, iabscissa], ax[1]], [dat_x[-1,5:], yy[idx2]], 'k-') # line from last data point
             plot(np.dot(dat_x[-2, iabscissa], [1, 1]),
-                 array([ax[2] + 1e-6, ax[3] - 1e-6]), 'k-')
+                array([ax[2] + 1e-6, ax[3] - 1e-6]), 'k-')
             # plot(array([dat_x[-1, iabscissa], ax[1]]),
             #      reshape(array([dat_x[-1,5:], yy[idx2]]).flatten(), (2,4)), '-k')
             for i in range(len(idx)):
                 # TODOqqq: annotate phenotypic value!?
                 # text(ax[1], yy[i], 'x(' + str(idx[i]) + ')=' + str(dat_x[-2,5+idx[i]]))
                 text(dat_x[-1, iabscissa], dat_x[-1, 5 + i],
-                     ('' + str(i) + ': ' if annotations is None
+                    ('' + str(i) + ': ' if annotations is None
                         else str(i) + ':' + annotations[i] + "=")
-                     + utils.num2str(dat_x[-2, 5 + i],
-                                     significant_digits=2,
-                                     desired_length=4))
+                    + utils.num2str(dat_x[-2, 5 + i],
+                                    significant_digits=2,
+                                    desired_length=4))
+        grid(True)
         i = 2  # find smallest i where iteration count differs (in case the same row appears twice)
         while i < len(dat.f) and dat.f[-i][0] == dat.f[-1][0]:
             i += 1
@@ -1323,7 +1403,7 @@ last_figure_number = 324
 def plot(name=None, fig=None, abscissa=1, iteridx=None,
          plot_mean=False,
          foffset=1e-19, x_opt=None, fontsize=7, downsample_to=3e3,
-         xsemilog=None):
+         xsemilog=None, addcols=0, **kwargs):
     """
     plot data from files written by a `CMADataLogger`,
     the call ``cma.plot(name, **argsdict)`` is a shortcut for
@@ -1342,7 +1422,10 @@ def plot(name=None, fig=None, abscissa=1, iteridx=None,
     `iteridx`
         iteration indices to plot
     `x_opt`
-        negative offset for plotting x-values
+        if ``len(x_opt) == dimension``, the difference to `x_opt` is
+        plotted, otherwise the first row of ``x_opt`` are the indices of
+        the variables to be plotted and the second row, if present, is used
+        to take the difference.
     `xsemilog`
         customized semilog plot for x-values
 
@@ -1375,7 +1458,7 @@ def plot(name=None, fig=None, abscissa=1, iteridx=None,
     if isinstance(fig, (int, float)):
         last_figure_number = fig
     return CMADataLogger(name).plot(fig, abscissa, iteridx, plot_mean, foffset,
-                             x_opt, fontsize, downsample_to, xsemilog)
+                             x_opt, fontsize, downsample_to, xsemilog, addcols, **kwargs)
 
 def disp(name=None, idx=None):
     """displays selected data from (files written by) the class
@@ -1420,14 +1503,26 @@ class LoggerDummy(object):
     """use to fake a `Logger` in non-verbose setting"""
     def __init__(self, *args, **kwargs):
         self.count = 0
+        self.name = None
+        self.attributes = []
+        self.callables = []
+        self.labels = []
     def __call__(self, *args, **kwargs):
-        self.push()
+        return self.push()
     def add(self, *args, **kwargs):
         return self
     def push(self, *args, **kwargs):
-        self.count += 1
-    def load(self, *args, **kwargs):
         return self
+    def push_header(self, *args, **kwargs):
+        pass
+    def load(self, *args, **kwargs):
+        self.data = []
+        return self
+    def delete(self):
+        self.count = 0
+    @property
+    def filename(self):
+        return ""
     def plot(self, *args, **kwargs):
         warnings.warn("loggers is in dummy (silent) mode,"
                       " there is nothing to plot")
@@ -1435,24 +1530,78 @@ class LoggerDummy(object):
 class Logger(object):
     """log an arbitrary number of data (a data row) per "timestep".
 
-    The `add` method can be called several times per timestep, the
-    `push` method must be called once per timestep. `load` and `plot`
-    will only work if each time the same number of data was pushed.
+    The `add` method can be called several times per timestep, the `push`
+    method must be called once per timestep. Callables are called in the
+    `push` method and their output is logged. `push` finally also dumps the
+    current data row to disk. `load` reads all logged data in and, like
+    `plot`, will only work if the same number of data was pushed each and
+    every time.
 
-    For the time being, the data is saved to a file after each timestep.
+    To-be-logged "values" can be scalars or iterables (like lists
+    or nparrays).
 
-    To append data, set `self.counter` > 0 before to call `push` the first
-    time. ``len(self.load().data)`` is the number of current data.
+    The current data is saved to a file and cleared after each timestep.
+    The `name` and `filename` attributes are based on either the name or
+    the logged instance class as given as first argument. Only if a name
+    was given, `push` overwrites the derived file if it exists.
 
-    Useless example::
+    To append data, set `self.counter` > 0 or call `load` before to call
+    `push` the first time (make sure that the `_name` attribute has the
+    desired value either way). ``len(self.load().data)`` is the number of
+    current data.
 
-        >> es = cma.CMAEvolutionStrategy
-        >> lg = Logger(es, ['countiter'])  # prepare to log the countiter attribute of es
-        >> lg.push()  # execute logging
+    A minimal practical example logging some nicely transformed attribute
+    values of an object (looping over `Logger` and `LoggerDummy` for
+    testing purpose only):
+
+    >>> import numpy as np
+    >>> import cma
+    >>> for Logger in [cma.logger.Logger, cma.logger.LoggerDummy]:
+    ...     es = cma.CMAEvolutionStrategy(3 * [1], 2, dict(maxiter=9, verbose=-9))
+    ...     lg = Logger(es,  # es-instance serves as argument to callables and for attribute access
+    ...                 callables=[lambda s: s.best.f,
+    ...                            lambda s: np.log10(np.abs(s.best.f)),
+    ...                            lambda s: np.log10(s.sigma),
+    ...                           ],
+    ...                 labels=['best f', 'lg(best f)', r'lg($\sigma$)'])
+    ...     _ = es.optimize(cma.ff.sphere, callback=lg.push)
+    ...     # lg.plot()  # caveat: requires matplotlib and clears current figure like gcf().clear()
+    ...     lg2 = Logger(lg.name).load()  # same logger without callables assigned
+    ...     lg3 = Logger(lg.filename).load()  # ditto
+    ...     assert len(lg.load().data) == lg.count == 9 or isinstance(lg, cma.logger.LoggerDummy)
+    ...     assert np.all(lg.data == lg2.data) and np.all(lg.data == lg3.data)
+    ...     assert lg.labels == lg2.labels
+    ...     lg.delete()  # delete data file, logger can still be (re-)used for new data
 
     """
-    def __init__(self, obj_or_name, attributes=None, callables=None, path='outcmaes/', name=None, labels=None):
-        """obj can also be a name"""
+    extension = ".logdata"
+    fields_read = ['attributes', 'labels']
+    "  names of attributes written to and read from file"
+
+    def __init__(self, obj_or_name, attributes=None, callables=None,
+                 path='outcmaes/', name=None, labels=None,
+                 delete=False):
+        """`obj_or_name` is the instance that we want to observe,
+
+        or a name, or an absolute path to a file.
+
+        `attributes` are attributes of `obj_or_name`, however
+
+        `callables` are more general in their usage and hence recommended.
+        They allow attribute access and transformations, for example like
+        ``lambda es: np.log10(sum(es.mean**2)**0.5 / es.sigma)``.
+
+        When a `callable` accepts an argument, it is called with
+        `obj_or_name` as argument. The returned value of `callables` and
+        the current values of `attributes` are logged each time when
+        `push` is called.
+
+        Details: `path` is not used if `obj_or_name` is an absolute path
+        name, e.g. the `filename` attribute from another logger. If
+        ``delete is True``, the data file is deleted when the instance is
+        destructed. This can also be controlled or prevented by setting the
+        boolean `_delete` attribute.
+        """
         self.format = "%.19e"
         if obj_or_name == str(obj_or_name) and attributes is not None:
             raise ValueError('string obj %s has no attributes %s' % (
@@ -1461,8 +1610,18 @@ class Logger(object):
         self.name = name
         # handle output location, TODO: streamline
         self.path = path
-        self._autoname(obj_or_name)  # set _name attribute
-        self._name = self._create_path(path) + self._name
+        self._delete = delete
+        self._autoname(obj_or_name)  # set _name attribute which is the output filename
+        if self._name != os.path.abspath(self._name):
+            self._name = self._create_path(path) + self._name
+        if obj_or_name != str(obj_or_name):
+            id = self._unique_name_addition(self._name)  # needs full path
+            self._name = self._compose_name(self._name, id)
+            self.name = self._compose_name(self.name, id)
+        # self.taken_names.append(self._name)
+        if 11 < 3 and os.path.isfile(self._name):
+            utils.print_message('Logger uses existing file "%s" '
+                                'which may be overwritten' % self._name)
         # print(self._name)
         self.attributes = attributes or []
         self.callables = callables or []
@@ -1470,6 +1629,20 @@ class Logger(object):
         self.count = 0
         self.current_data = []
         # print('Logger:', self.name, self._name)
+
+    @property
+    def filename(self):
+        """full filename as absolute path (stored in attribute `_name`)"""
+        return self._name
+
+    def delete(self):
+        """delete current data file and reset count to zero"""
+        os.remove(self._name)
+        self.count = 0
+
+    def __del__(self):
+        if self._delete is True:
+            self.delete()
 
     def _create_path(self, name_prefix=None):
         """return absolute path or '' if not `name_prefix`"""
@@ -1489,7 +1662,8 @@ class Logger(object):
     def _autoname(self, obj):
         """set `name` and `_name` attributes.
 
-        TODO: how to handle two loggers in the same class??
+        Loggers based on the same class are separted by calling
+        `_unique_name_addition` afterwards.
         """
         if str(obj) == obj:
             self.name = obj
@@ -1504,15 +1678,38 @@ class Logger(object):
                 s = s.split("'")[-2]
             self.name = s
         self._name = self.name
-        if '.' not in self._name:
-            self._name = self._name + '.logdata'
-        if not self._name.startswith(('._', '_')):
-            self._name = '._' + self._name
+        if not os.path.isfile(self._name):  # we want to be able to load an existing logger
+            if '.' not in self._name:
+                self._name = self._name + self.extension
+            if not self._name.startswith(('._', '_')):
+                self._name = '._' + self._name
+
+    def _compose_name(self, name, unique_id):
+        """add unique_id to name before ".logdata" """
+        i = name.find(self.extension)
+        return name[:i] + unique_id + name[i:] if i >= 0 else name + unique_id
+
+    def _unique_name_addition(self, name=None):
+        """return id:`str` that makes ``name or self._name`` unique"""
+        if name is None:
+            name = self._name
+        if not os.path.isfile(name):
+            return ''
+        i = 2
+        while os.path.isfile(self._compose_name(name, str(i))):
+            i += 1
+        if i % 33 == 0 or i > 999:
+            utils.print_message('%d Logger data files like %s found. \n'
+                                'Consider removing old data files and/or using '
+                                'the delete parameter to delete on destruction and/or\n'
+                                'using the `delete` method to delete the current log.'
+                                % (i, name))
+        return str(i)
 
     def _stack(self, data):
         """stack data into current row managing the different access...
 
-        ... and type formats.
+        ...and type formats.
         """
         if isinstance(data, list):
             self.current_data += data
@@ -1542,11 +1739,15 @@ class Logger(object):
         return self
 
     def _add_defaults(self):
+        """add data from registered attributes and callables, called by `push`"""
         for name in self.attributes:
             data = getattr(self.obj, name)
             self._stack(data)
         for callable in self.callables:
-            self._stack(callable())
+            try:
+                self._stack(callable(self.obj))
+            except TypeError:
+                self._stack(callable())
         return self
 
     def push(self, *args):
@@ -1560,25 +1761,43 @@ class Logger(object):
                                  for val in self.current_data) + '\n')
         self.current_data = []
         self.count += 1
+        return self
 
     def push_header(self):
         mode = 'at' if self.count else 'wt'
         with open(self._name, mode) as file_:
-            if self.labels:
-                file_.write('# %s\n' % repr(self.labels))
-            if self.attributes:
-                file_.write('# %s\n' % repr(self.attributes))
+            for name in self.fields_read:
+                if getattr(self, name, None):
+                    file_.write("# {'%s': %s}\n" % (name, repr(getattr(self, name))))
 
     def load(self):
         import ast
         self.data = np.loadtxt(self._name)
-        with open(self._name, 'rt') as file_:
-            first_line = file_.readline()
-        if first_line.startswith('#'):
-            self.labels = ast.literal_eval((first_line[1:].lstrip()))
+        with open(self._name, 'rt') as file_:  # read meta data/labels
+            line = file_.readline()
+            while line.startswith('#'):
+                res = ast.literal_eval((line[1:].lstrip()))
+                if isinstance(res, dict):
+                    for name in self.fields_read:
+                        if name in res:
+                            setattr(self, name, res[name])
+                else:  # backward compatible, to be removed (TODO)
+                    self.labels = res
+                line = file_.readline()
+        if self.count == 0:  # prevent overwriting of data
+            self.count = len(self.data)
         return self
 
-    def plot(self, plot=None):
+    def plot(self, plot=None, clear=True, transformations=None):
+        """plot logged data using the `plot` function.
+
+        If `clear`, this calls `matplotlib.pyplot.gca().clear()` before
+        to plot in the current figure. The default value of `clear` may
+        change in future.
+
+        If ``transformations[i]`` is a `callable` it is used to transform the i-th
+        data column like ``i_th_column = transformations[i](data[:,i])``.
+        """
         try:
             from matplotlib import pyplot as plt
         except ImportError: pass
@@ -1590,16 +1809,23 @@ class Logger(object):
             m = len(self.data[0])  # number of "variables"
         except TypeError:
             m = 0
-        plt.gca().clear()
+        if clear:
+            plt.gca().clear()
         if not m or len(self.labels) == 1:  # data cannot be indexed like data[:,0]
             plot(range(1, n + 1), self.data,
                  label=self.labels[0] if self.labels else None)
             return
-        color=iter(plt.cm.winter_r(np.linspace(0.15, 1, m)))
+        color = iter(plt.cm.plasma(np.linspace(0.01, 0.9, m)))  # plasma was: winter_r
+        idx_labels = [int(i * m / len(self.labels)) for i in range(len(self.labels))]
+        labels = iter(self.labels)
         for i in range(m):
-            plot(range(1, n + 1), self.data[:, i],
-                 label=self.labels[i] if i < len(self.labels) else None)
-            plt.gca().get_lines()[0].set_color(next(color))
+            column = self.data[:, i]
+            try: column = transformations[i](column)
+            except (IndexError, TypeError): pass
+            plot(range(1, n + 1), column,
+                 color=next(color),
+                 label=next(labels) if i in idx_labels else None)
+            # plt.gca().get_lines()[0].set_color(next(color))
         plt.legend(framealpha=0.3)  # more opaque than not
         return self
 
