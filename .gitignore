@@ -1,0 +1,7 @@
+*.dat
+*.aux*.log
+*.out*.synctex.gz
+.ipynb_checkpoints
+__pycache__
+cma_kernels
+outsofomore
