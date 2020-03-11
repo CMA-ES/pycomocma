@@ -591,7 +591,7 @@ class Sofomore(interfaces.OOOptimizer):
         return self
     
     
-def random_restart_kernel(moes, x0_fct=None, sigma0=None, inopts = None, **kwargs):
+def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts = None, **kwargs):
     """return a new "random" kernel"""
     if x0_fct is not None:
         x0 = x0_fct(moes.dimension)  # or however we can access the current search space dimension
@@ -600,7 +600,7 @@ def random_restart_kernel(moes, x0_fct=None, sigma0=None, inopts = None, **kwarg
     if sigma0 is None: 
         kernel = moes.kernels[0]
         sigma0 = kernel.sigma0 / 1.  # decrease the initial  step-size ?
-    return get_cmas(x0, sigma0, inopts=inopts, number_created_kernels=moes.num_kernels)
+    return get_cmas(x0, sigma0, inopts=opts, number_created_kernels=moes.num_kernels)
     
 def best_chv_restart_kernel(moes, sigma_factor=2, **kwargs):
     """return a new kernel derived from the kernel with largest contributing HV"""
