@@ -260,7 +260,7 @@ class Sofomore(interfaces.OOOptimizer):
 
         return res
         
-    def tell(self, solutions, objective_values, constraints_values = []):
+    def tell(self, solutions, objective_values):
         """
         pass objective function values to update the state variables of some 
         kernels, `self._told_indices` and eventually `self.archive`.
@@ -297,6 +297,8 @@ class Sofomore(interfaces.OOOptimizer):
         if self.NDA is None:
             self.NDA = BiobjectiveNondominatedSortedList if len(
                     objective_values[0]) == 2 else NonDominatedList
+        
+        objective_values = np.asarray(objective_values).tolist()
         for i in range(len(self._told_indices)):
             self.kernels[self._told_indices[i]].objective_values = objective_values[i]
         
@@ -311,13 +313,8 @@ class Sofomore(interfaces.OOOptimizer):
             hypervolume_improvements = [front_observed.hypervolume_improvement(
                     point) for point in objective_values[start:start+len(offspring)]]
             
-            g_values = [constraint[start:start+len(offspring)] \
-                        for constraint in constraints_values]
-            penalized_f_values = RankPenalizedFitness([-float(u) for u in 
-                                hypervolume_improvements], g_values)
             kernel = self.kernels[ikernel]
-            kernel.tell(offspring, penalized_f_values())
-#            kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
+            kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
             
             # invistigate whether `kernel` hits its stopping criteria
             if kernel.stop():
@@ -359,6 +356,9 @@ class Sofomore(interfaces.OOOptimizer):
     @property
     def pareto_front(self):
         """
+        return the non-dominated solutions among the kernels'
+        objective values.
+        It's the image of `self.pareto_set`.
         """
         return self.NDA([kernel.objective_values for kernel in self.kernels \
                          if kernel.objective_values is not None],
@@ -367,7 +367,7 @@ class Sofomore(interfaces.OOOptimizer):
     @property
     def pareto_set(self):
         """
-        return the estimated Pareto set of the algorithm, among the kernels'
+        return the non-dominated solutions among the kernels'
         incumbents.
         It's the pre-image of `self.pareto_front`.
         """
@@ -591,7 +591,7 @@ class Sofomore(interfaces.OOOptimizer):
         return self
     
     
-def random_restart_kernel(moes, x0_fct=None, sigma0=None, **kwargs):
+def random_restart_kernel(moes, x0_fct=None, sigma0=None, inopts = None, **kwargs):
     """return a new "random" kernel"""
     if x0_fct is not None:
         x0 = x0_fct(moes.dimension)  # or however we can access the current search space dimension
@@ -600,7 +600,7 @@ def random_restart_kernel(moes, x0_fct=None, sigma0=None, **kwargs):
     if sigma0 is None: 
         kernel = moes.kernels[0]
         sigma0 = kernel.sigma0 / 1.  # decrease the initial  step-size ?
-    return get_cmas(x0, sigma0, number_created_kernels = moes.num_kernels)
+    return get_cmas(x0, sigma0, inopts=inopts, number_created_kernels=moes.num_kernels)
     
 def best_chv_restart_kernel(moes, sigma_factor=2, **kwargs):
     """return a new kernel derived from the kernel with largest contributing HV"""
@@ -624,30 +624,40 @@ def best_chv_restart_kernel(moes, sigma_factor=2, **kwargs):
     return ker._copy_light(sigma=sigma_factor * ker.sigma, inopts={'verb_filenameprefix': 'cma_kernels' + os.sep + 
                         str(moes.num_kernels)})
 
-# callbacks for sorting indices to pick in the `tell` method
+# callbacks for sorting indices to pick in the `tell` method.
+# This is useful in the case where num_to_ask is equal to 1,
+# so that the kernels are updated in the `tell` method one by one
         
 def sort_even_odds(i):
     """
+    pick the kernels with even indices before the kernels with odd indices in
+    the `tell` method
     """
     return i % 2
 
 def sort_odds_even(i):
     """
-    """
+    pick the kernels with odd indices before the kernels with even indices in
+    the `tell`method
+     """
     return - (i % 2)
 
 def sort_random(i):
     """
+    randomly pick the kernels to update in the `tell` method
     """
     return np.random.rand()
 
 def sort_increasing(i):
     """
+    update respectively `self.kernels[0]`, `self.kernels[1]`, ..., `self.kernels[-1]`
     """
     return i
 
 def sort_decreasing(i):
     """
+    update respectively `self.kernels[-1]`, `self.kernels[-2]`, ..., `self.kernels[0]`
+
     """
     return - i
 
@@ -785,78 +795,4 @@ class FitFun:
     def __call__(self, x):
         return [f(x) for f in self.callables]
 
-class RankPenalizedFitness:
-    """compute f-values of infeasible solutions as rank_f-inverse(const + sum g-ranks).
-    
-    The inverse is computed by linear interpolation.
-    
-    Draw backs: does not support approaching the optimum from the infeasible domain.
-    
-    Infeasible solutions with valid f-value measurement could get a 1/2-scaled credit for their
-    f-rank difference to the base f-value.
-    """
-
-    def __init__(self, f_values, g_list_values):
-        self.f_values = f_values
-        self.g_list_values = g_list_values
-        # control parameters
-        self.base_prctile = 0.2  # best f-value an infeasible solution can get
-        self.g_scale = 1.01  # factor for g-ranks penalty
-        self._debugging = False
-        # internal state
-        self.f_current_best = 0
-
-    def __call__(self):
-        """
-        Assumes that at least one solution does not return nan as f-value
-        """
-        # TODO: what to do if there is no f-value for a feasible solution
-     #   f_values = [self.f(x) for x in X]
-        f_values = self.f_values
-        g_ranks_list = []
-        is_feasible = np.ones(len(f_values))
-   #     for g in self.g_list:
-        for g_values in self.g_list_values:
-    #        g_values = [g(x) for x in X]         
-            g_is_feas = np.asarray(g_values) <= 0
-            is_feasible *= g_is_feas
-            nb_feas = sum(g_is_feas)
-            g_ranks = [g - nb_feas + 1 if g >= nb_feas else 0
-                       for g in cma.utilities.utils.ranks(g_values)]  # TODO: this fails with nan-values
-            if self._debugging: print(g_ranks)
-            g_ranks_list.append(g_ranks)
-        idx_feas = np.where(is_feasible)[0]
-        # we could also add the distance to the best feasible solution as penalty on the median?
-        # or we need to increase the individual g-weight with the number of iterations that no single
-        #    feasible value was seen
-        # change f-values of infeasible solutions
-        sorted_feas_f_values = sorted(np.asarray(f_values)[idx_feas])
-        try: self.f_current_best = sorted_feas_f_values[0]
-        except IndexError: pass
-        j0 = self.base_prctile * (len(idx_feas) - 1)
-        #         for i in set(range(len(X))).difference(idx_feas):
-        for i in set(range(len(f_values))).difference(idx_feas):
-            j = j0 + self.g_scale * (
-                    sum(g_ranks[i] for g_ranks in g_ranks_list) - 1)  # -1 makes base a possible value
-            assert j >= self.base_prctile * (len(idx_feas) - 1)
-            # TODO: use f-value of infeasible solution if available?
-            if 11 < 3 and np.isfinite(f_values[i]):
-                self.gf_scale = 1 / 2
-                j += self.gf_scale * (_interpolated_rank(f_values, f_values[i]) - 
-                                      _interpolated_rank(f_values, f_values[j0]))  # TODO: filter f-values by np.isfinite
-            j = max((j, 0))
-            j1, j2 = int(j), int(np.ceil(j))
-            f1 = self._f_from_index(sorted_feas_f_values, j1)
-            f2 = self._f_from_index(sorted_feas_f_values, j2)
-            # take weighted average fitness between index j and j+1
-            f_values[i] = 0e-6 + (j - j1) * f2 + (j2 - j) * f1 if j2 > j1 else f1
-        return f_values
-
-    def _f_from_index(self, f_values, i):
-        """`i` must be an integer but may be ``>= len(f_values)``"""
-        imax = len(f_values) - 1
-        if imax < 0:  # no feasible f-value
-            return self.f_current_best + i
-        return f_values[min((imax, i))] + max((i - imax, 0))
-        
 

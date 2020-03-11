@@ -1,0 +1,653 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+          "DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <title>moarchiving.BiobjectiveNondominatedSortedList : API documentation</title>
+
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <link href="bootstrap.min.css" rel="stylesheet" type="text/css" />
+    <link href="apidocs.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+
+    <nav class="navbar navbar-default">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="index.html">
+            moarchiving API Documentation
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <div id="showPrivate">
+      <button class="btn btn-link" onclick="togglePrivate()">Toggle Private API</button>
+    </div>
+
+    <div class="container">
+
+      <div class="page-header">
+        <h1 class="class"><code>moarchiving.BiobjectiveNondominatedSortedList(<span title="list">list</span>)</code> <small>class documentation</small></h1>
+
+        <span id="partOf">
+          Part of <code><a href="moarchiving.html" data-type="Module" class="code">moarchiving</a></code>
+          
+          <a href="classIndex.html#moarchiving.BiobjectiveNondominatedSortedList">(View In Hierarchy)</a>
+        </span>
+      </div>
+
+      <div class="extrasDocstring">
+        
+      </div>
+
+      <div class="moduleDocstring">
+        <div><p>A sorted list of non-dominated unique objective-pairs.</p>
+<p>Non-domination here means smaller in at least one objective. The list is
+sorted (naturally) by the first objective. No equal entries in either
+objective exist in the list (assuming it is in a consistent state).</p>
+<p>The operation</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> moarchiving <span class="py-keyword">import</span> BiobjectiveNondominatedSortedList
+<span class="py-prompt">&gt;&gt;&gt; </span>any_list = BiobjectiveNondominatedSortedList(any_list)  <span class="py-comment"># doctest:+SKIP</span></pre>
+<p>sorts and prunes the pair list <code>any_list</code> to become a consistent
+nondominated sorted archive.</p>
+<p>Afterwards, the methods <a href="moarchiving.BiobjectiveNondominatedSortedList.html#add"><code>add</code></a> and <a href="moarchiving.BiobjectiveNondominatedSortedList.html#add_list"><code>add_list</code></a> keep the list always
+in a consistent state. Removing elements with <code>pop</code> or <code>del</code> is
+consistent too.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span>a = BiobjectiveNondominatedSortedList([[1,0.9], [0,1], [0,2]])
+<span class="py-prompt">&gt;&gt;&gt; </span>a
+<span class="py-output">[[0, 1], [1, 0.9]]</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.add([0, 1])  <span class="py-comment"># doesn't change anything, [0, 1] is not duplicated</span>
+<span class="py-prompt">&gt;&gt;&gt; </span>BiobjectiveNondominatedSortedList(
+<span class="py-more">... </span>    [[-0.749, -1.188], [-0.557, 1.1076],
+<span class="py-more">... </span>    [0.2454, 0.4724], [-1.146, -0.110]])
+<span class="py-output">[[-1.146, -0.11], [-0.749, -1.188]]</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a._asserts()  <span class="py-comment"># consistency assertions</span></pre>
+<p>Details: This list doesn't prevent the user to insert a new element
+anywhere and hence get into an inconsistent state. Inheriting from
+<code>sortedcontainers.SortedList</code> would ensure that the <a href="http://docs.python.org/library/stdtypes.html#list"><code>list</code></a> remains
+at least sorted.</p>
+<p>See also:
+<a class="rst-reference external" href="https://pypi.org/project/sortedcontainers" target="_top">https://pypi.org/project/sortedcontainers</a>
+<a class="rst-reference external" href="https://code.activestate.com/recipes/577197-sortedcollection/" target="_top">https://code.activestate.com/recipes/577197-sortedcollection/</a>
+<a class="rst-reference external" href="https://pythontips.com/2016/04/24/python-sorted-collections/" target="_top">https://pythontips.com/2016/04/24/python-sorted-collections/</a></p><table class="fieldTable"></table></div>
+      </div>
+
+      <div id="splitTables">
+        <table class="children sortable" id="id2">
+  
+  <tr class="method">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#__init__" data-type="Method" class="code">__init__</a></td>
+    <td><span><code>list_of_f_pairs</code> does not need to be sorted.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#add" data-type="Method" class="code">add</a></td>
+    <td><span>insert <code>f_pair</code> in <code>self</code> if it is not (weakly) dominated.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#add_list" data-type="Method" class="code">add_list</a></td>
+    <td><span>insert a list of f-pairs which doesn't need to be sorted.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#merge" data-type="Method" class="code">merge</a></td>
+    <td><span>merge in a sorted list of f-pairs which doesn't need to be nondominated.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#bisect_left" data-type="Method" class="code">bisect_left</a></td>
+    <td><span>return index where <code>f_pair</code> may need to be inserted.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#dominates" data-type="Method" class="code">dominates</a></td>
+    <td><span>return <a href="http://docs.python.org/library/constants.html#True"><code>True</code></a> if any element of <code>self</code> dominates or is equal to <code>f_pair</code>.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#dominates_with" data-type="Method" class="code">dominates_with</a></td>
+    <td><span>return <a href="http://docs.python.org/library/constants.html#True"><code>True</code></a> if <tt class="rst-docutils literal">self[idx]</tt> dominates or is equal to <code>f_pair</code>.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#dominators" data-type="Method" class="code">dominators</a></td>
+    <td><span>return the list of all <code>f_pair</code>-dominating elements in <code>self</code>,</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#in_domain" data-type="Method" class="code">in_domain</a></td>
+    <td><span>return <a href="http://docs.python.org/library/constants.html#True"><code>True</code></a> if <code>f_pair</code> is dominating the reference point,</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#hypervolume" data-type="Method" class="code">hypervolume</a></td>
+    <td><span>return hypervolume w.r.t. the "initial" reference point.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#compute_hypervolume" data-type="Method" class="code">compute_hypervolume</a></td>
+    <td><span>return hypervolume w.r.t. <code>reference_point</code></span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#compute_hypervolumes" data-type="Method" class="code">compute_hypervolumes</a></td>
+    <td><span>return list of contributing hypervolumes w.r.t. reference_point</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#prune" data-type="Method" class="code">prune</a></td>
+    <td><span>remove dominated or equal entries assuming that the list is sorted.</span></td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#_add_at" data-type="Method" class="code">_add_at</a></td>
+    <td><span>add <code>f_pair</code> at position <code>idx</code> and remove dominated elements.</span></td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#_set_hypervolume" data-type="Method" class="code">_set_hypervolume</a></td>
+    <td><span>set current hypervolume value using <code>self.reference_point</code>.</span></td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#_subtract_HV" data-type="Method" class="code">_subtract_HV</a></td>
+    <td><span>remove contributing hypervolumes of elements self[idx0] to self[idx1 - 1]</span></td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#_add_HV" data-type="Method" class="code">_add_HV</a></td>
+    <td><span>add contributing hypervolume of <tt class="rst-docutils literal">self[idx]</tt></span></td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><a href="moarchiving.BiobjectiveNondominatedSortedList.html#_asserts" data-type="Method" class="code">_asserts</a></td>
+    <td><span>make all kind of consistency assertions</span></td>
+  </tr>
+</table>
+        
+
+          
+      </div>
+
+      <div id="childList">
+
+        <div class="basemethod">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList.__init__">
+    
+  </a>
+  <a name="__init__">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    __init__(self, list_of_f_pairs=None, reference_point=None, sort=sorted):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p><code>list_of_f_pairs</code> does not need to be sorted.</p>
+<p>f-pairs beyond the <code>reference_point</code> are pruned away. The
+<code>reference_point</code> is also used to compute the hypervolume.</p>
+<p><tt class="rst-docutils literal">sort=lambda x: x</tt> will prevent a sort, which
+can be useful if the list is already sorted.</p>
+<p>CAVEAT: the interface, in particular the positional interface
+may change in future versions.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList.add">
+    
+  </a>
+  <a name="add">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    add(self, f_pair):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>insert <code>f_pair</code> in <code>self</code> if it is not (weakly) dominated.</p>
+<p>Return index at which the insertion took place or <a href="http://docs.python.org/library/constants.html#None"><code>None</code></a>. The
+list remains sorted in the process.</p>
+<p>The list remains non-dominated with unique elements, which
+means that some or many or even all of its present elements may
+be removed.</p>
+<p>Implementation detail: For performance reasons, <code>insert</code> is
+avoided in favor of <code>__setitem__</code>, if possible.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList._add_at">
+    
+  </a>
+  <a name="_add_at">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    _add_at(self, idx, f_pair):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>add <code>f_pair</code> at position <code>idx</code> and remove dominated elements.</p>
+<p>This method assumes that <code>f_pair</code> is not weakly dominated by
+<code>self</code> and that <code>idx</code> is the correct insertion place e.g.
+acquired by <a href="moarchiving.BiobjectiveNondominatedSortedList.html#bisect_left"><code>bisect_left</code></a>.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList.add_list">
+    
+  </a>
+  <a name="add_list">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    add_list(self, list_of_f_pairs):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>insert a list of f-pairs which doesn't need to be sorted.</p>
+<p>This is just a shortcut for looping over <a href="moarchiving.BiobjectiveNondominatedSortedList.html#add"><code>add</code></a>.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> moarchiving <span class="py-keyword">import</span> BiobjectiveNondominatedSortedList
+<span class="py-prompt">&gt;&gt;&gt; </span>arch = BiobjectiveNondominatedSortedList()
+<span class="py-prompt">&gt;&gt;&gt; </span>list_of_f_pairs = [[1, 2], [0, 3]]
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">for</span> f_pair <span class="py-keyword">in</span> list_of_f_pairs:
+<span class="py-more">... </span>    arch.add(f_pair)  <span class="py-comment"># return insert index or None</span>
+<span class="py-output">0</span>
+<span class="py-output">0</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>arch == sorted(list_of_f_pairs)  <span class="py-comment"># both entries are nondominated</span>
+<span class="py-output">True</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>arch.compute_hypervolume([3, 4]) == 5.0
+<span class="py-output">True</span></pre>
+<p>Return number of actually inserted f-pairs.</p>
+<p>Details: when <code>list_of_pairs</code> is already sorted, <a href="moarchiving.BiobjectiveNondominatedSortedList.html#merge"><code>merge</code></a> may have
+a small performance benefit.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList.merge">
+    
+  </a>
+  <a name="merge">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    merge(self, list_of_f_pairs):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>merge in a sorted list of f-pairs which doesn't need to be nondominated.</p>
+<p>Return number of actually inserted f-pairs.</p>
+<p>Details: merging 200 into 100_000 takes 3e-4s vs 4e-4s with
+<a href="moarchiving.BiobjectiveNondominatedSortedList.html#add_list"><code>add_list</code></a>.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList.bisect_left">
+    
+  </a>
+  <a name="bisect_left">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    bisect_left(self, f_pair, lowest_index=0):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>return index where <code>f_pair</code> may need to be inserted.</p>
+<p>Smaller indices have a strictly better f1 value or they have
+equal f1 and better f2 value.</p>
+<p><code>lowest_index</code> restricts the search from below.</p>
+<p>Details: This method does a binary search in <code>self</code> using
+<a href="http://docs.python.org/library/bisect.html#bisect.bisect_left"><code>bisect.bisect_left</code></a>.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList.dominates">
+    
+  </a>
+  <a name="dominates">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    dominates(self, f_pair):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>return <a href="http://docs.python.org/library/constants.html#True"><code>True</code></a> if any element of <code>self</code> dominates or is equal to <code>f_pair</code>.</p>
+<p>Otherwise return <a href="http://docs.python.org/library/constants.html#False"><code>False</code></a>.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> moarchiving <span class="py-keyword">import</span> BiobjectiveNondominatedSortedList <span class="py-keyword">as</span> NDA
+<span class="py-prompt">&gt;&gt;&gt; </span>a = NDA([[0.39, 0.075], [0.0087, 0.14]])
+<span class="py-prompt">&gt;&gt;&gt; </span>a.dominates(a[0])  <span class="py-comment"># is always True if `a` is not empty</span>
+<span class="py-output">True</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.dominates([-1, 33]) <span class="py-keyword">or</span> a.dominates([33, -1])
+<span class="py-output">False</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a._asserts()</pre>
+<p>See also <a href="moarchiving.BiobjectiveNondominatedSortedList.html#bisect_left"><code>bisect_left</code></a> to find the closest index.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList.dominates_with">
+    
+  </a>
+  <a name="dominates_with">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    dominates_with(self, idx, f_pair):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>return <a href="http://docs.python.org/library/constants.html#True"><code>True</code></a> if <tt class="rst-docutils literal">self[idx]</tt> dominates or is equal to <code>f_pair</code>.</p>
+<p>Otherwise return <a href="http://docs.python.org/library/constants.html#False"><code>False</code></a> or <a href="http://docs.python.org/library/constants.html#None"><code>None</code></a> if <code>idx</code> is out-of-range.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> moarchiving <span class="py-keyword">import</span> BiobjectiveNondominatedSortedList <span class="py-keyword">as</span> NDA
+<span class="py-prompt">&gt;&gt;&gt; </span>NDA().dominates_with(0, [1, 2]) <span class="py-keyword">is</span> None  <span class="py-comment"># empty NDA</span>
+<span class="py-output">True</span></pre><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList.dominators">
+    
+  </a>
+  <a name="dominators">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    dominators(self, f_pair, number_only=False):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>return the list of all <code>f_pair</code>-dominating elements in <code>self</code>,</p>
+<p>including an equal element. <tt class="rst-docutils literal"><span class="pre">len(...dominators(...))</span></tt> is
+hence the number of dominating elements which can also be obtained
+without creating the list with <tt class="rst-docutils literal">number_only=True</tt>.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> moarchiving <span class="py-keyword">import</span> BiobjectiveNondominatedSortedList <span class="py-keyword">as</span> NDA
+<span class="py-prompt">&gt;&gt;&gt; </span>a = NDA([[1.2, 0.1], [0.5, 1]])
+<span class="py-prompt">&gt;&gt;&gt; </span>len(a)
+<span class="py-output">2</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.dominators([2, 3]) == a
+<span class="py-output">True</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.dominators([0.5, 1])
+<span class="py-output">[[0.5, 1]]</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>len(a.dominators([0.6, 3])), a.dominators([0.6, 3], number_only=True)
+<span class="py-output">(1, 1)</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.dominators([0.5, 0.9])
+<span class="py-output">[]</span></pre><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList.in_domain">
+    
+  </a>
+  <a name="in_domain">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    in_domain(self, f_pair, reference_point=None):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>return <a href="http://docs.python.org/library/constants.html#True"><code>True</code></a> if <code>f_pair</code> is dominating the reference point,</p>
+<p><a href="http://docs.python.org/library/constants.html#False"><code>False</code></a> otherwise. <a href="http://docs.python.org/library/constants.html#True"><code>True</code></a> means that <code>f_pair</code> contributes to
+the hypervolume if not dominated by other elements.</p>
+<p><code>f_pair</code> may also be an index in <code>self</code> in which case
+<tt class="rst-docutils literal">self[f_pair]</tt> is tested to be in-domain.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> moarchiving <span class="py-keyword">import</span> BiobjectiveNondominatedSortedList <span class="py-keyword">as</span> NDA
+<span class="py-prompt">&gt;&gt;&gt; </span>a = NDA([[2.2, 0.1], [0.5, 1]], reference_point=[2, 2])
+<span class="py-prompt">&gt;&gt;&gt; </span>assert len(a) == 1
+<span class="py-prompt">&gt;&gt;&gt; </span>a.in_domain([0, 0])
+<span class="py-output">True</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.in_domain([2, 1])
+<span class="py-output">False</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>all(a.in_domain(ai) <span class="py-keyword">for</span> ai <span class="py-keyword">in</span> a)
+<span class="py-output">True</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.in_domain(0)
+<span class="py-output">True</span></pre>
+<p>TODO: improve name?</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList.hypervolume">
+    
+  </a>
+  <a name="hypervolume">
+    
+  </a>
+  <div class="functionHeader">
+    @property<br />
+    def
+    hypervolume(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>return hypervolume w.r.t. the "initial" reference point.</p>
+<p>Raise <a href="http://docs.python.org/library/exceptions.html#exceptions.ValueError"><code>ValueError</code></a> when no reference point was given initially.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> moarchiving <span class="py-keyword">import</span> BiobjectiveNondominatedSortedList <span class="py-keyword">as</span> NDA
+<span class="py-prompt">&gt;&gt;&gt; </span>a = NDA([[0.5, 0.4], [0.3, 0.7]], [2, 2.1])
+<span class="py-prompt">&gt;&gt;&gt; </span>a._asserts()
+<span class="py-prompt">&gt;&gt;&gt; </span>a.reference_point == [2, 2.1]
+<span class="py-output">True</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>abs(a.hypervolume - a.compute_hypervolume(a.reference_point)) &lt; 1e-11
+<span class="py-output">True</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.add([0.2, 0.8])
+<span class="py-output">0</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a._asserts()
+<span class="py-prompt">&gt;&gt;&gt; </span>abs(a.hypervolume - a.compute_hypervolume(a.reference_point)) &lt; 1e-11
+<span class="py-output">True</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.add([0.3, 0.6])
+<span class="py-output">1</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a._asserts()
+<span class="py-prompt">&gt;&gt;&gt; </span>abs(a.hypervolume - a.compute_hypervolume(a.reference_point)) &lt; 1e-11
+<span class="py-output">True</span></pre><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList._set_hypervolume">
+    
+  </a>
+  <a name="_set_hypervolume">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    _set_hypervolume(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>set current hypervolume value using <code>self.reference_point</code>.</p>
+<p>Raise <a href="http://docs.python.org/library/exceptions.html#exceptions.ValueError"><code>ValueError</code></a> if <code>self.reference_point</code> is <a href="http://docs.python.org/library/constants.html#None"><code>None</code></a>.</p>
+<p>TODO: we may need to store the list of _contributing_ hypervolumes
+to handle numerical rounding errors later.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList.compute_hypervolume">
+    
+  </a>
+  <a name="compute_hypervolume">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    compute_hypervolume(self, reference_point):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>return hypervolume w.r.t. <code>reference_point</code><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList.compute_hypervolumes">
+    
+  </a>
+  <a name="compute_hypervolumes">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    compute_hypervolumes(self, reference_point):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>return list of contributing hypervolumes w.r.t. reference_point<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList._subtract_HV">
+    
+  </a>
+  <a name="_subtract_HV">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    _subtract_HV(self, idx0, idx1):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>remove contributing hypervolumes of elements self[idx0] to self[idx1 - 1]<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList._add_HV">
+    
+  </a>
+  <a name="_add_HV">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    _add_HV(self, idx):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>add contributing hypervolume of <tt class="rst-docutils literal">self[idx]</tt><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList.prune">
+    
+  </a>
+  <a name="prune">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    prune(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>remove dominated or equal entries assuming that the list is sorted.</p>
+<p>Return number of dropped elements.</p>
+<p>Implementation details: pruning from right to left may be
+preferable, because list.insert(0) is O(n) while list.append is
+O(1), however it is not possible with the given sorting: in
+principle, the first element may dominate all others, which can
+only be discovered in the last step when traversing from right
+to left. This suggests that reverse sort may be better for
+pruning or we should inherit from <a href="http://docs.python.org/library/collections.html#collections.deque"><code>collections.deque</code></a> instead
+from <a href="http://docs.python.org/library/stdtypes.html#list"><code>list</code></a>, but <code>deque</code> seems not to support deletion of slices.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  <a name="moarchiving.BiobjectiveNondominatedSortedList._asserts">
+    
+  </a>
+  <a name="_asserts">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    _asserts(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>make all kind of consistency assertions<table class="fieldTable"></table></div>
+  </div>
+</div>
+
+      </div>
+      <address>
+        <a href="index.html">API Documentation</a> for moarchiving, generated by <a href="https://github.com/twisted/pydoctor/">pydoctor</a> at 2018-05-28 11:21:35.
+      </address>
+
+    </div>
+
+    <script src="pydoctor.js" type="text/javascript"></script>
+
+  </body>
+</html>
