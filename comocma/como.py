@@ -170,7 +170,10 @@ class Sofomore(interfaces.OOOptimizer):
                 kernel.objective_values = None
         self.reference_point = reference_point
         defopts = {'archive': True, 'restart': None, 'verb_filenameprefix': 'outsofomore' + os.sep, 
-                   'verb_log': 1, 'verb_disp': 100, 'update_order': sort_random}
+                   'verb_log': 1, 'verb_disp': 100, 'update_order': sort_random,
+                   'continue_stopped_kernel': False, # when True and restarts=True, will continue stopped kernel
+                   'random_restart_on_domination': False, # when True, do random restart if stopped kernel is dominated
+                   }
         if opts is None:
             opts = {}
         if isinstance(opts, dict):
@@ -299,6 +302,7 @@ class Sofomore(interfaces.OOOptimizer):
                     objective_values[0]) == 2 else NonDominatedList
         
         objective_values = np.asarray(objective_values).tolist()
+
         for i in range(len(self._told_indices)):
             self.kernels[self._told_indices[i]].objective_values = objective_values[i]
         
@@ -316,17 +320,19 @@ class Sofomore(interfaces.OOOptimizer):
             kernel = self.kernels[ikernel]
             kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
             
-            # invistigate whether `kernel` hits its stopping criteria
+            # investigate whether `kernel` hits its stopping criteria
             if kernel.stop():
                 self._active_indices.remove(ikernel) # ikernel must be in `_active_indices`
+                self._last_stopped_kernel_id = ikernel
                 if self.restart is not None and "timeout" not in kernel.stop():
                     try:
                         kernel_to_add = self.restart(self)
                         self._told_indices += [self.num_kernels]
                         self.add(kernel_to_add)
+
                     except:
                         warnings.warn('check if `self.restart` is returning a CMAKernel')
-            
+
             try:
                 kernel.logger.add()
             except:
@@ -352,6 +358,7 @@ class Sofomore(interfaces.OOOptimizer):
                 self.archive.add_list(objective_values)
         self.countiter += 1
         self.countevals += len(objective_values)
+
         
     @property
     def pareto_front(self):
@@ -591,12 +598,12 @@ class Sofomore(interfaces.OOOptimizer):
         return self
     
     
-def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts = None, **kwargs):
+def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts=None, **kwargs):
     """return a new "random" kernel"""
     if x0_fct is not None:
         x0 = x0_fct(moes.dimension)  # or however we can access the current search space dimension
     else:
-        x0 = 2 * np.zeros(moes.dimension) - 1  # or whatever we want as default
+        x0 = 10 * np.random.rand(moes.dimension) - 5  # TODO: or whatever we want as default
     if sigma0 is None: 
         kernel = moes.kernels[0]
         sigma0 = kernel.sigma0 / 1.  # decrease the initial  step-size ?
@@ -605,6 +612,17 @@ def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts = None, **kwargs)
 def best_chv_restart_kernel(moes, sigma_factor=2, **kwargs):
     """return a new kernel derived from the kernel with largest contributing HV"""
 
+    # test if stopped kernel is truly dominated by another kernel
+    # if yes, do an independent random restart
+    if moes.opts['random_restart_on_domination']:
+        dominators = moes.pareto_front.dominators(moes.kernels[moes._last_stopped_kernel_id].objective_values)
+        if moes.kernels[moes._last_stopped_kernel_id].objective_values in dominators:
+            dominators.remove(moes.kernels[moes._last_stopped_kernel_id].objective_values)
+        if dominators:
+            #print('independent random restart!')
+            return random_restart_kernel(moes)
+
+    #print('chv restart!')
     hvc = []
     for idx in range(moes.num_kernels):
         front = moes.NDA([moes.kernels[i].objective_values for i in range(moes.num_kernels) if i != idx],
@@ -621,8 +639,15 @@ def best_chv_restart_kernel(moes, sigma_factor=2, **kwargs):
                 idx_best = i
                 break
     ker = moes.kernels[idx_best]
-    return ker._copy_light(sigma=sigma_factor * ker.sigma, inopts={'verb_filenameprefix': 'cma_kernels' + os.sep + 
-                        str(moes.num_kernels)})
+    new_sigma0 = sigma_factor * ker.sigma
+    if moes.opts['continue_stopped_kernel'] and idx_best not in moes._active_indices:
+        moes._active_indices.append(idx_best)
+        ker.sigma = new_sigma0
+        ker.countiter = 0  # a hack before we find a better way to initialize the tolfunrel functionality
+
+    newkernel = ker._copy_light(sigma=new_sigma0, inopts={'verb_filenameprefix': 'cma_kernels' + os.sep +
+                                                                     str(moes.num_kernels)})
+    return newkernel
 
 # callbacks for sorting indices to pick in the `tell` method.
 # This is useful in the case where num_to_ask is equal to 1,
@@ -639,7 +664,7 @@ def sort_odds_even(i):
     """
     pick the kernels with odd indices before the kernels with even indices in
     the `tell`method
-     """
+    """
     return - (i % 2)
 
 def sort_random(i):
@@ -657,7 +682,6 @@ def sort_increasing(i):
 def sort_decreasing(i):
     """
     update respectively `self.kernels[-1]`, `self.kernels[-2]`, ..., `self.kernels[0]`
-
     """
     return - i
 
@@ -702,7 +726,7 @@ def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
         defopts = cma.CMAOptions()
         defopts.update({'verb_filenameprefix': 'cma_kernels' + os.sep + 
                         str(number_created_kernels+i), 'conditioncov_alleviate': [np.inf, np.inf],
-                    'verbose': -1, 'tolx': 1e-4})  
+                    'verbose': -1, 'tolx': 1e-4, 'tolfunrel': 1e-2})  
         if isinstance(list_of_opts[i], dict):
             defopts.update(list_of_opts[i])
             
