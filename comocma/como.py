@@ -22,6 +22,7 @@ import warnings
 import cma.utilities.utils
 import os
 from sofomore_logger import SofomoreDataLogger
+import random
 #import sys
 
 class Sofomore(interfaces.OOOptimizer):
@@ -197,8 +198,12 @@ class Sofomore(interfaces.OOOptimizer):
                                                      modulo=self.opts['verb_log']).register(self)
         self.best_hypervolume_pareto_front = 0.0
         self.epsilon_hypervolume_pareto_front = 0.1 # the minimum positive convergence gap
-                
         self._ratio_nondom_offspring_incumbent = self.num_kernels * [0]
+        
+        self._last_stopped_kernel_id = None
+        self._number_of_calls_best_chv_restart = 0
+        self._number_of_calls_random_restart = 0
+
     def __iter__(self):
         """
         make `self` iterable. 
@@ -324,14 +329,10 @@ class Sofomore(interfaces.OOOptimizer):
             if kernel.stop():
                 self._active_indices.remove(ikernel) # ikernel must be in `_active_indices`
                 self._last_stopped_kernel_id = ikernel
-                if self.restart is not None and "timeout" not in kernel.stop():
-                    try:
-                        kernel_to_add = self.restart(self)
-                        self._told_indices += [self.num_kernels]
-                        self.add(kernel_to_add)
-
-                    except:
-                        warnings.warn('check if `self.restart` is returning a CMAKernel')
+                if self.restart is not None:
+                    kernel_to_add = self.restart(self)
+                    self._told_indices += [self.num_kernels]
+                    self.add(kernel_to_add)
 
             try:
                 kernel.logger.add()
@@ -598,31 +599,71 @@ class Sofomore(interfaces.OOOptimizer):
         return self
     
     
-def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts=None, **kwargs):
-    """return a new "random" kernel"""
+def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts={}, **kwargs):
+    
+    """create a kernel (solver) of TYPE CmaKernel with a random initial mean, or 
+    an initial mean given by the factory function `x0_funct`, and initial step-size
+    `sigma0`.
+    
+    Parameters
+    ----------
+    moes : TYPE Sofomore
+        A multiobjective solver instance with cma-es (of TYPE CmaKernel) solvers.
+    x0_fct : TYPE function, optional
+        A factory function that creates an initial mean. The default is None.
+    sigma0 : TYPE float, optional
+        Initial step-size of the returned kernel. The default is None.
+    opts : TYPE dict, optional
+        The returned kernel's options. The default is {}.
+    **kwargs : 
+        Other keyword arguments.
+
+    Returns
+    -------
+    A kernel (solver) of TYPE CmaKernel.
+
+    """
+
     if x0_fct is not None:
         x0 = x0_fct(moes.dimension)  # or however we can access the current search space dimension
     else:
         x0 = 10 * np.random.rand(moes.dimension) - 5  # TODO: or whatever we want as default
     if sigma0 is None: 
-        kernel = moes.kernels[0]
+        kernel = moes[0]
         sigma0 = kernel.sigma0 / 1.  # decrease the initial  step-size ?
-    return get_cmas(x0, sigma0, inopts=opts, number_created_kernels=moes.num_kernels)
+    
+    my_opts = moes[moes._last_stopped_kernel_id].opts
+    my_opts.update(opts)
+    return get_cmas(x0, sigma0, inopts=my_opts, number_created_kernels=moes.num_kernels)
     
 def best_chv_restart_kernel(moes, sigma_factor=2, **kwargs):
-    """return a new kernel derived from the kernel with largest contributing HV"""
+    """create a kernel (solver) of TYPE CmaKernel by duplicating the kernel with 
+    best uncrowded hypervolume improvement.
+    
+    Parameters
+    ----------
+    moes : TYPE Sofomore
+        A multiobjective solver instance with cma-es (of TYPE CmaKernel) solvers.
+    sigma_factor : TYPE int or float, optional
+        A step size factor used in the initial step-size of the kernel returned.
+        The default is 2.
+    **kwargs : 
+        Other keyword arguments.
+
+    Returns
+    -------
+    A kernel (solver) of TYPE CmaKernel derived from the kernel with largest contributing HV.
+
+    """
 
     # test if stopped kernel is truly dominated by another kernel
     # if yes, do an independent random restart
+
     if moes.opts['random_restart_on_domination']:
-        dominators = moes.pareto_front.dominators(moes.kernels[moes._last_stopped_kernel_id].objective_values)
-        if moes.kernels[moes._last_stopped_kernel_id].objective_values in dominators:
-            dominators.remove(moes.kernels[moes._last_stopped_kernel_id].objective_values)
-        if dominators:
-            #print('independent random restart!')
+        kernel = moes.kernels[moes._last_stopped_kernel_id]
+        if kernel.objective_values not in moes.pareto_front:
             return random_restart_kernel(moes)
 
-    #print('chv restart!')
     hvc = []
     for idx in range(moes.num_kernels):
         front = moes.NDA([moes.kernels[i].objective_values for i in range(moes.num_kernels) if i != idx],
@@ -648,6 +689,56 @@ def best_chv_restart_kernel(moes, sigma_factor=2, **kwargs):
     newkernel = ker._copy_light(sigma=new_sigma0, inopts={'verb_filenameprefix': 'cma_kernels' + os.sep +
                                                                      str(moes.num_kernels)})
     return newkernel
+
+
+def best_chv_or_random_restart_kernel(moes, sigma_factor=2, x0_fct=None, sigma0=None, opts={}, **kwargs):
+    """generate fairly, via a derandomized scenario, either a kernel via `best_chv_restart_kernel`
+    or a kernel via `random_restart_kernel`.
+    
+    Parameters
+    ----------
+    moes : TYPE Sofomore
+        A multiobjective solver instance with cma-es solvers.
+    sigma_factor : TYPE int or float, optional
+        A step size factor used in the initial step-size of the kernel created via
+        the function `best_chv_restart_kernel`. The default is 2.
+    x0_fct : TYPE function, optional
+        A factory function that creates an initial mean for the factory function
+        `random_restart_kernel`. The default is None.
+    sigma0 : TYPE float, optional
+        Initial step-size of a kernel created via `random_restart_kernel`.
+        The default is None.
+    opts : TYPE dict, optional
+        The created kernel's options. The default is {}.
+    **kwargs : 
+        Other keyword arguments.
+
+    Returns
+    -------
+    A solver of TYPE CmaKernel.
+
+    """
+    
+    assert abs(moes._number_of_calls_best_chv_restart - moes._number_of_calls_random_restart) < 2
+    
+    if moes._number_of_calls_best_chv_restart < moes._number_of_calls_random_restart:
+        moes._number_of_calls_best_chv_restart += 1
+        assert moes._number_of_calls_best_chv_restart == moes._number_of_calls_random_restart
+        return best_chv_restart_kernel(moes, sigma_factor, **kwargs)
+    
+    if moes._number_of_calls_best_chv_restart > moes._number_of_calls_random_restart:
+        moes._number_of_calls_random_restart += 1
+        assert moes._number_of_calls_best_chv_restart == moes._number_of_calls_random_restart
+        return random_restart_kernel(moes, x0_fct, sigma0, opts, **kwargs)
+    
+    p = random.random()
+    if p < 0.5:
+        moes._number_of_calls_best_chv_restart += 1
+        return best_chv_restart_kernel(moes, sigma_factor, **kwargs)
+    
+    moes._number_of_calls_random_restart += 1
+    return random_restart_kernel(moes, x0_fct, sigma0, opts, **kwargs)
+
 
 # callbacks for sorting indices to pick in the `tell` method.
 # This is useful in the case where num_to_ask is equal to 1,
@@ -685,9 +776,11 @@ def sort_decreasing(i):
     """
     return - i
 
+### Factory function to create cma-es:
+
 def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
     """
-    produce `len(x_starts)` instances of type `cmaKernel`.
+    Factory function that produces `len(x_starts)` instances of type `cmaKernel`.
     """
     
     if x_starts is not None and len(x_starts):
