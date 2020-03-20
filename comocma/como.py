@@ -174,6 +174,7 @@ class Sofomore(interfaces.OOOptimizer):
                    'verb_log': 1, 'verb_disp': 100, 'update_order': sort_random,
                    'continue_stopped_kernel': False, # when True and restarts=True, will continue stopped kernel
                    'random_restart_on_domination': False, # when True, do random restart if stopped kernel is dominated
+                   'increase_popsize_on_domination': False,
                    }
         if opts is None:
             opts = {}
@@ -203,6 +204,8 @@ class Sofomore(interfaces.OOOptimizer):
         self._last_stopped_kernel_id = None
         self._number_of_calls_best_chv_restart = 0
         self._number_of_calls_random_restart = 0
+
+        self.popsize_random_restart = self.kernels[0].popsize
 
     def __iter__(self):
         """
@@ -329,6 +332,12 @@ class Sofomore(interfaces.OOOptimizer):
             if kernel.stop():
                 self._active_indices.remove(ikernel) # ikernel must be in `_active_indices`
                 self._last_stopped_kernel_id = ikernel
+                # update of self.popsize_random_restart
+                if self.opts['increase_popsize_on_domination']:
+                    popsize_dominated_kernels = [ker.popsize for ker in self.kernels if ker.objective_values not in self.pareto_front]
+                    #print(len(popsize_dominated_kernels), "dominated kernels")
+                    if popsize_dominated_kernels != [] and max(popsize_dominated_kernels) == self.popsize_random_restart:
+                        self.popsize_random_restart *= 2
                 if self.restart is not None:
                     kernel_to_add = self.restart(self)
                     self._told_indices += [self.num_kernels]
@@ -634,6 +643,8 @@ def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts={}, **kwargs):
     
     my_opts = moes[moes._last_stopped_kernel_id].opts
     my_opts.update(opts)
+    if moes.opts['increase_popsize_on_domination']:
+        my_opts.update({'popsize': moes.popsize_random_restart})
     return get_cmas(x0, sigma0, inopts=my_opts, number_created_kernels=moes.num_kernels)
     
 def best_chv_restart_kernel(moes, sigma_factor=2, **kwargs):
