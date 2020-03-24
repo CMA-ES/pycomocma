@@ -191,7 +191,8 @@ def coco_optimize(solver, fun, max_evals, max_runs=1e9):
             list_of_solvers = como.get_cmas(-5 + 10 * np.random.rand(num_kernels, fun.dimension),
                                             sigma0,  # inopts=cmaopts
                                             {'tolx': 10 ** -4,
-                                             'tolfunrel': 1e-1}
+                                             'tolfunrel': 1e-1,
+                                             'maxiter': 'inf'}
                                             )  # produce `num_kernels cma instances`
             moes = solver(list_of_solvers, opts={'archive': False,
                                                  #'restart': como.random_restart_kernel},
@@ -241,12 +242,12 @@ SOLVER = como.Sofomore
 # SOLVER = optimize.fmin_cobyla
 # SOLVER = my_solver # SOLVER = fmin_slsqp # SOLVER = cma.fmin
 suite_instance = "" # "year:2016"
-suite_options = "dimensions: 2,3,5,10 function_indices: 1-55 instance_indices: 6-10"  # "dimensions: 2,3,5,10,20 "  # if 40 is not desired
+suite_options = "dimensions: 2,3,5,10 function_indices: 1-55 instance_indices: 1-10"  # "dimensions: 2,3,5,10,20 "  # if 40 is not desired
 # for more suite options, see http://numbbo.github.io/coco-doc/C/#suite-parameters
 observer_options = ObserverOptions({  # is (inherited from) a dictionary
-                    'algorithm_info': '"COMO-CMA-ES with restarts (como.best_chv_restart_kernel), no continuing stopped kernels, but random restart if kernel is dominated"', # CHANGE/INCOMMENT THIS!
+                    'algorithm_info': '"COMO-CMA-ES with restarts (como.best_chv_restart_kernel), median0=None, tolfunrel=1e-1, tolx=1e-4"', # CHANGE/INCOMMENT THIS!
                     # 'algorithm_name': '',  # default already provided from SOLVER name
-                    'result_folder': 'chvPlusRandomRestart-tolfunrel1e-1-tolx1e-4-COMOchv-1kernel',  # default already provided from several global vars
+                    'result_folder': 'chvOnly-median0IsNone-tolfunrel1e-1-tolx1e-4-COMOchv-1kernel',  # default already provided from several global vars
                    })
 ######################### END CHANGE HERE ####################################
 

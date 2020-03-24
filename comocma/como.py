@@ -326,6 +326,8 @@ class Sofomore(interfaces.OOOptimizer):
                     point) for point in objective_values[start:start+len(offspring)]]
             
             kernel = self.kernels[ikernel]
+            if ikernel in self._active_indices and kernel.objective_values not in self.pareto_front:
+                kernel.fit.median0 = None
             kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
             
             # investigate whether `kernel` hits its stopping criteria
@@ -647,7 +649,7 @@ def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts={}, **kwargs):
         my_opts.update({'popsize': moes.popsize_random_restart})
     return get_cmas(x0, sigma0, inopts=my_opts, number_created_kernels=moes.num_kernels)
     
-def best_chv_restart_kernel(moes, sigma_factor=2, **kwargs):
+def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
     """create a kernel (solver) of TYPE CmaKernel by duplicating the kernel with 
     best uncrowded hypervolume improvement.
     
@@ -657,7 +659,7 @@ def best_chv_restart_kernel(moes, sigma_factor=2, **kwargs):
         A multiobjective solver instance with cma-es (of TYPE CmaKernel) solvers.
     sigma_factor : TYPE int or float, optional
         A step size factor used in the initial step-size of the kernel returned.
-        The default is 2.
+        The default is 1.
     **kwargs : 
         Other keyword arguments.
 
@@ -702,7 +704,7 @@ def best_chv_restart_kernel(moes, sigma_factor=2, **kwargs):
     return newkernel
 
 
-def best_chv_or_random_restart_kernel(moes, sigma_factor=2, x0_fct=None, sigma0=None, opts={}, **kwargs):
+def best_chv_or_random_restart_kernel(moes, sigma_factor=1, x0_fct=None, sigma0=None, opts={}, **kwargs):
     """generate fairly, via a derandomized scenario, either a kernel via `best_chv_restart_kernel`
     or a kernel via `random_restart_kernel`.
     
@@ -712,7 +714,7 @@ def best_chv_or_random_restart_kernel(moes, sigma_factor=2, x0_fct=None, sigma0=
         A multiobjective solver instance with cma-es solvers.
     sigma_factor : TYPE int or float, optional
         A step size factor used in the initial step-size of the kernel created via
-        the function `best_chv_restart_kernel`. The default is 2.
+        the function `best_chv_restart_kernel`. The default is 1.
     x0_fct : TYPE function, optional
         A factory function that creates an initial mean for the factory function
         `random_restart_kernel`. The default is None.
