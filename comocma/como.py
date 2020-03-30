@@ -321,13 +321,15 @@ class Sofomore(interfaces.OOOptimizer):
         start = len(self._told_indices) # position of the first offspring
         self._told_indices = []
         for ikernel, offspring in self.offspring:
-            front_observed = self.NDA([self.kernels[i].objective_values for i in range(self.num_kernels) if i != ikernel],
-                         self.reference_point)
-            hypervolume_improvements = [front_observed.hypervolume_improvement(
-                    point) for point in objective_values[start:start+len(offspring)]]
-            
+            front_observed = self.NDA([self.kernels[i].objective_values
+                                           for i in range(self.num_kernels) if i != ikernel],
+                                      self.reference_point)
+            hypervolume_improvements = [front_observed.hypervolume_improvement(point)
+                                            for point in objective_values[start:start+len(offspring)]]
             kernel = self.kernels[ikernel]
             if ikernel in self._active_indices and kernel.objective_values not in self.pareto_front:
+                # a hack to prevent early termination of dominated kernels
+                # from the `tolfunrel` condition. TODO: clean implementation
                 kernel.fit.median0 = None
             kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
             
@@ -337,9 +339,11 @@ class Sofomore(interfaces.OOOptimizer):
                 self._last_stopped_kernel_id = ikernel
                 # update of self.popsize_random_restart
                 if self.opts['increase_popsize_on_domination']:
-                    popsize_dominated_kernels = [ker.popsize for ker in self.kernels if ker.objective_values not in self.pareto_front]
+                    popsize_dominated_kernels = [k.popsize for k in self.kernels
+                                                 if k is not kernel and  # we can't yet say whether kernel is dominated
+                                                     k.objective_values not in self.pareto_front]
                     #print(len(popsize_dominated_kernels), "dominated kernels")
-                    if popsize_dominated_kernels != [] and max(popsize_dominated_kernels) == self.popsize_random_restart:
+                    if popsize_dominated_kernels and max(popsize_dominated_kernels) == self.popsize_random_restart:
                         self.popsize_random_restart *= 2
                 if self.restart is not None:
                     kernel_to_add = self.restart(self)
