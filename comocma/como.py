@@ -13,6 +13,7 @@ __license__ = "BSD 3-clause"
 __version__ = "0.5.0"
 del division, print_function, unicode_literals
 
+import ast
 import numpy as np
 import cma
 from cma import interfaces
@@ -610,7 +611,7 @@ class Sofomore(interfaces.OOOptimizer):
         return self
     
     
-def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts={}, **kwargs):
+def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts=None, **kwargs):
     
     """create a kernel (solver) of TYPE CmaKernel with a random initial mean, or 
     an initial mean given by the factory function `x0_funct`, and initial step-size
@@ -625,7 +626,7 @@ def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts={}, **kwargs):
     sigma0 : TYPE float, optional
         Initial step-size of the returned kernel. The default is None.
     opts : TYPE dict, optional
-        The returned kernel's options. The default is {}.
+        The returned kernel's options. The default is `None`.
     **kwargs : 
         Other keyword arguments.
 
@@ -643,8 +644,11 @@ def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts={}, **kwargs):
         kernel = moes[0]
         sigma0 = kernel.sigma0 / 1.  # decrease the initial  step-size ?
     
-    my_opts = moes[moes._last_stopped_kernel_id].opts
-    my_opts.update(opts)
+    my_opts = {}  # we use inopts to avoid copying the initialized random seed
+    for op in (moes[moes._last_stopped_kernel_id].inopts, opts):
+        if op is not None:
+            my_opts.update(op)
+
     if moes.opts['increase_popsize_on_domination']:
         my_opts.update({'popsize': moes.popsize_random_restart})
     return get_cmas(x0, sigma0, inopts=my_opts, number_created_kernels=moes.num_kernels)
@@ -823,7 +827,7 @@ def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
     # repairing the initial values:
     for i in range(len(x_starts)):
         try:
-            bounds_transform = cma.constraints_handler.BoundTransform(list_of_opts[i]['bounds'])        
+            bounds_transform = cma.constraints_handler.BoundTransform(ast.literal_eval(list_of_opts[i]['bounds']))
             x_starts[i] = bounds_transform.repair(x_starts[i])
         except KeyError:
             pass
