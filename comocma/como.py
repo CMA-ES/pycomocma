@@ -658,10 +658,7 @@ def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts=None, **kwargs):
     if moes.opts['increase_popsize_on_domination']:
         my_opts.update({'popsize': moes.popsize_random_restart})
     
-    print(moes.num_kernels)
-    kernels = get_cmas(x0, sigma0, my_opts, moes.num_kernels)
-    print(kernels[0].opts['verb_filenameprefix'])
-    return kernels
+    return  get_cmas(x0, sigma0, my_opts, moes.num_kernels)
     
 def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
     """create a kernel (solver) of TYPE CmaKernel by duplicating the kernel with 
