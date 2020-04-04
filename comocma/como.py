@@ -776,8 +776,11 @@ def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
     return newkernel
 
 
-def best_chv_or_random_restart_kernel(moes, sigma_factor=1, x0_fct=None, sigma0=None, opts=None, **kwargs):
-    """generate fairly, via a derandomized scenario, either a kernel via `best_chv_restart_kernel`
+def _old_best_chv_or_random_restart_kernel_old(moes, sigma_factor=1, x0_fct=None, sigma0=None, opts=None, **kwargs):
+    """DEPRECATED, use instead ``como.RampUpSelector([como.random_restart_kernel, como.best_chv_restart_kernel])``
+    and `functools.partial` to assign parameters to the functions beforehand.
+
+    generate fairly, via a derandomized scenario, either a kernel via `best_chv_restart_kernel`
     or a kernel via `random_restart_kernel`.
     
     Parameters
@@ -802,6 +805,7 @@ def best_chv_or_random_restart_kernel(moes, sigma_factor=1, x0_fct=None, sigma0=
     -------
     A solver of TYPE CmaKernel.
 
+    DEPRECATED.
     """
     
     assert abs(moes._number_of_calls_best_chv_restart - moes._number_of_calls_random_restart) < 2
@@ -826,6 +830,109 @@ def best_chv_or_random_restart_kernel(moes, sigma_factor=1, x0_fct=None, sigma0=
     
     moes._number_of_calls_random_restart += 1
     return random_restart_kernel(moes, x0_fct, sigma0, opts, **kwargs)
+
+class _CounterDict(dict):
+    """A dictionary with two additional features.
+    
+    1) it can be initialized by keywords only, setting all values to 0.
+    
+    2) the `argmin` method gives the key associated to the smallest value,
+    breaking ties at random.
+
+    `_CounterDict` is somewhat a misnomer, as any type than can be
+    sorted works.
+
+    >>> keys = [1, 2]
+    >>> bs = CounterDict(keys)
+    >>> assert bs == CounterDict(zip(keys, len(keys) * [0]))
+    >>> assert bs[bs.argmin()] == min(bs.values())
+    >>> bs[2] = -3
+    >>> assert bs.argmin() == 2
+
+    """
+    def __init__(self, *args, **kwargs):
+        try:
+            super(_CounterDict, self).__init__(*args, **kwargs)
+        except TypeError:  # make values to be zero
+            super(_CounterDict, self).__init__(zip(args[0], len(args[0]) * [0]))
+        self.last = [self.argmin()]  # initialize last attribute for no good reason
+    def argmin(self):
+        m = min(self.values())
+        self.last = [k for k in self if self[k] == m]
+        return self.last[np.random.randint(len(self.last))]
+
+class RampUpSelector:
+    """Takes a list of ramp-up methods and a selection "criterion",
+    
+    on inialization. When called, calls the ramp-up method with the
+    smallest cumulative criterion value and returns the result.
+    
+    The default selection criterion is number of ramp-up calls. Otherwise,
+    `criterion` can be an attribute name or a `callable`. A string
+    signifies an attribute name of the returned result of the ramp-up
+    methods. A `callable` is called with the result as argument.
+
+    For example, ``criterion='countevals'`` or ``lambda k: k.countevals``
+    uses the sum of ``result.countevals`` (evaluated only right before the
+    next ramp up) as criterion which method to use next.
+
+    The `costs` attribute stores the sum of selection criterion values
+    for each method in a dictionary.
+    
+    Usage::
+
+    >>> from comocma import como
+    >>> restart_methods = (como.random_restart_kernel, 
+    ...                    como.best_chv_restart_kernel)
+    >>> selected_restarts = como.RampUpSelector(restart_methods)
+
+    or::
+
+    >>> selected_restarts = como.RampUpSelector(restart_methods,
+    ...                                         criterion='countevals')
+
+    assuming that the return value of the restart methods has the
+    attribute `"countevals"` to be used to sum up the costs.
+    Now `selected_restarts` can be used just as the original restart
+    methods::
+
+        >> moes = como.Sofomore(list_of_solvers,
+        ..                      {'restart': selected_restarts})
+
+    """
+    def __init__(self, rampup_methods, criterion=None):
+        self.rampup_methods = rampup_methods
+        self.criterion = criterion
+        self.costs = _CounterDict(self.rampup_methods)
+        self.method = None
+        """ last used rampup method"""
+        self.result = None
+        """ last rampup result, this may or may not be a list"""
+
+    def update_costs(self):
+        """update cost value of finished (last ramped) method"""
+        if not self.method:
+            return  # do nothing before to know which method was called
+        if self.criterion is None:
+            val = 1
+        else:
+            try:  # a string leads to attribute access
+                # this is a hack and should not be necessary:
+                if isinstance(self.result, (list, tuple)): 
+                    val = sum([getattr(k, self.criterion) for k in self.result])
+                else:
+                    val = getattr(self.result, self.criterion)
+            except TypeError:  # an attribute must be a string
+                val = self.criterion(self.result)
+        self.costs[self.method] += val
+
+    def __call__(self, *args, **kwargs):
+        """update, select, and ramp up"""
+        self.update_costs()  # depends on the final state of the previously returned result
+        self.method = self.costs.argmin()
+        self.result = self.method(*args, **kwargs)
+        # if need be we could hack here to tweak result further before to deliver
+        return self.result
 
 
 # callbacks for sorting indices to pick in the `tell` method.
