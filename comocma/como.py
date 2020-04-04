@@ -647,17 +647,21 @@ def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts=None, **kwargs):
     else:
         x0 = 10 * np.random.rand(moes.dimension) - 5  # TODO: or whatever we want as default
     if sigma0 is None: 
-        kernel = moes[0]
-        sigma0 = kernel.sigma0 / 1.  # decrease the initial  step-size ?
+        sigma0 = moes[0].sigma0 / 1.  # decrease the initial  step-size ?
     
     my_opts = {}  # we use inopts to avoid copying the initialized random seed
     for op in (moes[moes._last_stopped_kernel_id].inopts, opts):
         if op is not None:
             my_opts.update(op)
+            
 
     if moes.opts['increase_popsize_on_domination']:
         my_opts.update({'popsize': moes.popsize_random_restart})
-    return get_cmas(x0, sigma0, inopts=my_opts, number_created_kernels=moes.num_kernels)
+    
+    print(moes.num_kernels)
+    kernels = get_cmas(x0, sigma0, my_opts, moes.num_kernels)
+    print(kernels[0].opts['verb_filenameprefix'])
+    return kernels
     
 def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
     """create a kernel (solver) of TYPE CmaKernel by duplicating the kernel with 
@@ -714,7 +718,7 @@ def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
     return newkernel
 
 
-def best_chv_or_random_restart_kernel(moes, sigma_factor=1, x0_fct=None, sigma0=None, opts={}, **kwargs):
+def best_chv_or_random_restart_kernel(moes, sigma_factor=1, x0_fct=None, sigma0=None, opts=None, **kwargs):
     """generate fairly, via a derandomized scenario, either a kernel via `best_chv_restart_kernel`
     or a kernel via `random_restart_kernel`.
     
@@ -749,6 +753,9 @@ def best_chv_or_random_restart_kernel(moes, sigma_factor=1, x0_fct=None, sigma0=
         assert moes._number_of_calls_best_chv_restart == moes._number_of_calls_random_restart
         return best_chv_restart_kernel(moes, sigma_factor, **kwargs)
     
+    if opts is None:
+        opts = {}
+        
     if moes._number_of_calls_best_chv_restart > moes._number_of_calls_random_restart:
         moes._number_of_calls_random_restart += 1
         assert moes._number_of_calls_best_chv_restart == moes._number_of_calls_random_restart
@@ -801,7 +808,7 @@ def sort_decreasing(i):
 
 ### Factory function to create cma-es:
 
-def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
+def get_cmas(x_starts, sigma_starts, inopts=None, number_created_kernels=0):
     """
     Factory function that produces `len(x_starts)` instances of type `cmaKernel`.
     """
@@ -833,18 +840,22 @@ def get_cmas(x_starts, sigma_starts, inopts = None, number_created_kernels = 0):
     # repairing the initial values:
     for i in range(len(x_starts)):
         try:
-            bounds_transform = cma.constraints_handler.BoundTransform(ast.literal_eval(list_of_opts[i]['bounds']))
+            mybounds = list_of_opts[i]['bounds']
+            if isinstance(mybounds, str):
+                mybounds = ast.literal_eval(mybounds)
+            bounds_transform = cma.constraints_handler.BoundTransform(mybounds)
             x_starts[i] = bounds_transform.repair(x_starts[i])
         except KeyError:
             pass
     
     for i in range(num_kernels):
         defopts = cma.CMAOptions()
-        defopts.update({'verb_filenameprefix': 'cma_kernels' + os.sep + 
-                        str(number_created_kernels+i), 'conditioncov_alleviate': [np.inf, np.inf],
-                    'verbose': -1, 'tolx': 1e-4, 'tolfunrel': 1e-2})  
+        defopts.update({'conditioncov_alleviate': [np.inf, np.inf],
+                    'verbose': -1, 'tolx': 1e-4, 'tolfunrel': 0})  
         if isinstance(list_of_opts[i], dict):
             defopts.update(list_of_opts[i])
+        defopts.update({'verb_filenameprefix': 'cma_kernels' + os.sep + 
+                        str(number_created_kernels+i)})
             
         kernels += [CmaKernel(x_starts[i], sigma_starts[i], defopts)]
         
