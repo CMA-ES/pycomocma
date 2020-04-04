@@ -26,6 +26,58 @@ from sofomore_logger import SofomoreDataLogger
 import random
 #import sys
 
+class IndicatorFront:
+    """with `hypervolume_improvement` method based on a varying empirical front.
+    
+    The front is either all kernels but one or based on the
+    `list_attribute` of `moes` (like `archive`) as given on
+    initialization.
+    
+    Usage::
+
+        >> moes.front_observed = IndicatorFront()
+        >> # OR
+        >> moes.front_observed = IndicatorFront(list_attribute='archive')
+        >> [...]
+        >>
+        >> moes.front_observed.set_kernel(moes[3], moes)
+        >>
+        >> f_points = [moes.front_observed.hypervolume_improvement(point)
+        ..             for point in points] 
+
+    """
+    def __init__(self, list_attribute=None, NDA=None):
+        """``getattr(moes, list_attribute)`` contains the list to create the front.
+        
+        `NDA` is a non-dominated archive with a `hypervolume_improvement` method.
+
+        """
+        self.list_attribute = list_attribute
+        self.NDA = NDA or BiobjectiveNondominatedSortedList
+        self.kernel = None  # current active kernel
+        self.front = None  # instance of NDA
+
+    def hypervolume_improvement(self, point):
+        return self.front.hypervolume_improvement(point)
+
+    def set_kernel(self, kernel, moes, lazy=True):
+        """Set empirical front for evolving the given kernel.
+        
+        By default, make changes only when kernel has changed.
+        
+        Details: ``moes.reference_point`` and, in case, its attribute
+        with name `self.list_attribute: str` is used.
+        """
+        if lazy and kernel == self.kernel:
+            return
+        if self.list_attribute:
+            self.front = self.NDA(getattr(moes, self.list_attribute),
+                                  moes.reference_point)
+        else:
+            self.front = self.NDA([k.objective_values for k in moes if k != kernel],
+                                  moes.reference_point)
+        self.kernel = kernel
+
 class Sofomore(interfaces.OOOptimizer):
     """ 
     Sofomore framework for multiobjective optimization, with the 
@@ -176,6 +228,7 @@ class Sofomore(interfaces.OOOptimizer):
                    'continue_stopped_kernel': False, # when True and restarts=True, will continue stopped kernel
                    'random_restart_on_domination': False, # when True, do random restart if stopped kernel is dominated
                    'increase_popsize_on_domination': False,
+                   'indicator_front': None  # 'archive' or any attribute containing a list of f-pairs
                    }
         if opts is None:
             opts = {}
@@ -188,7 +241,8 @@ class Sofomore(interfaces.OOOptimizer):
         self.isarchive = self.opts['archive']
         if self.isarchive:
             self.archive = []
-        self.NDA = None # the method for nondominated archiving
+        self.NDA = None # the callable for nondominated archiving
+        self.indicator_front = IndicatorFront(self.opts['indicator_front'])
         self.offspring = []
         self._told_indices = range(self.num_kernels)
         
@@ -330,10 +384,8 @@ class Sofomore(interfaces.OOOptimizer):
         start = len(self._told_indices) # position of the first offspring
         self._told_indices = []
         for ikernel, offspring in self.offspring:
-            front_observed = self.NDA([self.kernels[i].objective_values
-                                           for i in range(self.num_kernels) if i != ikernel],
-                                      self.reference_point)
-            hypervolume_improvements = [front_observed.hypervolume_improvement(point)
+            self.indicator_front.set_kernel(self[ikernel], self)  # use reference_point and list_attribute
+            hypervolume_improvements = [self.indicator_front.hypervolume_improvement(point)
                                             for point in objective_values[start:start+len(offspring)]]
             kernel = self.kernels[ikernel]
             if kernel.fit.median0 is not None and kernel.fit.median0 >= 0:
