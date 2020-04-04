@@ -220,6 +220,15 @@ class Sofomore(interfaces.OOOptimizer):
         """
         return self.kernels[i]
     
+    def __len__(self):
+        """return length of the `Sofomore` instance by calling ``len(.)``.
+        
+        The length is the number of (active and inactive) kernels
+        and hence consistent with subscription like
+        ``[moes[i] for i in range(len(moes)) if i in moes._active_indices]``.
+        """
+        return len(self.kernels)
+
     def ask(self, number_to_ask = 1):
         """
         get the kernels' incumbents to be evaluated and sample new candidate solutions from 
