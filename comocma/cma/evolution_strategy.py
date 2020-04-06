@@ -1008,7 +1008,7 @@ class _CMAEvolutionStrategyResult(tuple):
     - ``list(fit.fit).find(0)`` is the index of the first sampled solution
       of the last completed iteration in ``pop_sorted``.
 
-    """
+"""  # here starts the code: (beating the code folding glitch)
     # remark: a tuple is immutable, hence we cannot change it anymore
     # in __init__. This would work if we inherited from a `list`.
     @staticmethod
@@ -1319,7 +1319,7 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
     :See also: `fmin` (), `OOOptimizer`, `CMAOptions`, `plot` (), `ask` (),
         `tell` (), `ask_and_eval` ()
 
-    """
+"""  # here starts the code: (beating the code folding glitch)
     @property  # read only attribute decorator for a method
     def popsize(self):
         """number of samples by default returned by `ask` ()
@@ -1333,7 +1333,8 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
     #         """
     #         raise RuntimeError("popsize cannot be changed")
 
-    def stop(self, check=True, ignore_list=(), check_on_same_iteration=False):
+    def stop(self, check=True, ignore_list=(), check_in_same_iteration=False,
+             get_value=None):
         """return the termination status as dictionary.
 
         With ``check == False``, the termination conditions are not checked
@@ -1347,17 +1348,19 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         As a convenience feature, keywords in `ignore_list` are removed from
         the conditions.
 
-        """
+"""
         if (check and self.countiter > 0 and self.opts['termination_callback'] and
                 self.opts['termination_callback'] != str(self.opts['termination_callback'])):
             self.callbackstop = utils.ListOfCallables(self.opts['termination_callback'])(self)
+
+        self._stopdict._get_value = get_value  # a hack to avoid passing arguments down to _add_stop and back
         # check_on_same_iteration == False makes como code much faster
-        res = self._stopdict(self, check_on_same_iteration or (  # update the stopdict and return a Dict (self)
+        res = self._stopdict(self, check_in_same_iteration or get_value or (  # update the stopdict and return a Dict (self)
                                    check and self.countiter != self._stopdict.lastiter))
         if ignore_list:
             for key in ignore_list:
                 res.pop(key, None)
-        return res
+        return self._stopdict._value if get_value else res
 
     def __init__(self, x0, sigma0, inopts=None):
         """see class `CMAEvolutionStrategy`
@@ -3376,6 +3379,8 @@ class _CMAStopDict(dict):
         super(_CMAStopDict, self).__init__({} if update else d)
         self.stoplist = []  # to keep multiple entries
         self.lastiter = 0  # probably not necessary
+        self._get_value = None  # a hack to pass some value
+        self._value = None  # in iteration zero value is always None
         try:
             self.stoplist = d.stoplist  # multiple entries
         except:
@@ -3469,8 +3474,9 @@ class _CMAStopDict(dict):
                           es.sigma0 * es.sigma_vec0 * opts['tolfacupx']))
         self._addstop('tolx',
                       all(sigma_x_sigma_vec_x_sqrtdC < opts['tolx']) and
-                      all(es.sigma * (es.sigma_vec.scaling * es.pc) < opts['tolx'])
-                      )
+                      all(es.sigma * (es.sigma_vec.scaling * es.pc) < opts['tolx']),
+                      max(sigma_x_sigma_vec_x_sqrtdC) if self._get_value else None)
+                      # None only to be backwards compatible for the time being
 
         current_fitness_range = max(es.fit.fit) - min(es.fit.fit)
         historic_fitness_range = max(es.fit.hist) - min(es.fit.hist)
@@ -3478,7 +3484,8 @@ class _CMAStopDict(dict):
                       current_fitness_range < opts['tolfun'] and  # fit.fit is sorted including bound penalties
                       historic_fitness_range < opts['tolfun'])
         self._addstop('tolfunrel',
-                      current_fitness_range < opts['tolfunrel'] * (es.fit.median0 - es.fit.median_min))
+                      current_fitness_range < opts['tolfunrel'] * (es.fit.median0 - es.fit.median_min),
+                      current_fitness_range if self._get_value else None)
         self._addstop('tolfunhist',
                       len(es.fit.hist) > 9 and
                       historic_fitness_range < opts['tolfunhist'])
@@ -3505,10 +3512,12 @@ class _CMAStopDict(dict):
         # iiinteger: stagnation termination can prevent to find the optimum
 
         self._addstop('tolupsigma', opts['tolupsigma'] and
-                      es.sigma / np.max(es.D) > es.sigma0 * opts['tolupsigma'])
+                      es.sigma / np.max(es.D) > es.sigma0 * opts['tolupsigma'],
+                      es.sigma / np.max(es.D) if self._get_value else None)
         try:
             self._addstop('timeout',
-                          es.timer.elapsed > opts['timeout'])
+                          es.timer.elapsed > opts['timeout'],
+                          es.timer.elapsed if self._get_value else None)
         except AttributeError:
             if es.countiter <= 0: 
                 pass 
@@ -3575,7 +3584,10 @@ class _CMAStopDict(dict):
         return self
 
     def _addstop(self, key, cond=True, val=None):
-        if cond:
+        if key == self._get_value:
+            self._value = val
+            self._get_value = None
+        elif cond:
             self.stoplist.append(key)  # can have the same key twice
             self[key] = val if val is not None \
                             else self.opts.get(key, None)
