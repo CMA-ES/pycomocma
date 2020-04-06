@@ -716,8 +716,7 @@ def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts=None, **kwargs):
             my_opts.update(op)
             
 
-    if moes.opts['increase_popsize_on_domination']:
-        my_opts.update({'popsize': moes.popsize_random_restart})
+    my_opts.update({'popsize': moes.popsize_random_restart})
     
     return  get_cmas(x0, sigma0, my_opts, moes.num_kernels)
     
