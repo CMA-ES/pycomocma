@@ -772,7 +772,7 @@ def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
 
     newkernel = ker._copy_light(sigma=new_sigma0, inopts={'verb_filenameprefix': 'cma_kernels' + os.sep +
                                                                      str(moes.num_kernels)})
-    return newkernel
+    return [newkernel]
 
 
 def _old_best_chv_or_random_restart_kernel_old(moes, sigma_factor=1, x0_fct=None, sigma0=None, opts=None, **kwargs):
