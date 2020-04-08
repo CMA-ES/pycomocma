@@ -283,6 +283,62 @@ class Sofomore(interfaces.OOOptimizer):
         """
         return len(self.kernels)
 
+    def _UHVI_indicator_archive(self, kernel):
+        """return archive for uncrowded hypervolume improvement indicator for `kernel`.
+
+        `kernel` can also be the respective index in `self`.
+        """
+        # TODO: checking the list of f_pairs for copies and 
+        # looking at contributing_hypervolume is cheaper?
+        try:  # allow kernel index as shortcut for kernel
+            kernel = self[kernel]
+        except TypeError:
+            pass
+        return self.NDA([k.objective_values for k in self
+                            if k != kernel and k.objective_values is not None],
+                        self.reference_point)
+
+    def _UHVI_indicator(self, kernel):
+        """return indicator function(!) for uncrowded hypervolume improvement for `kernel`.
+
+        If `moes` is a `Sofomore` class instance::
+    
+            >> moes._UHVI_indicator(moes[1])(moes[2].objective_values)
+
+            or::
+
+            >> moes._UHVI_indicator(1)(moes[2].objective_values)
+
+        both return the UHVI indicator function for kernel 1 and evaluate
+        kernel 2 on it::
+
+            >> [moes._UHVI_indicator(k)(k.objective_values)] for k in moes]
+
+        is the list of UHVI values for all kernels where kernels occupying the
+        very same objective value have indicator value zero.
+        """
+        return self._UHVI_indicator_archive(kernel).hypervolume_improvement
+
+    def sorted(self, key=None, reverse=True, **kwargs):
+        """return a reversed sorted list of kernels.
+
+        By default kernels are reversed sorted by HV contribution or UHVI
+        (which we aim to maximize) in the set of kernels. Exact copies have
+        zero or negative UHVI value.
+
+            >> moes.sorted(key = lambda k: moes.archive.contributing_hypervolume(k.objective_values))
+
+        sorts w.r.t. archive contribution (clones may get positive contribution).
+
+        """
+        def hv_improvement(kernel):
+            if kernel.objective_values is None:
+                return float('-inf')
+            return self._UHVI_indicator(kernel)(kernel.objective_values)
+        if key is None:
+            key = hv_improvement
+        return sorted(self, key=key, reverse=reverse, **kwargs)
+
     def ask(self, number_to_ask = 1):
         """
         get the kernels' incumbents to be evaluated and sample new candidate solutions from 
@@ -771,7 +827,6 @@ def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
     if moes.opts['continue_stopped_kernel'] and idx_best not in moes._active_indices:
         moes._active_indices.append(idx_best)
         ker.sigma = new_sigma0
-        ker.countiter = 0  # a hack before we find a better way to initialize the tolfunrel functionality
 
     newkernel = ker._copy_light(sigma=new_sigma0, inopts={'verb_filenameprefix': 'cma_kernels' + os.sep +
                                                                      str(moes.num_kernels)})
@@ -980,6 +1035,28 @@ def sort_decreasing(i):
     """
     return - i
 
+cma_kernel_default_options_replacements = {
+        'conditioncov_alleviate': [np.inf, np.inf],
+        'verbose': -1,
+        'tolx': 1e-4,
+        'tolfunrel': 0,
+        'tolfun': 0,
+        'tolfunhist': 0,
+        'tolstagnation': 1e23,  # should become float('inf'),
+        }
+
+def cma_kernel_default_options_dynamic_tolx(moes, factor=0.1):
+    """return `factor` times minimum `tolx` from non-dominated kernels.
+
+    Fallback to default `tolx` if the `pareto_front` is empty.
+    """
+    if moes.pareto_front:
+        return factor * min(k.stop(get_value='tolx') for k in moes
+                            if k.objective_values in moes.pareto_front)
+    if 'tolx' in cma_kernel_default_options_replacements:
+        return cma_kernel_default_options_replacements['tolx']
+    return cma.CMAOptions().eval('tolx')
+
 ### Factory function to create cma-es:
 
 def get_cmas(x_starts, sigma_starts, inopts=None, number_created_kernels=0):
@@ -1024,8 +1101,7 @@ def get_cmas(x_starts, sigma_starts, inopts=None, number_created_kernels=0):
     
     for i in range(num_kernels):
         defopts = cma.CMAOptions()
-        defopts.update({'conditioncov_alleviate': [np.inf, np.inf],
-                    'verbose': -1, 'tolx': 1e-4, 'tolfunrel': 0})  
+        defopts.update(cma_kernel_default_options_replacements)        
         if isinstance(list_of_opts[i], dict):
             defopts.update(list_of_opts[i])
         defopts.update({'verb_filenameprefix': 'cma_kernels' + os.sep + 
@@ -1081,18 +1157,6 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         constraints, `self.incumbent` in inside the bounds.
         """
         return self.boundary_handler.repair(self.mean)
-    
-    def stop(self, check=True, ignore_list=()):
-        """
-        'flat fitness' is ignored because it does not necessarily mean that a 
-        termination criteria is met. For the `cigtab` bi-objective
-        function for example, the Hypervolume is flat for a long period, 
-        although the evolution is correctly occuring in the search space.
-        """
-        to_be_ignored = ignore_list + ('tolfun', 'tolfunhist', 
-                                       'flat fitness', 'tolstagnation')
-        
-        return cma.CMAEvolutionStrategy.stop(self, check, ignore_list = to_be_ignored)
     
     def _copy_light(self, sigma=None, inopts=None):
         """tentative copy of self, versatile (interface and functionalities may change).
