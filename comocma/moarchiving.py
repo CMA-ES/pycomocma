@@ -72,7 +72,7 @@ class BiobjectiveNondominatedSortedList(list):
     to the hypervolume) are discarded. We may want to keep them, for simplicity
     in a separate list?
 
-    """
+"""
     # Default Values for respective instance attributes
     make_expensive_asserts = False
     hypervolume_final_float_type = fractions.Fraction  # HV computation takes three times longer, precision may be more relevant here
@@ -236,7 +236,6 @@ class BiobjectiveNondominatedSortedList(list):
         When `list_of_pairs` is already sorted, `merge` may have
         a small performance benefit.
         """
-        nb = len(self)
         removed = []
         # should we better create a non-dominated list and do a merge?
         for f_pair in list_of_f_pairs:
@@ -470,10 +469,21 @@ class BiobjectiveNondominatedSortedList(list):
     def contributing_hypervolume(self, idx):
         """return contributing hypervolume of element `idx`.
 
+        If `idx` is an `f_pair`, return contributing hypervolume of element
+        with value `f_pair`. If `f_pair` is not in `self`, return
+        `hypervolume_improvement(f_pair)`.
+
         The return type is ``self.hypervolume_computation_float_type` and
         by default `fractions.Fraction`, which can be converted to `float`
         like ``float(....contributing_hypervolume(idx))``.
         """
+        try: len(idx)
+        except TypeError: pass
+        else:  # idx is a pair
+            if idx in self:
+                idx = self.index(idx)
+            else:
+                return self.hypervolume_improvement(idx)
         if idx == 0:
             y = self.reference_point[1] if self.reference_point else inf
         else:
@@ -626,7 +636,8 @@ class BiobjectiveNondominatedSortedList(list):
         Never implemented: return list of contributing hypervolumes w.r.t.
         reference_point
         """
-        raise NotImplementedError()
+        # Old/experimental code (in a string to suppress pylint warnings):
+        """
         # construct self._hypervolumes_list
         # keep sum of different size elements separate,
         # say, a dict of index lists as indices[1e12] indices[1e6], indices[1], indices[1e-6]...
@@ -636,6 +647,8 @@ class BiobjectiveNondominatedSortedList(list):
         # we may use decimal.Decimal to compute the sum of hv
         decimal.getcontext().prec = 88
         hv_sum = sum([decimal.Decimal(hv[key]) for key in hv])
+        """
+        raise NotImplementedError()
 
     def _subtract_HV(self, idx0, idx1=None):
         """remove contributing hypervolumes of elements ``self[idx0] to self[idx1 - 1]``.
@@ -643,9 +656,11 @@ class BiobjectiveNondominatedSortedList(list):
         TODO: also update list of contributing hypervolumes in case.
         """
         if self.maintain_contributing_hypervolumes:
-            raise NotImplementedError("update list of hypervolumes")
+            """Old or experimental:
             del self._contributing_hypervolumes[idx]
             # we also need to update the contributing HVs of the neighbors
+            """
+            raise NotImplementedError("update list of hypervolumes")
         if self.reference_point is None:
             return None
         if idx1 is None:
@@ -684,13 +699,15 @@ class BiobjectiveNondominatedSortedList(list):
         """
         dHV = self.contributing_hypervolume(idx)
         if self.maintain_contributing_hypervolumes:
-            raise NotImplementedError("update list of hypervolumes")
+            """Exerimental code:
             self._contributing_hypervolumes.insert(idx, dHV)
             if idx > 0:
                 self._contributing_hypervolumes[idx - 1] = self.contributing_hypervolume(idx - 1)
             if idx < len(self) - 1:
                 self._contributing_hypervolumes[idx + 1] = self.contributing_hypervolume(idx + 1)
             # TODO: proof read
+            """
+            raise NotImplementedError("update list of hypervolumes")
         if self.reference_point is None:
             return None
         Ff = self.hypervolume_final_float_type
@@ -752,10 +769,13 @@ class BiobjectiveNondominatedSortedList(list):
             i = i0 + 1
         self._removed = removed  # [p for p in removed if p not in self]
         if self.maintain_contributing_hypervolumes:
-            raise NotImplementedError
+            # Old or experimental code:
+            """
             self._contributing_hypervolumes = [  # simple solution
                 self.contributing_hypervolume(i)
                 for i in range(len(self))]
+            """
+            raise NotImplementedError
         return nb - len(self)
 
     @property
