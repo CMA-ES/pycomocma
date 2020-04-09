@@ -854,7 +854,9 @@ class _CounterDict(dict):
             super(_CounterDict, self).__init__(*args, **kwargs)
         except TypeError:  # make values to be zero
             super(_CounterDict, self).__init__(zip(args[0], len(args[0]) * [0]))
-        self.last = [self.argmin()]  # initialize last attribute for no good reason
+        self.argmin()  # assign `last` attribute
+        self.last = self.last  # declare `last` attribute
+        """  all minimal keys on last call of `argmin`"""
     def argmin(self):
         m = min(self.values())
         self.last = [k for k in self if self[k] == m]
@@ -878,21 +880,23 @@ class RampUpSelector:
     The `costs` attribute stores the sum of selection criterion values
     for each method in a dictionary.
     
-    Usage::
+    Usage:
 
     >>> from comocma import como
     >>> restart_methods = (como.random_restart_kernel, 
     ...                    como.best_chv_restart_kernel)
     >>> selected_restarts = como.RampUpSelector(restart_methods)
 
-    or::
+    or:
 
     >>> selected_restarts = como.RampUpSelector(restart_methods,
     ...                                         criterion='countevals')
 
-    assuming that the return value of the restart methods has the
-    attribute `"countevals"` to be used to sum up the costs.
-    Now `selected_restarts` can be used just as the original restart
+    thereby assuming that the return value of the restart methods has the
+    attribute `countevals` to be used to sum up the costs. Now calling
+    `selected_restarts` has the same interface as either of the
+    `restart_methods`, that is, the same calling arguments and the same
+    return value(s), and it can be used just like the original single
     methods::
 
         >> moes = como.Sofomore(list_of_solvers,
@@ -902,13 +906,14 @@ class RampUpSelector:
     def __init__(self, rampup_methods, criterion=None):
         self.rampup_methods = rampup_methods
         self.criterion = criterion
+        """  a callable or an attribute name, may be changed any time"""
         self.costs = _CounterDict(self.rampup_methods)
         self.method = None
         """ last used rampup method"""
         self.result = None
         """ last rampup result, this may or may not be a list"""
 
-    def update_costs(self):
+    def _update_costs(self):
         """update cost value of finished (last ramped) method"""
         if not self.method:
             return  # do nothing before to know which method was called
@@ -918,8 +923,8 @@ class RampUpSelector:
             try:  # a string leads to attribute access
                 # this is a hack and should not be necessary:
                 if isinstance(self.result, (list, tuple)): 
-                    val = sum([getattr(k, self.criterion) for k in self.result])
-                else:
+                    val = sum(getattr(k, self.criterion) for k in self.result)
+                else:  # should not happen anymore within `como`
                     val = getattr(self.result, self.criterion)
             except TypeError:  # an attribute must be a string
                 val = self.criterion(self.result)
@@ -927,7 +932,7 @@ class RampUpSelector:
 
     def __call__(self, *args, **kwargs):
         """update, select, and ramp up"""
-        self.update_costs()  # depends on the final state of the previously returned result
+        self._update_costs()  # depends on the final state of the previously returned result
         self.method = self.costs.argmin()
         self.result = self.method(*args, **kwargs)
         # if need be we could hack here to tweak result further before to deliver
