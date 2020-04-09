@@ -902,12 +902,13 @@ class RampUpSelector:
         >> moes = como.Sofomore(list_of_solvers,
         ..                      {'restart': selected_restarts})
 
-    """
+"""
     def __init__(self, rampup_methods, criterion=None):
         self.rampup_methods = rampup_methods
         self.criterion = criterion
         """  a callable or an attribute name, may be changed any time"""
         self.costs = _CounterDict(self.rampup_methods)
+        self.counts = _CounterDict(self.rampup_methods)
         self.method = None
         """ last used rampup method"""
         self.result = None
@@ -929,6 +930,7 @@ class RampUpSelector:
             except TypeError:  # an attribute must be a string
                 val = self.criterion(self.result)
         self.costs[self.method] += val
+        self.counts[self.method] += 1
 
     def __call__(self, *args, **kwargs):
         """update, select, and ramp up"""
