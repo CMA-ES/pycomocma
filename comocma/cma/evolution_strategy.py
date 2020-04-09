@@ -3426,7 +3426,7 @@ class _CMAStopDict(dict):
         self.lastiter = es.countiter
         self.es = es
 
-        self.clear()  # compute conditions from scratch
+        self._get_value or self.clear()  # compute conditions from scratch
 
         N = es.N
         opts = es.opts
