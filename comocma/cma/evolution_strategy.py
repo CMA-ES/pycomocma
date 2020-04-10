@@ -600,7 +600,9 @@ class CMAOptions(dict):
         for key in options:
             correct_key = corrected_key(key)
             if correct_key is None:
-                raise ValueError("""%s is not a valid option""" % key)
+                raise ValueError("""%s is not a valid option.\n""" 
+                                'Valid options are %s' % 
+                                (key, str(list(cma_default_options))))
             if correct_key in validated_keys:
                 if key == correct_key:
                     key = original_keys[validated_keys.index(key)]
@@ -1341,12 +1343,31 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         and the status might not reflect the current situation.
         ``check_on_same_iteration == False`` (new) does not re-check during
         the same iteration. When termination options are manually changed,
-        it must be set to `True` to be able advance.
+        it must be set to `True` to advance afterwards.
         ``stop().clear()`` removes the currently active termination
         conditions.
 
         As a convenience feature, keywords in `ignore_list` are removed from
         the conditions.
+
+        If `get_value` is set to a condition name (not the empty string),
+        `stop` does not update the termination dictionary but returns the
+        measured value that would be compared to the threshold. This only
+        works for some conditions, like 'tolx'. If the condition name is
+        not known or cannot be computed, `None` is returned and no warning
+        is issued.
+
+        Testing `get_value` functionality:
+
+        >>> import cma
+        >>> es = cma.CMAEvolutionStrategy(2 * [1], 1e4, {'verbose': -9})
+        >>> with warnings.catch_warnings(record=True) as w:
+        ...     es.stop(get_value='tolx')  # triggers zero iteration warning
+        ...     assert len(w) == 1 or print([str(wi) for wi in w])
+        >>> es = es.optimize(cma.ff.sphere, iterations=2)
+        >>> assert 1e3 < es.stop(get_value='tolx') < 1e4 or print(es.stop(get_value='tolx'))
+        >>> assert es.stop() == {}
+        >>> assert es.stop(get_value='catch 22') is None
 
 """
         if (check and self.countiter > 0 and self.opts['termination_callback'] and
@@ -1360,7 +1381,9 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
         if ignore_list:
             for key in ignore_list:
                 res.pop(key, None)
-        return self._stopdict._value if get_value else res
+        if get_value:  # deliver _value and reset
+            res, self._stopdict._value = self._stopdict._value, None
+        return res
 
     def __init__(self, x0, sigma0, inopts=None):
         """see class `CMAEvolutionStrategy`
@@ -3412,6 +3435,8 @@ class _CMAStopDict(dict):
         assert es is not None
 
         if es.countiter == 0:  # in this case termination tests fail
+            if self._get_value:
+                warnings.warn("Cannot get stop value before the first iteration")
             self.__init__()
             return self
 
@@ -3495,7 +3520,7 @@ class _CMAStopDict(dict):
         # / 5 reflects the sparsity of histbest/median
         # / 2 reflects the left and right part to be compared
         ## meta_parameters.tolstagnation_multiplier == 1.0
-        l = int(max(( 1.0 * opts['tolstagnation'] / 5. / 2, len(es.fit.histbest) / 10)))
+        l = max(( 1.0 * opts['tolstagnation'] / 5. / 2, len(es.fit.histbest) / 10))
         # TODO: why max(..., len(histbest)/10) ???
         # TODO: the problem in the beginning is only with best ==> ???
         if 11 < 3:  # print for debugging
@@ -3504,11 +3529,13 @@ class _CMAStopDict(dict):
                   np.median(es.fit.histmedian[:l]) >= np.median(es.fit.histmedian[l:2 * l]),
                   np.median(es.fit.histbest[:l]) >= np.median(es.fit.histbest[l:2 * l])))
         # equality should handle flat fitness
-        self._addstop('tolstagnation',  # leads sometimes early stop on ftablet, fcigtab, N>=50?
-                      1 < 3 and opts['tolstagnation'] and es.countiter > N * (5 + 100 / es.popsize) and
-                      len(es.fit.histbest) > 100 and 2 * l < len(es.fit.histbest) and
-                      np.median(es.fit.histmedian[:l]) >= np.median(es.fit.histmedian[l:2 * l]) and
-                      np.median(es.fit.histbest[:l]) >= np.median(es.fit.histbest[l:2 * l]))
+        if l <= es.countiter:
+            l = int(l)  # doesn't work for infinite l
+            self._addstop('tolstagnation',  # leads sometimes early stop on ftablet, fcigtab, N>=50?
+                    1 < 3 and opts['tolstagnation'] and es.countiter > N * (5 + 100 / es.popsize) and
+                    len(es.fit.histbest) > 100 and 2 * l < len(es.fit.histbest) and
+                    np.median(es.fit.histmedian[:l]) >= np.median(es.fit.histmedian[l:2 * l]) and
+                    np.median(es.fit.histbest[:l]) >= np.median(es.fit.histbest[l:2 * l]))
         # iiinteger: stagnation termination can prevent to find the optimum
 
         self._addstop('tolupsigma', opts['tolupsigma'] and
