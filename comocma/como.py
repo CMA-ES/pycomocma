@@ -832,7 +832,6 @@ def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
                                                                      str(moes.num_kernels)})
     return [newkernel]
 
-
 def _old_best_chv_or_random_restart_kernel_old(moes, sigma_factor=1, x0_fct=None, sigma0=None, opts=None, **kwargs):
     """DEPRECATED, use instead ``como.RampUpSelector([como.random_restart_kernel, como.best_chv_restart_kernel])``
     and `functools.partial` to assign parameters to the functions beforehand.
@@ -897,11 +896,12 @@ class _CounterDict(dict):
     breaking ties at random.
 
     `_CounterDict` is somewhat a misnomer, as any type than can be
-    sorted works.
+    sorted can be used as values.
 
+    >>> from comocma.como import _CounterDict
     >>> keys = [1, 2]
-    >>> bs = CounterDict(keys)
-    >>> assert bs == CounterDict(zip(keys, len(keys) * [0]))
+    >>> bs = _CounterDict(keys)
+    >>> assert bs == _CounterDict(zip(keys, len(keys) * [0]))
     >>> assert bs[bs.argmin()] == min(bs.values())
     >>> bs[2] = -3
     >>> assert bs.argmin() == 2
@@ -941,8 +941,8 @@ class RampUpSelector:
     Usage:
 
     >>> from comocma import como
-    >>> restart_methods = (como.random_restart_kernel, 
-    ...                    como.best_chv_restart_kernel)
+    >>> restart_methods = (como.get_kernel_random_restart,
+    ...                    como.get_kernel_best_chv_restart)
     >>> selected_restarts = como.RampUpSelector(restart_methods)
 
     or:
@@ -960,6 +960,7 @@ class RampUpSelector:
         >> moes = como.Sofomore(list_of_solvers,
         ..                      {'restart': selected_restarts})
 
+    as restart option.
 """
     def __init__(self, rampup_methods, criterion=None):
         self.rampup_methods = rampup_methods
@@ -973,7 +974,7 @@ class RampUpSelector:
         """ last rampup result, this may or may not be a list"""
 
     def _update_costs(self):
-        """update cost value of finished (last ramped) method"""
+        """add cost value of finished (last ramped) method"""
         if not self.method:
             return  # do nothing before to know which method was called
         if self.criterion is None:
@@ -1049,7 +1050,7 @@ def cma_kernel_default_options_dynamic_tolx(moes, factor=0.1):
     """return `factor` times minimum `tolx` from non-dominated kernels.
 
     Fallback to default `tolx` if the `pareto_front` is empty.
-    """
+"""
     if moes.pareto_front:
         return factor * min(k.stop(get_value='tolx') for k in moes
                             if k.objective_values in moes.pareto_front)
