@@ -736,7 +736,95 @@ class Sofomore(interfaces.OOOptimizer):
           #          pass
         return self
     
+def get_kernel_random_restart(moes, x0_fct=None, opts=(), tolx_factor=0.05, **kwargs):
+    """return a `list` with one element of type `CmaKernel`.
     
+    Parameters
+    ----------
+    moes: `Sofomore`, the instance for which this method is used as
+    `restart` option.
+
+    x0_fct: `callable`, that returns an initial solution passed to
+    `CmaKernel`.
+
+    opts: `dict`, options passed (possibly with modifications) to
+    `CmaKernel(cma.CMAEvolutionStrategy)`.
+
+    kwargs: `dict`, unused keyword arguments to allow for a generic call of
+    `Sofomore.restart`.
+
+    Details: this function mimics `random_restart_kernel` but uses
+    additionally `cma_kernel_default_options_dynamic_tolx` to control the
+    `tolx` option of `CmaKernel`.
+"""
+
+    def x0(moes):
+        """x0 in [-5, 5]"""
+        return 10 * np.random.rand(moes.dimension) - 5
+    def sigma0(moes):
+        """sigma0 from first kernel"""
+        return moes[0].sigma0
+    def get_opts(moes):
+        """inopts from last stopped kernel (for backwards "compatiblity")"""
+        if moes._last_stopped_kernel_id is not None:
+            opts_ = dict(moes[moes._last_stopped_kernel_id].inopts or ())
+        else:  # fall back to inopts of first kernel
+            opts_ = dict(moes[0].inopts or ())
+        opts_['tolx'] = cma_kernel_default_options_dynamic_tolx(
+                            moes, factor=tolx_factor)
+        opts_.update(opts or ())  # catch None
+        return opts_
+    res = get_cmas((x0_fct or x0)(moes), sigma0(moes),
+                         get_opts(moes), len(moes))
+    res[0]._rampup_method = get_kernel_random_restart
+    return res
+
+def get_kernel_best_chv_restart(moes, opts=(), **kwargs):
+    """return a `list` with one element of type `CmaKernel`.
+    
+    Parameters
+    ----------
+    moes: `Sofomore`, the instance for which this method is used as
+    `restart` option.
+
+    opts: `dict`, options passed (possibly with modifications) to
+    `CmaKernel(cma.CMAEvolutionStrategy)`.
+
+    kwargs: `dict`, unused keyword arguments to allow for a generic call of
+    `Sofomore.restart`.
+
+    Details: this function picks best boundary kernels only with
+    probability of about 2 / number_of_kernels and uses
+    `cma_kernel_default_options_dynamic_tolx` to control the `tolx` option
+    of `CmaKernel`.
+
+    TODO: it may be better to pick best boundary kernels with at least,
+    say, 5%. However from a practical perspective, boundary kernels are
+    usually of lesser interest and pushing the boundary leads to more gaps
+    at extremer (less interesting) regions(?) that will also be filled in
+    the sequel.
+"""
+
+    def pick_kernel(moes):
+        for k in moes.sorted():
+            if k.objective_values in [moes.pareto_front[i]
+                                      for i in [0, -1]]:
+                if len(moes) < 3 or np.random.randint(len(moes)) < 2:
+                    return k
+            else:
+                break
+        return k
+    def get_opts(moes):
+        opts_ = {'tolx': cma_kernel_default_options_dynamic_tolx(moes, factor=0.05)}
+        opts_.update(opts or ())  # or () catches opts == None
+        opts_.update([['verb_filenameprefix', # currently unavoidable code duplication from line ~1600 of get_cmas
+                      os.path.join('cma_kernels', str(len(moes)))]])
+        return opts_
+    kernel = pick_kernel(moes)
+    res = kernel._copy_light(sigma=kernel.sigma0, inopts=get_opts(moes))
+    res._rampup_method = get_kernel_best_chv_restart
+    return [res]
+
 def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts=None, **kwargs):
     
     """create a kernel (solver) of TYPE CmaKernel with a random initial mean, or 
