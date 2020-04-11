@@ -23,8 +23,6 @@ import warnings
 import cma.utilities.utils
 import os
 from sofomore_logger import SofomoreDataLogger
-import random
-#import sys
 
 class IndicatorFront:
     """with `hypervolume_improvement` method based on a varying empirical front.
@@ -129,7 +127,7 @@ class Sofomore(interfaces.OOOptimizer):
             The archive will not interfere with the optimization 
             process.
             - 'update_order': default value is a function that takes a natural 
-            integer as input and return a random number between 0 and 1.
+            integer as input and returns a random number between 0 and 1.
             It is used as a `key value` in: `sorted(..., key = ...)`, and guides the
             order in which the kernels will be updated during the optimization.
  
@@ -1233,35 +1231,45 @@ def sort_random(i):
     """
     Used for the update order of a Sofomore instance.
     Example::
-        
-    randomly pick the kernels to update in the `tell` method.
+        moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_random})
+    randomly picks the kernels to update in the `tell` method of Sofomore.
     
     """
     return np.random.rand()
 
 def sort_increasing(i):
     """
-    update respectively `self.kernels[0]`, `self.kernels[1]`, ..., `self.kernels[-1]`
+    Example::
+        moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_increasing})
+    updates respectively `self[0]`, `self[1]`, ..., `self[-1]` 
+    in the `tell` method of Sofomore.
     """
     return i
 
 def sort_decreasing(i):
     """
-    update respectively `self.kernels[-1]`, `self.kernels[-2]`, ..., `self.kernels[0]`
+    Example::
+        moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_decreasing})
+    updates respectively `self[-1]`, `self[-2]`, ..., `self[0]`
+    in the `tell` method of Sofomore.
     """
-    return - i
+    return -i
 
 def sort_even_odds(i):
     """
+    Example::
+        moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_even_odds})
     pick the kernels with even indices before the kernels with odd indices in
-    the `tell` method
+    the `tell` method of Sofomore.
     """
     return i % 2
 
 def sort_odds_even(i):
     """
-    pick the kernels with odd indices before the kernels with even indices in
-    the `tell`method
+    Example::
+        moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_odds_even})
+    pick the kernels with odd indices before the kernels with even indices 
+    in the `tell` method of Sofomore.
     """
     return - (i % 2)
 
