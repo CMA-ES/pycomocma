@@ -134,7 +134,7 @@ class Sofomore(interfaces.OOOptimizer):
     and is the list of single-objective solvers.
     - `reference_point`: the current reference point.
     - `opts`: passed options.
-    - `pareto_front`: list of non-dominated points among the incumbents of 
+    - `pareto_front_cut`: list of non-dominated points among the incumbents of 
     `self.kernels`, which dominate the reference point.
     - `archive`: list of non-dominated points among all points evaluated 
     so far, which dominate the reference point.
@@ -181,14 +181,19 @@ class Sofomore(interfaces.OOOptimizer):
         self.reference_point = reference_point
         defopts = {'archive': True, 'restart': None, 'verb_filenameprefix': 'outsofomore' + os.sep, 
                    'verb_log': 1, 'verb_disp': 100, 'update_order': sort_random,
-                   'continue_stopped_kernel': False, # when True and restarts=True, will continue stopped kernel
-                   'random_restart_on_domination': False, # when True, do random restart if stopped kernel is dominated
-                   'increase_popsize_on_domination': False,
                    'indicator_front': None  # 'archive' or any attribute containing a list of f-pairs
                    }
         if opts is None:
             opts = {}
         if isinstance(opts, dict):
+            unvalid_keys = [k for k in opts.keys() if k not in defopts.keys()]
+            if len(unvalid_keys) > 0:
+                unvalid_key_not_str = [k for k in unvalid_keys if not isinstance(k, str)]
+                if len(unvalid_key_not_str) > 0:
+                    raise ValueError("All the options's keys must be of TYPE str")
+                unvalid_keys_str = ', '.join(unvalid_keys)
+                raise ValueError('The following keys of opts are not valid: ' + unvalid_keys_str + '.')
+            
             defopts.update(opts)
         else:
             warnings.warn("options should be either a dictionary or None.")
@@ -213,10 +218,6 @@ class Sofomore(interfaces.OOOptimizer):
         self._ratio_nondom_offspring_incumbent = len(self) * [0]
         
         self._last_stopped_kernel_id = None
-        self._number_of_calls_best_chv_restart = 0
-        self._number_of_calls_random_restart = 0
-
-        self.popsize_random_restart = self.kernels[0].popsize
 
     def __iter__(self):
         """
@@ -381,7 +382,7 @@ class Sofomore(interfaces.OOOptimizer):
         -------
         To update a kernel, `tell()` applies the kernel's `tell` method
         to the kernel's corresponding candidate solutions (offspring) along
-        with the "changing" fitness `- self.pareto_front.hypervolume_improvement`.
+        with the "changing" fitness `- self.indicator_front.hypervolume_improvement`.
         
         :See: 
             - the `tell` method from the class `cma.CMAEvolutionStrategy`,
@@ -414,7 +415,7 @@ class Sofomore(interfaces.OOOptimizer):
             kernel = self.kernels[ikernel]
             if kernel.fit.median0 is not None and kernel.fit.median0 >= 0:
                 # make sure the median reference comes from the right side of the empirical front
-                # was: ikernel in self._active_indices and kernel.objective_values not in self.pareto_front:
+                # was: ikernel in self._active_indices and kernel.objective_values not in self.pareto_front_cut:
                 # a hack to prevent early termination of dominated kernels
                 # from the `tolfunrel` condition.
                 # TODO: clean implementation, proposal:
@@ -427,14 +428,7 @@ class Sofomore(interfaces.OOOptimizer):
             if kernel.stop():
                 self._active_indices.remove(ikernel) # ikernel must be in `_active_indices`
                 self._last_stopped_kernel_id = ikernel
-                # update of self.popsize_random_restart
-                if self.opts['increase_popsize_on_domination']:
-                    popsize_dominated_kernels = [k.popsize for k in self.kernels
-                                                 if k is not kernel and  # we can't yet say whether kernel is dominated
-                                                     k.objective_values not in self.pareto_front]
-                    #print(len(popsize_dominated_kernels), "dominated kernels")
-                    if popsize_dominated_kernels and max(popsize_dominated_kernels) == self.popsize_random_restart:
-                        self.popsize_random_restart *= 2
+                
                 if self.restart is not None:
                     kernel_to_add = self.restart(self)
                     self._told_indices += [len(self)]
@@ -450,7 +444,7 @@ class Sofomore(interfaces.OOOptimizer):
             
         self._told_indices += [u for (u,v) in self.offspring]
         
-        current_hypervolume = self.pareto_front.hypervolume
+        current_hypervolume = self.pareto_front_cut.hypervolume
         epsilon = abs(current_hypervolume - self.best_hypervolume_pareto_front)
         if epsilon:
             self.epsilon_hypervolume_pareto_front = min(self.epsilon_hypervolume_pareto_front, 
@@ -468,25 +462,25 @@ class Sofomore(interfaces.OOOptimizer):
 
         
     @property
-    def pareto_front(self):
+    def pareto_front_cut(self):
         """
-        return the non-dominated solutions among the kernels'
-        objective values.
-        It's the image of `self.pareto_set`.
+        return the non-dominated solutions dominating the reference point,
+        among the kernels' objective values.
+        It's the image of `self.pareto_set_cut`.
         """
         return self.NDA([kernel.objective_values for kernel in self.kernels \
                          if kernel.objective_values is not None],
                          self.reference_point)
 
     @property
-    def pareto_set(self):
+    def pareto_set_cut(self):
         """
-        return the non-dominated solutions among the kernels'
-        incumbents.
-        It's the pre-image of `self.pareto_front`.
+        return the non-dominated solutions whose images dominate the 
+        reference point, among the kernels' incumbents.
+        It's the pre-image of `self.pareto_front_cut`.
         """
         return [kernel.incumbent for kernel in self.kernels if \
-                kernel.objective_values in self.pareto_front]
+                kernel.objective_values in self.pareto_front_cut]
 
     @property
     def pareto_front_uncut(self):
@@ -637,7 +631,7 @@ class Sofomore(interfaces.OOOptimizer):
         or an index in `range(len(self))`.
         When inactivated, `kernel` is no longer updated, it is ignored.
         However we do not remove it from `self.kernels`, meaning that `kernel`
-        might still play a role, due to its eventual trace in `self.pareto_front`.
+        might still play a role, due to its eventual trace in `self.pareto_front_cut`.
     
         """
         if kernel in self.kernels:
@@ -703,7 +697,7 @@ class Sofomore(interfaces.OOOptimizer):
                 try:
                     print(' '.join((repr(self.countiter).rjust(5),
                                     repr(self.countevals).rjust(6),
-                                    '%.15e' % (self.pareto_front.hypervolume),
+                                    '%.15e' % (self.pareto_front_cut.hypervolume),
                                     '%4.1e' % (np.median([kernel.D.max() / kernel.D.min()
                                                if not kernel.opts['CMA_diagonal'] or kernel.countiter > kernel.opts['CMA_diagonal']
                                                else max(kernel.sigma_vec*1) / min(kernel.sigma_vec*1) \
@@ -786,11 +780,11 @@ def cma_kernel_default_options_dynamic_tolx(moes, factor=0.1):
     """
     return `factor` times minimum `tolx` from non-dominated kernels.
 
-    Fallback to default `tolx` if the `pareto_front` is empty.
+    Fallback to default `tolx` if the `pareto_front_cut` is empty.
 """
-    if moes.pareto_front:
+    if moes.pareto_front_cut:
         return factor * min(k.stop(get_value='tolx') for k in moes
-                            if k.objective_values in moes.pareto_front)
+                            if k.objective_values in moes.pareto_front_cut)
     if 'tolx' in cma_kernel_default_options_replacements:
         return cma_kernel_default_options_replacements['tolx']
     return cma.CMAOptions().eval('tolx')
@@ -874,7 +868,7 @@ def get_kernel_best_chv_restart(moes, opts=(),
     the sequel.
 """
     def pick_kernel(moes):
-        pareto_front = moes.pareto_front  # or moes.pareto_front_uncut
+        pareto_front = moes.pareto_front_cut  # or moes.pareto_front_uncut
         # TODO: if the pareto_front is empty we will pick and try to improve
         # always the same location because the distance to the reference
         # value is independent of crowding in the local space. Using the
@@ -935,10 +929,7 @@ def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts=None, **kwargs):
     for op in (moes[moes._last_stopped_kernel_id].inopts, opts):
         if op is not None:
             my_opts.update(op)
-            
-
-    my_opts.update({'popsize': moes.popsize_random_restart})
-    
+                
     return  get_cmas(x0, sigma0, my_opts, len(moes))
     
 def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
@@ -961,14 +952,6 @@ def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
 
     """
 
-    # test if stopped kernel is truly dominated by another kernel
-    # if yes, do an independent random restart
-
-    if moes.opts['random_restart_on_domination']:
-        kernel = moes.kernels[moes._last_stopped_kernel_id]
-        if kernel.objective_values not in moes.pareto_front:
-            return random_restart_kernel(moes)
-
     hvc = []
     for idx in range(len(moes)):
         front = moes.NDA([moes.kernels[i].objective_values for i in range(len(moes)) if i != idx],
@@ -986,9 +969,6 @@ def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
                 break
     ker = moes.kernels[idx_best]
     new_sigma0 = sigma_factor * ker.sigma
-    if moes.opts['continue_stopped_kernel'] and idx_best not in moes._active_indices:
-        moes._active_indices.append(idx_best)
-        ker.sigma = new_sigma0
 
     newkernel = ker._copy_light(sigma=new_sigma0, inopts={'verb_filenameprefix': 'cma_kernels' + os.sep +
                                                           str(len(moes))})
