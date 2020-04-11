@@ -124,8 +124,8 @@ class Sofomore(interfaces.OOOptimizer):
         Sofomore framework. It contains the following keys:
             - 'archive': default value is `True`. 
             If its value is `True`, tracks the non-dominated
-            points among the points evaluated so far during the 
-            optimization.
+            points that dominate the reference point, among the points evaluated
+            so far during the optimization.
             The archive will not interfere with the optimization 
             process.
             - 'update_order': default value is a function that takes a natural 
@@ -158,7 +158,7 @@ class Sofomore(interfaces.OOOptimizer):
         >>> list_of_solvers_instances = como.get_cmas(num_kernels * [x0], sigma0)
         # `como.get_cmas` is a factory function that returns `num_kernels` cma-es instances
         >>> moes = como.Sofomore(list_of_solvers_instances,
-                           reference_point) #instanciation of our MO optimizer
+                           reference_point) #instantiation of our MO optimizer
 
     The least verbose interface is via the optimize method::
         >>> fitness = como.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
@@ -167,7 +167,7 @@ class Sofomore(interfaces.OOOptimizer):
     More verbosely, the optimization of the callable multiobjective function 
     `fitness` is done via the `ask-and-tell` interface::
      
-        >>> moes = como.Sofomore(list_of_solvers_instances, reference_point=reference_point)
+        >>> moes = como.Sofomore(list_of_solvers_instances, reference_point)
         >>> while not moes.stop():
         >>>     solutions = moes.ask() # `ask` delivers new candidate solutions
         >>>     objective_values = [fitness(x) for x in solutions]
@@ -184,20 +184,20 @@ class Sofomore(interfaces.OOOptimizer):
     =========================
     - `kernels`: initialized with `list_of_solvers_instances`, 
     and is the list of single-objective solvers.
+    - `reference_point`: the current reference point.
     - `opts`: passed options.
     - `pareto_front`: list of non-dominated points among the incumbents of 
-    `self.kernels`.
+    `self.kernels`, which dominate the reference point.
     - `archive`: list of non-dominated points among all points evaluated 
-    so far.
-    - `reference_point`: the current reference point.
+    so far, which dominate the reference point.
+    - `dimension`: is the dimension of the search space.
     - `offspring`: list of tuples of the index of a kernel with its 
     corresponding candidate solutions, that we generally get with the cma's 
     `ask` method.
     - _told_indices: the kernels' indices for which we will evaluate the 
-    objective values of their incumbents, in the next call of the `tell` 
-    method.
-    Before the first call of `tell`, they are the indices of all the initial
-    kernels (i.e. `range(len(self))`). And before another call of 
+    objective values of their incumbents, before the next call of the `tell` 
+    method. And before the first call of `tell`, they are the indices of all the
+    initial kernels (i.e. `range(len(self))`). And before another call of 
     `tell`, they are the indices of the kernels from which we have sampled new 
     candidate solutions during the penultimate `ask` method. 
     Note that we should call the `ask` method before any call of the `tell`
@@ -209,18 +209,18 @@ class Sofomore(interfaces.OOOptimizer):
     def __init__(self,
                list_of_solvers_instances, # usually come from a factory function 
                                          #  creating single solvers' instances
-               opts = None, # keeping an archive, decide whether we use restart, etc.
-               reference_point = None,    
+               reference_point=None,    
+               opts=None, # keeping an archive, decide whether we use restart, etc.
                ):
         """
         Initialization:
             - `list_of_solvers_instances` is a list of single-objective 
             solvers' instances
+            - The reference_point is set by the user during the 
+            initialization.
             - `opts` is a dictionary updating the values of 
             `archive` and `update_order`, that responds respectfully to whether
             or not tracking an archive, and the order of update of the kernels.
-            - The reference_point is set by the user during the 
-            initialization.
         """
         assert len(list_of_solvers_instances) > 0
         self.kernels = list_of_solvers_instances
@@ -922,61 +922,6 @@ def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
                                                           str(len(moes))})
     return [newkernel]
 
-def _old_best_chv_or_random_restart_kernel_old(moes, sigma_factor=1, x0_fct=None, sigma0=None, opts=None, **kwargs):
-    """DEPRECATED, use instead ``como.RampUpSelector([como.random_restart_kernel, como.best_chv_restart_kernel])``
-    and `functools.partial` to assign parameters to the functions beforehand.
-
-    generate fairly, via a derandomized scenario, either a kernel via `best_chv_restart_kernel`
-    or a kernel via `random_restart_kernel`.
-    
-    Parameters
-    ----------
-    moes : TYPE Sofomore
-        A multiobjective solver instance with cma-es solvers.
-    sigma_factor : TYPE int or float, optional
-        A step size factor used in the initial step-size of the kernel created via
-        the function `best_chv_restart_kernel`. The default is 1.
-    x0_fct : TYPE function, optional
-        A factory function that creates an initial mean for the factory function
-        `random_restart_kernel`. The default is None.
-    sigma0 : TYPE float, optional
-        Initial step-size of a kernel created via `random_restart_kernel`.
-        The default is None.
-    opts : TYPE dict, optional
-        The created kernel's options. The default is {}.
-    **kwargs : 
-        Other keyword arguments.
-
-    Returns
-    -------
-    A solver of TYPE CmaKernel.
-
-    DEPRECATED.
-    """
-    
-    assert abs(moes._number_of_calls_best_chv_restart - moes._number_of_calls_random_restart) < 2
-    
-    if moes._number_of_calls_best_chv_restart < moes._number_of_calls_random_restart:
-        moes._number_of_calls_best_chv_restart += 1
-        assert moes._number_of_calls_best_chv_restart == moes._number_of_calls_random_restart
-        return best_chv_restart_kernel(moes, sigma_factor, **kwargs)
-    
-    if opts is None:
-        opts = {}
-        
-    if moes._number_of_calls_best_chv_restart > moes._number_of_calls_random_restart:
-        moes._number_of_calls_random_restart += 1
-        assert moes._number_of_calls_best_chv_restart == moes._number_of_calls_random_restart
-        return random_restart_kernel(moes, x0_fct, sigma0, opts, **kwargs)
-    
-    p = random.random()
-    if p < 0.5:
-        moes._number_of_calls_best_chv_restart += 1
-        return best_chv_restart_kernel(moes, sigma_factor, **kwargs)
-    
-    moes._number_of_calls_random_restart += 1
-    return random_restart_kernel(moes, x0_fct, sigma0, opts, **kwargs)
-
 class _CounterDict(dict):
     """A dictionary with two additional features.
     
@@ -988,7 +933,7 @@ class _CounterDict(dict):
     `_CounterDict` is somewhat a misnomer, as any type than can be
     sorted can be used as values.
 
-    >>> from comocma.como import _CounterDict
+    >>> from como import _CounterDict
     >>> keys = [1, 2]
     >>> bs = _CounterDict(keys)
     >>> assert bs == _CounterDict(zip(keys, len(keys) * [0]))
@@ -1030,7 +975,7 @@ class RampUpSelector:
     
     Usage:
 
-    >>> from comocma import como
+    >>> import como
     >>> restart_methods = (como.get_kernel_random_restart,
     ...                    como.get_kernel_best_chv_restart)
     >>> selected_restarts = como.RampUpSelector(restart_methods)
@@ -1047,8 +992,8 @@ class RampUpSelector:
     return value(s), and it can be used just like the original single
     methods::
 
-        >> moes = como.Sofomore(list_of_solvers,
-        ..                      {'restart': selected_restarts})
+    >>> moes = como.Sofomore(list_of_solvers, reference_point, 
+    ...                      {'restart': selected_restarts})
 
     as restart option.
 """
@@ -1090,41 +1035,6 @@ class RampUpSelector:
         return self.result
 
 
-# callbacks for sorting indices to pick in the `tell` method.
-# This is useful in the case where num_to_ask is equal to 1,
-# so that the kernels are updated in the `tell` method one by one
-        
-def sort_even_odds(i):
-    """
-    pick the kernels with even indices before the kernels with odd indices in
-    the `tell` method
-    """
-    return i % 2
-
-def sort_odds_even(i):
-    """
-    pick the kernels with odd indices before the kernels with even indices in
-    the `tell`method
-    """
-    return - (i % 2)
-
-def sort_random(i):
-    """
-    randomly pick the kernels to update in the `tell` method
-    """
-    return np.random.rand()
-
-def sort_increasing(i):
-    """
-    update respectively `self.kernels[0]`, `self.kernels[1]`, ..., `self.kernels[-1]`
-    """
-    return i
-
-def sort_decreasing(i):
-    """
-    update respectively `self.kernels[-1]`, `self.kernels[-2]`, ..., `self.kernels[0]`
-    """
-    return - i
 
 cma_kernel_default_options_replacements = {
         'conditioncov_alleviate': [np.inf, np.inf],
@@ -1148,11 +1058,35 @@ def cma_kernel_default_options_dynamic_tolx(moes, factor=0.1):
         return cma_kernel_default_options_replacements['tolx']
     return cma.CMAOptions().eval('tolx')
 
-### Factory function to create cma-es:
-
 def get_cmas(x_starts, sigma_starts, inopts=None, number_created_kernels=0):
     """
     Factory function that produces `len(x_starts)` instances of type `cmaKernel`.
+    
+    Parameters
+    ----------
+    x_starts : TYPE list or list of lists or list of or ndarrays or ndarray
+        The initial means of the returned cmas.
+    sigma_starts : TYPE float or list of floats
+        The initial step-sizes of the returned cmas.
+    inopts : TYPE dict or list of dicts, optional
+        The cmas' options.
+    number_created_kernels : TYPE int, optional
+        Used as the starting index for the returned cma's names.
+        The values of the options' key 'verb_filenameprefix' rely upon this
+        argument `number_created_kernels`.
+
+    Returns
+    -------
+    A list of `CmaKernel` instances.
+    
+    Example::
+        >>> dimension = 10
+        >>> sigma0 = 0.5
+        >>> num_kernels = 11
+        >>> cma_opts = {'tolx': 10**-4, 'popsize': 32}
+        >>> list_of_solvers = como.get_cmas(num_kernels * [dimension * [0]], sigma0, cma_opts) 
+        
+        produce `num_kernels` cma instances.
     """
     
     if x_starts is not None and len(x_starts):
@@ -1204,9 +1138,8 @@ def get_cmas(x_starts, sigma_starts, inopts=None, number_created_kernels=0):
 
 class CmaKernel(cma.CMAEvolutionStrategy):
     """
-    inheriting from the `cma.CMAEvolutionStrategy` class, by slightly modifying
-    the `stop` method, and adding the property `incumbent` and 
-    the attribute `objective_values`.
+    inheriting from the `cma.CMAEvolutionStrategy` class, by adding the property
+    `incumbent`, the attributes `objective_values` and `_last_offspring_f_values`.
     """
     def __init__(self, x0, sigma0, inopts=None):
         """
@@ -1274,6 +1207,50 @@ class FitFun:
         self.callables = args
     def __call__(self, x):
         return [f(x) for f in self.callables]
+
+
+# In the following, we define functions for sorting indices to pick in the `tell` method.
+# This is useful in the case where num_to_ask is equal to 1,
+# so that the kernels are updated in the `tell` method one by one.
+
+def sort_random(i):
+    """
+    Used for the update order of a Sofomore instance.
+    Example::
+        
+    randomly pick the kernels to update in the `tell` method.
+    
+    """
+    return np.random.rand()
+
+def sort_increasing(i):
+    """
+    update respectively `self.kernels[0]`, `self.kernels[1]`, ..., `self.kernels[-1]`
+    """
+    return i
+
+def sort_decreasing(i):
+    """
+    update respectively `self.kernels[-1]`, `self.kernels[-2]`, ..., `self.kernels[0]`
+    """
+    return - i
+
+def sort_even_odds(i):
+    """
+    pick the kernels with even indices before the kernels with odd indices in
+    the `tell` method
+    """
+    return i % 2
+
+def sort_odds_even(i):
+    """
+    pick the kernels with odd indices before the kernels with even indices in
+    the `tell`method
+    """
+    return - (i % 2)
+
+
+
 
 if __name__ == "__main__":
     import doctest
