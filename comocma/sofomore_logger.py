@@ -267,14 +267,14 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
 #                                + str(type(es)), 'add', 'CMADataLogger')
         evals = es.countevals
         iteration = es.countiter
-        hypervolume = float(es.pareto_front.hypervolume)
+        hypervolume = float(es.pareto_front_cut.hypervolume)
         hypervolume_archive = 0.0
         len_archive = 0
         if es.isarchive:
             hypervolume_archive = float(es.archive.hypervolume)
             len_archive = len(es.archive)
         ratio_inactive = 1 - len(es._active_indices) / len(es)
-        ratio_nondom_incumbent = len(es.pareto_front)/len(es)
+        ratio_nondom_incumbent = len(es.pareto_front_cut)/len(es)
                 
         for i in range(len(es.offspring)):
             idx = es.offspring[i][0]
@@ -454,7 +454,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                      label = "archive")
         except:
             pass
-        plt.plot([u[0] for u in moes.pareto_front], [u[1] for u in moes.pareto_front], 'o',
+        plt.plot([u[0] for u in moes.pareto_front_cut], [u[1] for u in moes.pareto_front_cut], 'o',
                  label = "cma-es incumbents")
         pass
      #   plt.legend()
