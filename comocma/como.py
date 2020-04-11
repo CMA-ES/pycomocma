@@ -163,7 +163,7 @@ class Sofomore(interfaces.OOOptimizer):
     The least verbose interface is via the optimize method::
         >>> fitness = como.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
         >>> moes.optimize(fitness) # doctest:+ELLIPSIS
-        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds...
+        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
         
     More verbosely, the optimization of the callable multiobjective function 
     `fitness` is done via the `ask-and-tell` interface::
@@ -309,19 +309,23 @@ class Sofomore(interfaces.OOOptimizer):
 
     def _UHVI_indicator(self, kernel):
         """return indicator function(!) for uncrowded hypervolume improvement for `kernel`.
-
-        If `moes` is a `Sofomore` class instance::
     
-            >> moes._UHVI_indicator(moes[1])(moes[2].objective_values)
-
-            or::
-
-            >> moes._UHVI_indicator(1)(moes[2].objective_values)
+            >>> import como, cma
+            >>> list_of_solvers_instances = como.get_cmas(13 * [5 * [1]], 0.7, {'verbose':-9})
+            >>> fitness = como.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
+            >>> moes = como.Sofomore(list_of_solvers_instances, [11, 11])
+            >>> moes.optimize(fitness, iterations=37) # doctest:+ELLIPSIS
+            Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+            >>> moes._UHVI_indicator(moes[1])(moes[2].objective_values) # doctest:+ELLIPSIS
+            ***
+            >>> moes._UHVI_indicator(1)(moes[2].objective_values) # doctest:+ELLIPSIS
+            ***
 
         both return the UHVI indicator function for kernel 1 and evaluate
         kernel 2 on it::
 
-            >> [moes._UHVI_indicator(k)(k.objective_values)] for k in moes]
+           >>> [[moes._UHVI_indicator(k)(k.objective_values)] for k in moes] # doctest:+ELLIPSIS
+           ***
 
         is the list of UHVI values for all kernels where kernels occupying the
         very same objective value have indicator value zero.
@@ -334,9 +338,17 @@ class Sofomore(interfaces.OOOptimizer):
         By default kernels are reversed sorted by HV contribution or UHVI
         (which we aim to maximize) in the set of kernels. Exact copies have
         zero or negative UHVI value.
-
-            >> moes.sorted(key = lambda k: moes.archive.contributing_hypervolume(k.objective_values))
-
+    
+            >>> import como, cma
+            >>> list_of_solvers_instances = como.get_cmas(13 * [5 * [1]], 0.7, {'verbose':-9})
+            >>> fitness = como.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
+            >>> moes = como.Sofomore(list_of_solvers_instances, [11, 11])
+            >>> moes.optimize(fitness, iterations=31) # doctest:+ELLIPSIS
+            Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+            >>> moes.sorted(key = lambda k: moes.archive.contributing_hypervolume(
+            ...                          k.objective_values)) # doctest:+ELLIPSIS
+            [<como.CmaKernel object at***
+            
         sorts w.r.t. archive contribution (clones may get positive contribution).
 
         """
@@ -1258,4 +1270,6 @@ def sort_odds_even(i):
 
 if __name__ == "__main__":
     import doctest
+    doctest.ELLIPSIS_MARKER = '***' # to be able to ignore an entire output, 
+    # putting the default ... doesn't work for that.
     doctest.testmod()
