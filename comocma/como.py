@@ -539,6 +539,33 @@ class Sofomore(interfaces.OOOptimizer):
         return [kernel.incumbent for kernel in self.kernels if \
                 kernel.objective_values in self.pareto_front]
 
+    @property
+    def pareto_front_uncut(self):
+        """
+        provisorial, return _all_ non-dominated objective values irrespectively
+        
+        of the current reference point. Only points whose contributing HV
+        does not depend on the current reference point still have the same
+        cHV in the resulting `list`. HV improvements in general may change.
+        """
+        f_pairs = [k.objective_values for k in self
+                        if k.objective_values is not None]
+        # TODO: this should preferably all be done in self.NDA
+        def reference(f_pairs):
+            reference = []
+            for i in [0, 1]:  # make a reference that is dominated by all f_pairs
+                reference[i] = max(f[i] for f in f_pairs)
+                reference[i] = 1.1**np.sign(reference[i]) * reference[i] + 1
+            return reference
+        if not f_pairs:
+            if self.reference_point in (None, (), [], {}):  # should never happen
+                warnings.warn("Sofomore.pareto_front_uncut: self.reference_point = %s"
+                            " (#kernels=%d) which should never happen"
+                            % (str(self.reference_point), len(self)))
+                return []
+            return self.NDA(f_pairs, self.reference_point)
+        return self.NDA(f_pairs, reference(f_pairs))
+
     def stop(self):
         """
         return a nonempty dictionary when all kernels stop, containing all the
@@ -748,9 +775,24 @@ class Sofomore(interfaces.OOOptimizer):
          #       except AttributeError:
           #          pass
         return self
-    
-def get_kernel_random_restart(moes, x0_fct=None, opts=(), tolx_factor=0.05, **kwargs):
-    """return a `list` with one element of type `CmaKernel`.
+
+def cma_kernel_default_options_dynamic_tolx(moes, factor=0.1):
+    """
+    return `factor` times minimum `tolx` from non-dominated kernels.
+
+    Fallback to default `tolx` if the `pareto_front` is empty.
+"""
+    if moes.pareto_front:
+        return factor * min(k.stop(get_value='tolx') for k in moes
+                            if k.objective_values in moes.pareto_front)
+    if 'tolx' in cma_kernel_default_options_replacements:
+        return cma_kernel_default_options_replacements['tolx']
+    return cma.CMAOptions().eval('tolx')
+
+def get_kernel_random_restart(moes, x0_fct=None, opts=(), tolx_factor=0.05,
+        dynamic_tolx=cma_kernel_default_options_dynamic_tolx, **kwargs):
+    """
+    return a `list` with one element of type `CmaKernel`.
     
     Parameters
     ----------
@@ -758,10 +800,14 @@ def get_kernel_random_restart(moes, x0_fct=None, opts=(), tolx_factor=0.05, **kw
     `restart` option.
 
     x0_fct: `callable`, that returns an initial solution passed to
-    `CmaKernel`.
+    `CmaKernel`. By default uniform in [-5, 5].
 
     opts: `dict`, options passed (possibly with modifications) to
-    `CmaKernel(cma.CMAEvolutionStrategy)`.
+    the `CmaKernel(cma.CMAEvolutionStrategy)` instantiation call.
+
+    dynamic_tolx: ``Callable[[Sofomore, [factor]] -> tolx: float``,
+    initialize the `tolx` option of `CmaKernel` depending on the
+    kernels of a `Sofomore` instance.
 
     kwargs: `dict`, unused keyword arguments to allow for a generic call of
     `Sofomore.restart`.
@@ -770,9 +816,8 @@ def get_kernel_random_restart(moes, x0_fct=None, opts=(), tolx_factor=0.05, **kw
     additionally `cma_kernel_default_options_dynamic_tolx` to control the
     `tolx` option of `CmaKernel`.
 """
-
     def x0(moes):
-        """x0 in [-5, 5]"""
+        """x0 uniform in [-5, 5]"""
         return 10 * np.random.rand(moes.dimension) - 5
     def sigma0(moes):
         """sigma0 from first kernel"""
@@ -783,8 +828,7 @@ def get_kernel_random_restart(moes, x0_fct=None, opts=(), tolx_factor=0.05, **kw
             opts_ = dict(moes[moes._last_stopped_kernel_id].inopts or ())
         else:  # fall back to inopts of first kernel
             opts_ = dict(moes[0].inopts or ())
-        opts_['tolx'] = cma_kernel_default_options_dynamic_tolx(
-                            moes, factor=tolx_factor)
+        opts_['tolx'] = dynamic_tolx(moes, factor=tolx_factor)
         opts_.update(opts or ())  # catch None
         return opts_
     res = get_cmas((x0_fct or x0)(moes), sigma0(moes),
@@ -792,8 +836,10 @@ def get_kernel_random_restart(moes, x0_fct=None, opts=(), tolx_factor=0.05, **kw
     res[0]._rampup_method = get_kernel_random_restart
     return res
 
-def get_kernel_best_chv_restart(moes, opts=(), **kwargs):
-    """return a `list` with one element of type `CmaKernel`.
+def get_kernel_best_chv_restart(moes, opts=(),
+        dynamic_tolx=cma_kernel_default_options_dynamic_tolx, **kwargs):
+    """
+    return a `list` with one element of type `CmaKernel`.
     
     Parameters
     ----------
@@ -802,6 +848,10 @@ def get_kernel_best_chv_restart(moes, opts=(), **kwargs):
 
     opts: `dict`, options passed (possibly with modifications) to
     `CmaKernel(cma.CMAEvolutionStrategy)`.
+
+    dynamic_tolx: ``Callable[[Sofomore, [factor]] -> tolx: float``,
+    initialize the `tolx` option of `CmaKernel` depending on the
+    kernels of a `Sofomore` instance.
 
     kwargs: `dict`, unused keyword arguments to allow for a generic call of
     `Sofomore.restart`.
@@ -817,18 +867,23 @@ def get_kernel_best_chv_restart(moes, opts=(), **kwargs):
     at extremer (less interesting) regions(?) that will also be filled in
     the sequel.
 """
-
     def pick_kernel(moes):
+        pareto_front = moes.pareto_front  # or moes.pareto_front_uncut
+        # TODO: if the pareto_front is empty we will pick and try to improve
+        # always the same location because the distance to the reference
+        # value is independent of crowding in the local space. Using the
+        # extended pareto front doesn't really help to address this problem.
+        if len(pareto_front) < 1:  # len(front) <= nb non-dominated <= nb of known objective_values <= len(moes)
+            return moes[np.random.randint(len(moes))]  # should rarely happen anyway
         for k in moes.sorted():
-            if moes.pareto_front is not None and len(moes.pareto_front) > 0 and (
-                   k.objective_values in [moes.pareto_front[i] for i in [0, -1]]):
-                if len(moes) < 3 or np.random.randint(len(moes)) < 2:
-                    return k
+            if k.objective_values in [pareto_front[i] for i in [0, -1]]:
+                if len(pareto_front) < 3 or np.random.randint(len(moes)) < 2:
+                    return k  # don't skip boundary points in favor of reference-non-dominating solutions
             else:
                 break
         return k
     def get_opts(moes):
-        opts_ = {'tolx': cma_kernel_default_options_dynamic_tolx(moes, factor=0.05)}
+        opts_ = {'tolx': dynamic_tolx(moes, factor=0.05)}
         opts_.update(opts or ())  # or () catches opts == None
         opts_.update([['verb_filenameprefix', # currently unavoidable code duplication from line ~1600 of get_cmas
                       os.path.join('cma_kernels', str(len(moes)))]])
@@ -1058,18 +1113,6 @@ cma_kernel_default_options_replacements = {
         'tolfunhist': 0,
         'tolstagnation': 1e23,  # should become float('inf'),
         }
-
-def cma_kernel_default_options_dynamic_tolx(moes, factor=0.1):
-    """return `factor` times minimum `tolx` from non-dominated kernels.
-
-    Fallback to default `tolx` if the `pareto_front` is empty.
-"""
-    if moes.pareto_front:
-        return factor * min(k.stop(get_value='tolx') for k in moes
-                            if k.objective_values in moes.pareto_front)
-    if 'tolx' in cma_kernel_default_options_replacements:
-        return cma_kernel_default_options_replacements['tolx']
-    return cma.CMAOptions().eval('tolx')
 
 def get_cmas(x_starts, sigma_starts, inopts=None, number_created_kernels=0):
     """
