@@ -89,7 +89,7 @@ class Sofomore(interfaces.OOOptimizer):
     Calling Sequences
     =================
 
-    - ``moes = Sofomore(list_of_solvers_instances, opts, reference_point)``
+    - ``moes = Sofomore(list_of_solvers_instances, reference_point, opts)``
 
     - ``moes = Sofomore(list_of_solvers_instances, reference_point)``
 
@@ -145,36 +145,45 @@ class Sofomore(interfaces.OOOptimizer):
     Main interface / usage
     ======================
     The interface is inherited from the generic `OOOptimizer`
-    class, which is the same interface used by the python cma. An object 
-    instance is generated as following:
+    class, which is the same interface used by the `pycma`module. An object 
+    instance is generated as following::
         
-        list_of_solvers_instances = como.get_cmas(11 * [x0], sigma0)
-        moes = como.Sofomore(list_of_solvers_instances,
-                             opts = opts,
-                           reference_point = reference_point)
+        >>> import cma, como
+        >>> import numpy as np
+        >>> reference_point = [11, 11]
+        >>> num_kernels = 11 # the number of points we seek to have on the Pareto front
+        >>> dimension = 10 # the dimension of the search space
+        >>> x0 = dimension * [0] # an initial mean for cma
+        >>> sigma0 = 0.2 # initial step-size for cma
+        >>> list_of_solvers_instances = como.get_cmas(num_kernels * [x0], sigma0)
+        # `como.get_cmas` is a factory function that returns `num_kernels` cma-es instances
+        >>> moes = como.Sofomore(list_of_solvers_instances,
+                           reference_point=reference_point) #instanciation of our MO optimizer
 
     The least verbose interface is via the optimize method::
-
-         moes.optimize(objective_func)
-         where `objective_func` is a callable multiobjective function
-
-    More verbosely, the optimization of the multiobjective function 
-    `objective_funcs` is done using the methods `stop`, `ask`, and `tell`::
+        >>> fitness = como.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
+        >>> moes.optimize(fitness)
         
-        while not moes.stop():
-            solutions = moes.ask()
-            objective_values = [objective_funcs(x) for x in solutions]
-            moes.tell(solutions, objective_values)
-            moes.disp()
-
-    where `ask` delivers new candidate solutions and `tell` updates
-    the `optim` instance by passing the respective function values.
+    More verbosely, the optimization of the callable multiobjective function 
+    `fitness` is done via the `ask-and-tell` interface::
+     
+        >>> moes = como.Sofomore(list_of_solvers_instances, reference_point=reference_point)
+        >>> while not moes.stop():
+        >>>     solutions = moes.ask() # `ask` delivers new candidate solutions
+        >>>     objective_values = [fitness(x) for x in solutions]
+        >>>     moes.tell(solutions, objective_values) # `tell` updates the MO
+        # instance by passing the respective function values.
+        >>>     moes.disp() # display data on the evolution of the optimization 
+    
+    One iteration of the `optimize` interface is equivalent to one step in the 
+    loop of the `ask-and-tell` interface. But for the latter, the prototyper has
+    more controls to analyse and guide the optimization, due to the access of 
+    the instance between the `ask` and the `tell` calls.
 
     Attributes and Properties
     =========================
     - `kernels`: initialized with `list_of_solvers_instances`, 
     and is the list of single-objective solvers.
-    - `num_kernels`: length of `self.kernels`.
     - `opts`: passed options.
     - `pareto_front`: list of non-dominated points among the incumbents of 
     `self.kernels`.
@@ -188,7 +197,7 @@ class Sofomore(interfaces.OOOptimizer):
     objective values of their incumbents, in the next call of the `tell` 
     method.
     Before the first call of `tell`, they are the indices of all the initial
-    kernels (i.e. `range(self.num_kernels)`). And before another call of 
+    kernels (i.e. `range(len(self))`). And before another call of 
     `tell`, they are the indices of the kernels from which we have sampled new 
     candidate solutions during the penultimate `ask` method. 
     Note that we should call the `ask` method before any call of the `tell`
@@ -215,9 +224,8 @@ class Sofomore(interfaces.OOOptimizer):
         """
         assert len(list_of_solvers_instances) > 0
         self.kernels = list_of_solvers_instances
-        self.num_kernels = len(self.kernels)
         self.dimension = self.kernels[0].N
-        self._active_indices = list(range(self.num_kernels))
+        self._active_indices = list(range(len(self)))
 
         for kernel in self.kernels:
             if not hasattr(kernel, 'objective_values'):
@@ -244,17 +252,17 @@ class Sofomore(interfaces.OOOptimizer):
         self.NDA = None # the callable for nondominated archiving
         self.indicator_front = IndicatorFront(self.opts['indicator_front'])
         self.offspring = []
-        self._told_indices = range(self.num_kernels)
+        self._told_indices = range(len(self))
         
         self.key_sort_indices = self.opts['update_order']
         self.countiter = 0
         self.countevals = 0
-        self._remaining_indices_to_ask = range(self.num_kernels) # where we look when calling `ask`
+        self._remaining_indices_to_ask = range(len(self)) # where we look when calling `ask`
         self.logger = SofomoreDataLogger(self.opts['verb_filenameprefix'],
                                                      modulo=self.opts['verb_log']).register(self)
         self.best_hypervolume_pareto_front = 0.0
         self.epsilon_hypervolume_pareto_front = 0.1 # the minimum positive convergence gap
-        self._ratio_nondom_offspring_incumbent = self.num_kernels * [0]
+        self._ratio_nondom_offspring_incumbent = len(self) * [0]
         
         self._last_stopped_kernel_id = None
         self._number_of_calls_best_chv_restart = 0
@@ -354,12 +362,12 @@ class Sofomore(interfaces.OOOptimizer):
         And if `number_to_ask` is larger than `len(self._remaining_indices_to_ask)`,
         we select the list `self._remaining_indices_to_ask` extended with the  
         first `number_to_ask - len(self._remaining_indices_to_ask)` elements
-        of `range(self.num_kernels)`, sorted with `self.key_sort_indices` as key.
+        of `range(len(self))`, sorted with `self.key_sort_indices` as key.
 
         Arguments
         ---------
         - `number_to_ask`: the number of kernels where we sample solutions
-         from, it's of type int and is smaller or equal to `self.num_kernels`
+         from, it's of type int and is smaller or equal to `len(self)`
         
         Return
         ------
@@ -469,7 +477,7 @@ class Sofomore(interfaces.OOOptimizer):
                         self.popsize_random_restart *= 2
                 if self.restart is not None:
                     kernel_to_add = self.restart(self)
-                    self._told_indices += [self.num_kernels]
+                    self._told_indices += [len(self)]
                     self.add(kernel_to_add)
 
             try:
@@ -538,7 +546,7 @@ class Sofomore(interfaces.OOOptimizer):
         `self.kernels[i].stop()`
         """
         res = {}
-        for i in range(self.num_kernels):
+        for i in range(len(self)):
             if self.kernels[i].stop():
                 res[i] = self.kernels[i].stop()
             else:
@@ -552,31 +560,28 @@ class Sofomore(interfaces.OOOptimizer):
         
         """
         res = {}
-        for i in range(self.num_kernels):
+        for i in range(len(self)):
             res[i] = self.kernels[i].stop()
         return res
     
     def add(self, kernels):
         """
-        add `kernels` of type `list` to `self.kernels` and update `self.pareto_front`
-        and `self.num_kernels`.
+        add `kernels` of type `list` to `self.kernels`.
         Generally, `kernels` are created from a factory function.
         If `kernels` is of length 1, the brackets can be omitted.
         """
         if not isinstance(kernels, list):
             kernels = [kernels]
         self.kernels += kernels
-        self.num_kernels += len(kernels)
         # update `_active_indices` from scratch: inactive kernels might be added
-        self._active_indices = [idx for idx in range(self.num_kernels) if \
+        self._active_indices = [idx for idx in range(len(self)) if \
                                 not self.kernels[idx].stop()]
-        self._ratio_nondom_offspring_incumbent = self.num_kernels * [0] # self.num_kernels changed
+        self._ratio_nondom_offspring_incumbent = len(self) * [0] # len(self) changed
         
     def remove(self, kernels):
         """
         remove elements of the `kernels` (type `list`) that belong to
-        `self.kernels`, and update `self.pareto_front` and
-        `self.num_kernels` accordingly.
+        `self.kernels`, and update the `_active_indices` attribute.
         If `kernels` is of length 1, the brackets can be omitted.
         """
         if not isinstance(kernels, list):
@@ -584,11 +589,8 @@ class Sofomore(interfaces.OOOptimizer):
         for kernel in kernels:
             if kernel in self.kernels:
                 self.kernels.remove(kernel)
-                if kernel.objective_values in self.pareto_front:
-                    self.pareto_front.remove(kernel.objective_values)
-            self.num_kernels -= 1
-        # update `_active_indices`
-        self._active_indices = [idx for idx in range(self.num_kernels) if \
+
+        self._active_indices = [idx for idx in range(len(self)) if \
                                 not self.kernels[idx].stop()]
 
     @property
@@ -645,7 +647,7 @@ class Sofomore(interfaces.OOOptimizer):
     def inactivate(self, kernel):
         """
         inactivate `kernel`, assuming that it's an element of `self.kernels`,
-        or an index in `range(self.num_kernels)`.
+        or an index in `range(len(self))`.
         When inactivated, `kernel` is no longer updated, it is ignored.
         However we do not remove it from `self.kernels`, meaning that `kernel`
         might still play a role, due to its eventual trace in `self.pareto_front`.
@@ -865,7 +867,7 @@ def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts=None, **kwargs):
 
     my_opts.update({'popsize': moes.popsize_random_restart})
     
-    return  get_cmas(x0, sigma0, my_opts, moes.num_kernels)
+    return  get_cmas(x0, sigma0, my_opts, len(moes))
     
 def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
     """create a kernel (solver) of TYPE CmaKernel by duplicating the kernel with 
@@ -896,12 +898,12 @@ def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
             return random_restart_kernel(moes)
 
     hvc = []
-    for idx in range(moes.num_kernels):
-        front = moes.NDA([moes.kernels[i].objective_values for i in range(moes.num_kernels) if i != idx],
+    for idx in range(len(moes)):
+        front = moes.NDA([moes.kernels[i].objective_values for i in range(len(moes)) if i != idx],
                             moes.reference_point)
         f_pair = moes.kernels[idx].objective_values
         hvc += [front.hypervolume_improvement(f_pair)]
-    sorted_indices = sorted(range(moes.num_kernels), key=lambda i: - hvc[i])
+    sorted_indices = sorted(range(len(moes)), key=lambda i: - hvc[i])
     my_front = moes.pareto_front
     idx_best = sorted_indices[0]
     if len(my_front) > 1:
@@ -917,7 +919,7 @@ def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
         ker.sigma = new_sigma0
 
     newkernel = ker._copy_light(sigma=new_sigma0, inopts={'verb_filenameprefix': 'cma_kernels' + os.sep +
-                                                                     str(moes.num_kernels)})
+                                                                     str(len(moes)})
     return [newkernel]
 
 def _old_best_chv_or_random_restart_kernel_old(moes, sigma_factor=1, x0_fct=None, sigma0=None, opts=None, **kwargs):
@@ -1273,4 +1275,6 @@ class FitFun:
     def __call__(self, x):
         return [f(x) for f in self.callables]
 
-
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
