@@ -158,7 +158,7 @@ class Sofomore(interfaces.OOOptimizer):
         >>> list_of_solvers_instances = como.get_cmas(num_kernels * [x0], sigma0)
         # `como.get_cmas` is a factory function that returns `num_kernels` cma-es instances
         >>> moes = como.Sofomore(list_of_solvers_instances,
-                           reference_point=reference_point) #instanciation of our MO optimizer
+                           reference_point) #instanciation of our MO optimizer
 
     The least verbose interface is via the optimize method::
         >>> fitness = como.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
@@ -919,7 +919,7 @@ def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
         ker.sigma = new_sigma0
 
     newkernel = ker._copy_light(sigma=new_sigma0, inopts={'verb_filenameprefix': 'cma_kernels' + os.sep +
-                                                                     str(len(moes)})
+                                                          str(len(moes))})
     return [newkernel]
 
 def _old_best_chv_or_random_restart_kernel_old(moes, sigma_factor=1, x0_fct=None, sigma0=None, opts=None, **kwargs):
