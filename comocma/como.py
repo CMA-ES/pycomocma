@@ -155,25 +155,26 @@ class Sofomore(interfaces.OOOptimizer):
         >>> dimension = 10 # the dimension of the search space
         >>> x0 = dimension * [0] # an initial mean for cma
         >>> sigma0 = 0.2 # initial step-size for cma
-        >>> list_of_solvers_instances = como.get_cmas(num_kernels * [x0], sigma0)
-        # `como.get_cmas` is a factory function that returns `num_kernels` cma-es instances
+        >>> list_of_solvers_instances = como.get_cmas(num_kernels * [x0], sigma0, {'verbose':-9})
+        >>> # `como.get_cmas` is a factory function that returns `num_kernels` cma-es instances
         >>> moes = como.Sofomore(list_of_solvers_instances,
-                           reference_point) #instantiation of our MO optimizer
+        ...                      reference_point) #instantiation of our MO optimizer
 
     The least verbose interface is via the optimize method::
         >>> fitness = como.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
-        >>> moes.optimize(fitness)
+        >>> moes.optimize(fitness) # doctest:+ELLIPSIS
+        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds...
         
     More verbosely, the optimization of the callable multiobjective function 
     `fitness` is done via the `ask-and-tell` interface::
      
         >>> moes = como.Sofomore(list_of_solvers_instances, reference_point)
-        >>> while not moes.stop():
-        >>>     solutions = moes.ask() # `ask` delivers new candidate solutions
-        >>>     objective_values = [fitness(x) for x in solutions]
-        >>>     moes.tell(solutions, objective_values) # `tell` updates the MO
-        # instance by passing the respective function values.
-        >>>     moes.disp() # display data on the evolution of the optimization 
+        >>> while not moes.stop() and moes.countiter < 30:
+        ...     solutions = moes.ask() # `ask` delivers new candidate solutions
+        ...     objective_values = [fitness(x) for x in solutions]
+        ...     moes.tell(solutions, objective_values)
+        ...  # `tell` updates the MO instance by passing the respective function values.
+        ...     moes.disp() # display data on the evolution of the optimization 
     
     One iteration of the `optimize` interface is equivalent to one step in the 
     loop of the `ask-and-tell` interface. But for the latter, the prototyper has
@@ -991,7 +992,9 @@ class RampUpSelector:
     `restart_methods`, that is, the same calling arguments and the same
     return value(s), and it can be used just like the original single
     methods::
-
+    
+    >>> list_of_solvers = como.get_cmas(21 * [10 * [0]], 0.3)
+    >>> reference_point = [11, 11]
     >>> moes = como.Sofomore(list_of_solvers, reference_point, 
     ...                      {'restart': selected_restarts})
 
@@ -1080,6 +1083,7 @@ def get_cmas(x_starts, sigma_starts, inopts=None, number_created_kernels=0):
     A list of `CmaKernel` instances.
     
     Example::
+        >>> import como
         >>> dimension = 10
         >>> sigma0 = 0.5
         >>> num_kernels = 11
