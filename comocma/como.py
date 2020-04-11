@@ -24,57 +24,6 @@ import cma.utilities.utils
 import os
 from sofomore_logger import SofomoreDataLogger
 
-class IndicatorFront:
-    """with `hypervolume_improvement` method based on a varying empirical front.
-    
-    The front is either all kernels but one or based on the
-    `list_attribute` of `moes` (like `archive`) as given on
-    initialization.
-    
-    Usage::
-
-        >> moes.front_observed = IndicatorFront()
-        >> # OR
-        >> moes.front_observed = IndicatorFront(list_attribute='archive')
-        >> [...]
-        >>
-        >> moes.front_observed.set_kernel(moes[3], moes)
-        >>
-        >> f_points = [moes.front_observed.hypervolume_improvement(point)
-        ..             for point in points] 
-
-    """
-    def __init__(self, list_attribute=None, NDA=None):
-        """``getattr(moes, list_attribute)`` contains the list to create the front.
-        
-        `NDA` is a non-dominated archive with a `hypervolume_improvement` method.
-
-        """
-        self.list_attribute = list_attribute
-        self.NDA = NDA or BiobjectiveNondominatedSortedList
-        self.kernel = None  # current active kernel
-        self.front = None  # instance of NDA
-
-    def hypervolume_improvement(self, point):
-        return self.front.hypervolume_improvement(point)
-
-    def set_kernel(self, kernel, moes, lazy=True):
-        """Set empirical front for evolving the given kernel.
-        
-        By default, make changes only when kernel has changed.
-        
-        Details: ``moes.reference_point`` and, in case, its attribute
-        with name `self.list_attribute: str` is used.
-        """
-        if lazy and kernel == self.kernel:
-            return
-        if self.list_attribute:
-            self.front = self.NDA(getattr(moes, self.list_attribute),
-                                  moes.reference_point)
-        else:
-            self.front = self.NDA([k.objective_values for k in moes if k != kernel],
-                                  moes.reference_point)
-        self.kernel = kernel
 
 class Sofomore(interfaces.OOOptimizer):
     """ 
@@ -775,6 +724,63 @@ class Sofomore(interfaces.OOOptimizer):
          #       except AttributeError:
           #          pass
         return self
+    
+class IndicatorFront:
+    """with `hypervolume_improvement` method based on a varying empirical front.
+    
+    The front is either all kernels but one or based on the
+    `list_attribute` of `moes` (like `archive`) as given on
+    initialization.
+    
+    Usage::
+        >>> import como, cma
+        >>> list_of_solvers_instances = como.get_cmas(13 * [5 * [0.4]], 0.7, {'verbose':-9})
+        >>> fitness = como.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
+        >>> moes = como.Sofomore(list_of_solvers_instances, [11, 11])
+        >>> moes.front_observed = IndicatorFront()
+        >>> moes.optimize(fitness, iterations=47) # doctest:+ELLIPSIS
+        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+        >>> moes = como.Sofomore(list_of_solvers_instances, [11, 11])
+        >>> moes.front_observed = IndicatorFront(list_attribute='archive')
+        >>> moes.optimize(fitness, iterations=37) # doctest:+ELLIPSIS
+        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+        >>> moes.front_observed.set_kernel(moes[3], moes)
+        >>> f_points = [moes.front_observed.hypervolume_improvement(point)
+        ...             for point in moes[3]._last_offspring_f_values] 
+
+    """
+    def __init__(self, list_attribute=None, NDA=None):
+        """``getattr(moes, list_attribute)`` contains the list to create the front.
+        
+        `NDA` is a non-dominated archive with a `hypervolume_improvement` method.
+
+        """
+        self.list_attribute = list_attribute
+        self.NDA = NDA or BiobjectiveNondominatedSortedList
+        self.kernel = None  # current active kernel
+        self.front = None  # instance of NDA
+
+    def hypervolume_improvement(self, point):
+        return self.front.hypervolume_improvement(point)
+
+    def set_kernel(self, kernel, moes, lazy=True):
+        """Set empirical front for evolving the given kernel.
+        
+        By default, make changes only when kernel has changed.
+        
+        Details: ``moes.reference_point`` and, in case, its attribute
+        with name `self.list_attribute: str` is used.
+        """
+        if lazy and kernel == self.kernel:
+            return
+        if self.list_attribute:
+            self.front = self.NDA(getattr(moes, self.list_attribute),
+                                  moes.reference_point)
+        else:
+            self.front = self.NDA([k.objective_values for k in moes if k != kernel],
+                                  moes.reference_point)
+        self.kernel = kernel
+
 
 def cma_kernel_default_options_dynamic_tolx(moes, factor=0.1):
     """
