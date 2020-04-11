@@ -273,8 +273,8 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         if es.isarchive:
             hypervolume_archive = float(es.archive.hypervolume)
             len_archive = len(es.archive)
-        ratio_inactive = 1 - len(es._active_indices) / es.num_kernels
-        ratio_nondom_incumbent = len(es.pareto_front)/es.num_kernels
+        ratio_inactive = 1 - len(es._active_indices) / len(es)
+        ratio_nondom_incumbent = len(es.pareto_front)/len(es)
                 
         for i in range(len(es.offspring)):
             idx = es.offspring[i][0]
