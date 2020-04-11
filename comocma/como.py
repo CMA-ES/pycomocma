@@ -807,8 +807,8 @@ def get_kernel_best_chv_restart(moes, opts=(), **kwargs):
 
     def pick_kernel(moes):
         for k in moes.sorted():
-            if k.objective_values in [moes.pareto_front[i]
-                                      for i in [0, -1]]:
+            if moes.pareto_front is not None and len(moes.pareto_front) > 0 and (
+                   k.objective_values in [moes.pareto_front[i] for i in [0, -1]]):
                 if len(moes) < 3 or np.random.randint(len(moes)) < 2:
                     return k
             else:
