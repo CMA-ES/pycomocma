@@ -1,23 +1,4 @@
 ```python
-%pylab nbagg
-```
-
-    Populating the interactive namespace from numpy and matplotlib
-
-
-
-```python
-import sys
-sys.path.insert(0, "../comocma/")
-```
-
-
-```python
-
-```
-
-
-```python
 import cma, como
 ```
 
