@@ -308,7 +308,7 @@ class Sofomore(interfaces.OOOptimizer):
             key = hv_improvement
         return sorted(self, key=key, reverse=reverse, **kwargs)
 
-    def ask(self, number_to_ask = 1):
+    def ask(self, number_to_ask=1):
         """
         get the kernels' incumbents to be evaluated and sample new candidate solutions from 
         `number_to_ask` kernels.
@@ -327,8 +327,15 @@ class Sofomore(interfaces.OOOptimizer):
 
         Arguments
         ---------
-        - `number_to_ask`: the number of kernels where we sample solutions
-         from, it's of type int and is smaller or equal to `len(self)`
+        - `number_to_ask`: the number of kernels for which we sample solutions
+         from, it is of TYPE int or str and is smaller or equal to `len(self)`.
+         The unique case where it is a str instance is when it is equal to 
+         "all", meaning that all the kernels are asked. That case is mainly used
+         on parallel mode by distributing the evaluations of the kernels at the
+         same time before calling the `tell` method. The opposite is when
+         `number_to_ask` is equal to 1, which is the exact COMO-CMA-ES algorithm,
+         where the evaluations are done sequentially by updating the kernels one
+         by one.
         
         Return
         ------
@@ -1308,5 +1315,5 @@ def sort_odds_even(i):
 if __name__ == "__main__":
     import doctest
     doctest.ELLIPSIS_MARKER = '***' # to be able to ignore an entire output, 
-    # putting the default ... doesn't work for that.
+    # putting the default '...' doesn't work for that.
     doctest.testmod()
