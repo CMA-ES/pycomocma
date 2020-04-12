@@ -66,9 +66,7 @@ moes.optimize(fitness)
      2500  27510 1.012192183135902e+00 2.1e+00 4.01e-04  7e-05  1e-04
      2535  27895 1.012192187904571e+00 2.1e+00 3.91e-04  7e-05  9e-05
 
-
-./readme_images/paretoFront.png
-
+![image info](./readme_images/paretoFront.png "Title")
 
     <como.Sofomore at 0x11a9566d0>
 
