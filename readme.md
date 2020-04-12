@@ -1,3 +1,9 @@
+``pycomocma`` is a Python implementation of [COMO-CMA-ES](https://hal.inria.fr/hal-02103694/document) which is a Multiobjective Evolution Strategy, based upon the [Covariance Matrix Adaptation Evolution Strategy](https://en.wikipedia.org/wiki/CMA-ES) 
+([CMA-ES](http://cma.gforge.inria.fr/)) single optimizer.
+
+# Use case examples
+
+
 ```python
 import cma, como
 ```
@@ -7,7 +13,7 @@ import cma, como
 
 ```python
 dimension = 10  # dimension of the search space
-num_kernels = 11 # number of single-objective solvers (number of points on the front)
+num_kernels = 11 # number of single-objective solvers (number of points we seek to have on the front)
 sigma0 = 0.2    # initial step-sizes
 ```
 
