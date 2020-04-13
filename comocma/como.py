@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-This module contains the implementation of the Sofomore algorithm in 2 objectives, defined in 
+This module contains the implementation of the Sofomore algorithm, defined in 
 the paper [Toure, Cheikh, et al. "Uncrowded Hypervolume Improvement: 
         COMO-CMA-ES and the Sofomore framework." 
         GECCO'19-Genetic and Evolutionary Computation Conference. 2019.].
+Only the bi-objective framework is functional and has been thoroughly tested.
 """
 
 from __future__ import division, print_function, unicode_literals
@@ -68,13 +69,19 @@ class Sofomore(interfaces.OOOptimizer):
             
     `opts`
         opts, a dictionary with optional settings related to the 
-        Sofomore framework. It contains the following keys:
+        Sofomore framework. It mainly contains the following keys:
             - 'archive': default value is `True`. 
             If its value is `True`, tracks the non-dominated
             points that dominate the reference point, among the points evaluated
             so far during the optimization.
             The archive will not interfere with the optimization 
             process.
+            - 'indicator_front': default value is `None`. Used via
+            `self.indicator_front = IndicatorFront(self.opts['indicator_front'])` 
+            within the __init__ method of Sofomore. See the class IndicatorFront
+            for more details.
+            - 'restart': used to define in __init__ the attribute `restart` via
+            `self.restart = self.opts['restart']`.
             - 'update_order': default value is a function that takes a natural 
             integer as input and returns a random number between 0 and 1.
             It is used as a `key value` in: `sorted(..., key = ...)`, and guides the
@@ -92,7 +99,7 @@ class Sofomore(interfaces.OOOptimizer):
     Main interface / usage
     ======================
     The interface is inherited from the generic `OOOptimizer`
-    class, which is the same interface used by the `pycma`module. An object 
+    class, which is the same interface used by the `pycma` module. An object 
     instance is generated as following::
         
         >>> import cma, como
@@ -130,19 +137,44 @@ class Sofomore(interfaces.OOOptimizer):
 
     Attributes and Properties
     =========================
-    - `kernels`: initialized with `list_of_solvers_instances`, 
-    and is the list of single-objective solvers.
-    - `reference_point`: the current reference point.
-    - `opts`: passed options.
-    - `pareto_front_cut`: list of non-dominated points among the incumbents of 
-    `self.kernels`, which dominate the reference point.
+    
     - `archive`: list of non-dominated points among all points evaluated 
     so far, which dominate the reference point.
+    - `countevals`: the number of function evaluations.
+    - `countiter`: the number of iterations.
     - `dimension`: is the dimension of the search space.
+    - `indicator_front`: the indicator used as a changing fitness inside an
+    iteration of Sofomore. By default it is the UHVI of all the objective values
+    of the kernels' incumbents, except the kernel being optimized.
+    See the class `IndicatorFront` for more details.
+    - `isarchive`: a boolean accessible via `self.opts['archive']`. If `True`,
+    we keep track of the archive, otherwise we don't.
+    - `kernels`: initialized with `list_of_solvers_instances`, 
+    and is the list of single-objective solvers.
+    - `key_sort_indices`: default value is `self.opts['update_order']`.
+    It is a function used as a key to sort some kernels' indices, in order to
+    select the first indices during the call of the `ask` method.
+    - `logger`: an attribute that accounts for the way we log the Sofomore data
+    during an optimization. `self.logger` is an instance of the SofomoreDataLogger
+    class.
+    - `NDA`: it is the non-dominated archiving method used within Sofomore.
+    By default the class `BiobjectiveNondominatedSortedList` is used
+    in two objectives and the class (non tested yet) `NonDominatedList` is used
+    for three or more objectives.
+    - `opts`: passed options.
     - `offspring`: list of tuples of the index of a kernel with its 
     corresponding candidate solutions, that we generally get with the cma's 
     `ask` method.
-    - _told_indices: the kernels' indices for which we will evaluate the 
+    - `pareto_front_cut`: list of non-dominated points among the incumbents of 
+    `self.kernels`, which dominate the reference point.
+    - `pareto_set_cut`: preimage of `pareto_front_cut`.
+    - `reference_point`: the current reference point.
+    - `restart`: accessible via `self.opts['restart']`. If not `None`, a callback
+    function that adds kernels after a kernel of the running Sofomore instance
+    stops. Its default value is `None`, meaning that we do not do any restart.
+    - `_active_indices`: the indices of the kernels that have not stopped yet.
+    - `_last_stopped_kernel_id`: the index of the last stopped kernel.
+    - `_told_indices`: the kernels' indices for which we will evaluate the 
     objective values of their incumbents, before the next call of the `tell` 
     method. And before the first call of `tell`, they are the indices of all the
     initial kernels (i.e. `range(len(self))`). And before another call of 
@@ -150,9 +182,7 @@ class Sofomore(interfaces.OOOptimizer):
     candidate solutions during the penultimate `ask` method. 
     Note that we should call the `ask` method before any call of the `tell`
     method.
-    - `key_sort_indices`: default value is `self.opts['update_order']`.
-    It is a function used as a key to sort some kernels' indices, in order to
-    select the first indices during the call of the `ask` method.
+
     """   
     def __init__(self,
                list_of_solvers_instances, # usually come from a factory function 
@@ -166,9 +196,16 @@ class Sofomore(interfaces.OOOptimizer):
             solvers' instances
             - The reference_point is set by the user during the 
             initialization.
-            - `opts` is a dictionary updating the values of 
-            `archive` and `update_order`, that responds respectfully to whether
-            or not tracking an archive, and the order of update of the kernels.
+            - `opts` is a dictionary updating the values of 'indicator_front',
+            'archive', 'restart', 'update_order'; that respond respectfully to
+            the changing fitness we will choose within an iteration of Sofomore,
+            whether or not keeping an archive, how to do the restart in case of
+            any restart, and the order of update of the kernels. It also has
+            the keys 'verb_filename', 'verb_log' and 'verb_disp'; that 
+            respectfully indicate the name of the filename containing the Sofomore
+            data, the logging of the Sofomore data every 'verb_log' iterations
+            and the display of the data via `self.disp()` every 'verb_disp'
+            iterations. 
         """
         assert len(list_of_solvers_instances) > 0
         self.kernels = list_of_solvers_instances
@@ -179,7 +216,7 @@ class Sofomore(interfaces.OOOptimizer):
             if not hasattr(kernel, 'objective_values'):
                 kernel.objective_values = None
         self.reference_point = reference_point
-        defopts = {'archive': True, 'restart': None, 'verb_filenameprefix': 'outsofomore' + os.sep, 
+        defopts = {'archive': True, 'restart': None, 'verb_filename': 'outsofomore' + os.sep, 
                    'verb_log': 1, 'verb_disp': 100, 'update_order': sort_random,
                    'indicator_front': None  # 'archive' or any attribute containing a list of f-pairs
                    }
@@ -211,7 +248,7 @@ class Sofomore(interfaces.OOOptimizer):
         self.countiter = 0
         self.countevals = 0
         self._remaining_indices_to_ask = range(len(self)) # where we look when calling `ask`
-        self.logger = SofomoreDataLogger(self.opts['verb_filenameprefix'],
+        self.logger = SofomoreDataLogger(self.opts['verb_filename'],
                                                      modulo=self.opts['verb_log']).register(self)
         self.best_hypervolume_pareto_front = 0.0
         self.epsilon_hypervolume_pareto_front = 0.1 # the minimum positive convergence gap
