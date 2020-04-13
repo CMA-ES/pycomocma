@@ -1,0 +1,10 @@
+como.py
+hv.py
+moarchiving.py
+nondominatedarchive.py
+setup.py
+sofomore_logger.py
+comocma.egg-info/PKG-INFO
+comocma.egg-info/SOURCES.txt
+comocma.egg-info/dependency_links.txt
+comocma.egg-info/top_level.txt

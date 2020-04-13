@@ -310,6 +310,7 @@ class MetaParameters(object):
         self.tolupsigma = 1e20  ## [~100, ~1e99] l  #v sigma/sigma0 > tolupsigma * max(sqrt(eivenvals(C))) indicates "creeping behavior" with usually minor improvements',
         self.tolx = 1e-11  ## [1e-17, ~1e-3] l  #v termination criterion: tolerance in x-changes',
         self.tolfun = 1e-11  ## [1e-17, ~1e-3] l  #v termination criterion: tolerance in function value, quite useful',
+        self.tolfunrel = 0  ## [1e-17, ~1e-2] l  #v termination criterion: relative tolerance in function value',
         self.tolfunhist = 1e-12  ## [1e-17, ~1e-3] l  #v termination criterion: tolerance in function value history',
         self.tolstagnation_multiplier = 1.0  ## [0.01, ~100]  # ': 'int(100 + 100 * N**1.5 / popsize)  #v termination if no improvement over tolstagnation iterations',
 
@@ -408,86 +409,99 @@ _assertions_quadratic = True  # issue warnings
 _assertions_cubic = True
 _depreciated = True
 
-cma_default_options = {
+def cma_default_options_(  # to get keyword completion back
     # the follow string arguments are evaluated if they do not contain "filename"
-    'AdaptSigma': 'True  # or False or any CMAAdaptSigmaBase class e.g. CMAAdaptSigmaTPA, CMAAdaptSigmaCSA',
-    'CMA_active': 'True  # negative update, conducted after the original update',
-#    'CMA_activefac': '1  # learning rate multiplier for active update',
-    'CMA_cmean': '1  # learning rate for the mean value',
-    'CMA_const_trace': 'False  # normalize trace, 1, True, "arithm", "geom", "aeig", "geig" are valid',
-    'CMA_diagonal': '0*100*N/popsize**0.5  # nb of iterations with diagonal covariance matrix, True for always',  # TODO 4/ccov_separable?
-    'CMA_eigenmethod': 'np.linalg.eigh  # or cma.utilities.math.eig or pygsl.eigen.eigenvectors',
-    'CMA_elitist': 'False  #v or "initial" or True, elitism likely impairs global search performance',
-    'CMA_injections_threshold_keep_len': '0  #v keep length if Mahalanobis length is below the given relative threshold',
-    'CMA_mirrors': 'popsize < 6  # values <0.5 are interpreted as fraction, values >1 as numbers (rounded), otherwise about 0.16 is used',
-    'CMA_mirrormethod': '2  # 0=unconditional, 1=selective, 2=selective with delay',
-    'CMA_mu': 'None  # parents selection parameter, default is popsize // 2',
-    'CMA_on': '1  # multiplier for all covariance matrix updates',
-    # 'CMA_sample_on_sphere_surface': 'False  #v replaced with option randn=cma.utilities.math.randhss, all mutation vectors have the same length, currently (with new_sampling) not in effect',
-    'CMA_sampler': 'None  # a class or instance that implements the interface of `cma.interfaces.StatisticalModelSamplerWithZeroMeanBaseClass`',
-    'CMA_sampler_options': '{}  # options passed to `CMA_sampler` class init as keyword arguments',
-    'CMA_rankmu': '1.0  # multiplier for rank-mu update learning rate of covariance matrix',
-    'CMA_rankone': '1.0  # multiplier for rank-one update learning rate of covariance matrix',
-    'CMA_recombination_weights': 'None  # a list, see class RecombinationWeights, overwrites CMA_mu and popsize options',
-    'CMA_dampsvec_fac': 'np.Inf  # tentative and subject to changes, 0.5 would be a "default" damping for sigma vector update',
-    'CMA_dampsvec_fade': '0.1  # tentative fading out parameter for sigma vector update',
-    'CMA_teststds': 'None  # factors for non-isotropic initial distr. of C, mainly for test purpose, see CMA_stds for production',
-    'CMA_stds': 'None  # multipliers for sigma0 in each coordinate, not represented in C, makes scaling_of_variables obsolete',
-    # 'CMA_AII': 'False  # not yet tested',
-    'CSA_dampfac': '1  #v positive multiplier for step-size damping, 0.3 is close to optimal on the sphere',
-    'CSA_damp_mueff_exponent': '0.5  # zero would mean no dependency of damping on mueff, useful with CSA_disregard_length option',
-    'CSA_disregard_length': 'False  #v True is untested, also changes respective parameters',
-    'CSA_clip_length_value': 'None  #v poorly tested, [0, 0] means const length N**0.5, [-1, 1] allows a variation of +- N/(N+2), etc.',
-    'CSA_squared': 'False  #v use squared length for sigma-adaptation ',
-    'BoundaryHandler': 'BoundTransform  # or BoundPenalty, unused when ``bounds in (None, [None, None])``',
-    'bounds': '[None, None]  # lower (=bounds[0]) and upper domain boundaries, each a scalar or a list/vector',
-     # , eval_parallel2': 'not in use {"processes": None, "timeout": 12, "is_feasible": lambda x: True} # distributes function calls to processes processes'
-     # 'callback': 'None  # function or list of functions called as callback(self) at the end of the iteration (end of tell)', # only necessary in fmin and optimize
-    'conditioncov_alleviate': '[1e8, 1e12]  # when to alleviate the condition in the coordinates and in main axes',
-    'eval_final_mean': 'True  # evaluate the final mean, which is a favorite return candidate',
-    'fixed_variables': 'None  # dictionary with index-value pairs like {0:1.1, 2:0.1} that are not optimized',
-    'ftarget': '-inf  #v target function value, minimization',
-    'integer_variables': '[]  # index list, invokes basic integer handling: prevent std dev to become too small in the given variables',
-    'is_feasible': 'is_feasible  #v a function that computes feasibility, by default lambda x, f: f not in (None, np.NaN)',
-    'maxfevals': 'inf  #v maximum number of function evaluations',
-    'maxiter': '100 + 150 * (N+3)**2 // popsize**0.5  #v maximum number of iterations',
-    'mean_shift_line_samples': 'False #v sample two new solutions colinear to previous mean shift',
-    'mindx': '0  #v minimal std in any arbitrary direction, cave interference with tol*',
-    'minstd': '0  #v minimal std (scalar or vector) in any coordinate direction, cave interference with tol*',
-    'maxstd': 'inf  #v maximal std in any coordinate direction',
-    'pc_line_samples': 'False #v one line sample along the evolution path pc',
-    'popsize': '4+int(3*np.log(N))  # population size, AKA lambda, number of new solution per iteration',
-    'randn': 'np.random.randn  #v randn(lam, N) must return an np.array of shape (lam, N), see also cma.utilities.math.randhss',
-    'scaling_of_variables': '''None  # depreciated, rather use fitness_transformations.ScaleCoordinates instead (or possibly CMA_stds).
-            Scale for each variable in that effective_sigma0 = sigma0*scaling. Internally the variables are divided by scaling_of_variables and sigma is unchanged, default is `np.ones(N)`''',
-    'seed': 'time  # random number seed for `numpy.random`; `None` and `0` equate to `time`, `np.nan` means "do nothing", see also option "randn"',
-    'signals_filename': 'cma_signals.in  # read versatile options from this file (use `None` or `""` for no file) which contains a single options dict, e.g. ``{"timeout": 0}`` to stop, string-values are evaluated, e.g. "np.inf" is valid',
-    'termination_callback': '[]  #v a function or list of functions returning True for termination, called in `stop` with `self` as argument, could be abused for side effects',
-    'timeout': 'inf  #v stop if timeout seconds are exceeded, the string "2.5 * 60**2" evaluates to 2 hours and 30 minutes',
-    'tolconditioncov': '1e14  #v stop if the condition of the covariance matrix is above `tolconditioncov`',
-    'tolfacupx': '1e3  #v termination when step-size increases by tolfacupx (diverges). That is, the initial step-size was chosen far too small and better solutions were found far away from the initial solution x0',
-    'tolupsigma': '1e20  #v sigma/sigma0 > tolupsigma * max(eivenvals(C)**0.5) indicates "creeping behavior" with usually minor improvements',
-    'tolflatfitness': '1  #v iterations tolerated with flat fitness before termination',
-    'tolfun': '1e-11  #v termination criterion: tolerance in function value, quite useful',
-    'tolfunhist': '1e-12  #v termination criterion: tolerance in function value history',
-    'tolfunrel': '0  #v termination criterion: relative tolerance in function value: Delta f current < tolfunrel * (median0 - median_min)',
-    'tolstagnation': 'int(100 + 100 * N**1.5 / popsize)  #v termination if no improvement over tolstagnation iterations',
-    'tolx': '1e-11  #v termination criterion: tolerance in x-changes',
-    'transformation': '''None  # depreciated, use cma.fitness_transformations.FitnessTransformation instead.
+    AdaptSigma='True  # or False or any CMAAdaptSigmaBase class e.g. CMAAdaptSigmaTPA, CMAAdaptSigmaCSA',
+    CMA_active='True  # negative update, conducted after the original update',
+#    CMA_activefac='1  # learning rate multiplier for active update',
+    CMA_cmean='1  # learning rate for the mean value',
+    CMA_const_trace='False  # normalize trace, 1, True, "arithm", "geom", "aeig", "geig" are valid',
+    CMA_diagonal='0*100*N/popsize**0.5  # nb of iterations with diagonal covariance matrix, True for always',  # TODO 4/ccov_separable?
+    CMA_eigenmethod='np.linalg.eigh  # or cma.utilities.math.eig or pygsl.eigen.eigenvectors',
+    CMA_elitist='False  #v or "initial" or True, elitism likely impairs global search performance',
+    CMA_injections_threshold_keep_len='0  #v keep length if Mahalanobis length is below the given relative threshold',
+    CMA_mirrors='popsize < 6  # values <0.5 are interpreted as fraction, values >1 as numbers (rounded), otherwise about 0.16 is used',
+    CMA_mirrormethod='2  # 0=unconditional, 1=selective, 2=selective with delay',
+    CMA_mu='None  # parents selection parameter, default is popsize // 2',
+    CMA_on='1  # multiplier for all covariance matrix updates',
+    # CMA_sample_on_sphere_surface='False  #v replaced with option randn=cma.utilities.math.randhss, all mutation vectors have the same length, currently (with new_sampling) not in effect',
+    CMA_sampler='None  # a class or instance that implements the interface of `cma.interfaces.StatisticalModelSamplerWithZeroMeanBaseClass`',
+    CMA_sampler_options='{}  # options passed to `CMA_sampler` class init as keyword arguments',
+    CMA_rankmu='1.0  # multiplier for rank-mu update learning rate of covariance matrix',
+    CMA_rankone='1.0  # multiplier for rank-one update learning rate of covariance matrix',
+    CMA_recombination_weights='None  # a list, see class RecombinationWeights, overwrites CMA_mu and popsize options',
+    CMA_dampsvec_fac='np.Inf  # tentative and subject to changes, 0.5 would be a "default" damping for sigma vector update',
+    CMA_dampsvec_fade='0.1  # tentative fading out parameter for sigma vector update',
+    CMA_teststds='None  # factors for non-isotropic initial distr. of C, mainly for test purpose, see CMA_stds for production',
+    CMA_stds='None  # multipliers for sigma0 in each coordinate, not represented in C, makes scaling_of_variables obsolete',
+    # CMA_AII='False  # not yet tested',
+    CSA_dampfac='1  #v positive multiplier for step-size damping, 0.3 is close to optimal on the sphere',
+    CSA_damp_mueff_exponent='0.5  # zero would mean no dependency of damping on mueff, useful with CSA_disregard_length option',
+    CSA_disregard_length='False  #v True is untested, also changes respective parameters',
+    CSA_clip_length_value='None  #v poorly tested, [0, 0] means const length N**0.5, [-1, 1] allows a variation of +- N/(N+2), etc.',
+    CSA_squared='False  #v use squared length for sigma-adaptation ',
+    BoundaryHandler='BoundTransform  # or BoundPenalty, unused when ``bounds in (None, [None, None])``',
+    bounds='[None, None]  # lower (=bounds[0]) and upper domain boundaries, each a scalar or a list/vector',
+     # , eval_parallel2='not in use {"processes": None, "timeout": 12, "is_feasible": lambda x: True} # distributes function calls to processes processes'
+     # 'callback='None  # function or list of functions called as callback(self) at the end of the iteration (end of tell)', # only necessary in fmin and optimize
+    conditioncov_alleviate='[1e8, 1e12]  # when to alleviate the condition in the coordinates and in main axes',
+    eval_final_mean='True  # evaluate the final mean, which is a favorite return candidate',
+    fixed_variables='None  # dictionary with index-value pairs like {0:1.1, 2:0.1} that are not optimized',
+    ftarget='-inf  #v target function value, minimization',
+    integer_variables='[]  # index list, invokes basic integer handling: prevent std dev to become too small in the given variables',
+    is_feasible='is_feasible  #v a function that computes feasibility, by default lambda x, f: f not in (None, np.NaN)',
+    maxfevals='inf  #v maximum number of function evaluations',
+    maxiter='100 + 150 * (N+3)**2 // popsize**0.5  #v maximum number of iterations',
+    mean_shift_line_samples='False #v sample two new solutions colinear to previous mean shift',
+    mindx='0  #v minimal std in any arbitrary direction, cave interference with tol*',
+    minstd='0  #v minimal std (scalar or vector) in any coordinate direction, cave interference with tol*',
+    maxstd='inf  #v maximal std in any coordinate direction',
+    pc_line_samples='False #v one line sample along the evolution path pc',
+    popsize='4+int(3*np.log(N))  # population size, AKA lambda, number of new solution per iteration',
+    randn='np.random.randn  #v randn(lam, N) must return an np.array of shape (lam, N), see also cma.utilities.math.randhss',
+    scaling_of_variables='''None  # depreciated, rather use fitness_transformations.ScaleCoordinates instead (or possibly CMA_stds).
+            Scale for each variable in that effective_sigma0 = sigma0*scaling. Internally the variables are divided by
+            scaling_of_variables and sigma is unchanged, default is `np.ones(N)`''',
+    seed='time  # random number seed for `numpy.random`; `None` and `0` equate to `time`, `np.nan` means "do nothing", see also option "randn"',
+    signals_filename='cma_signals.in  # read versatile options from this file (use `None` or `""` for no file) which contains a single options dict, e.g. ``{"timeout": 0}`` to stop, string-values are evaluated, e.g. "np.inf" is valid',
+    termination_callback='[]  #v a function or list of functions returning True for termination, called in `stop` with `self` as argument, could be abused for side effects',
+    timeout='inf  #v stop if timeout seconds are exceeded, the string "2.5 * 60**2" evaluates to 2 hours and 30 minutes',
+    tolconditioncov='1e14  #v stop if the condition of the covariance matrix is above `tolconditioncov`',
+    tolfacupx='1e3  #v termination when step-size increases by tolfacupx (diverges). That is, the initial step-size was chosen far too small and better solutions were found far away from the initial solution x0',
+    tolupsigma='1e20  #v sigma/sigma0 > tolupsigma * max(eivenvals(C)**0.5) indicates "creeping behavior" with usually minor improvements',
+    tolflatfitness='1  #v iterations tolerated with flat fitness before termination',
+    tolfun='1e-11  #v termination criterion: tolerance in function value, quite useful',
+    tolfunhist='1e-12  #v termination criterion: tolerance in function value history',
+    tolfunrel='0  #v termination criterion: relative tolerance in function value: Delta f current < tolfunrel * (median0 - median_min)',
+    tolstagnation='int(100 + 100 * N**1.5 / popsize)  #v termination if no improvement over tolstagnation iterations',
+    tolx='1e-11  #v termination criterion: tolerance in x-changes',
+    transformation='''None  # depreciated, use cma.fitness_transformations.FitnessTransformation instead.
             [t0, t1] are two mappings, t0 transforms solutions from CMA-representation to f-representation (tf_pheno),
             t1 is the (optional) back transformation, see class GenoPheno''',
-    'typical_x': 'None  # used with scaling_of_variables',
-    'updatecovwait': 'None  #v number of iterations without distribution update, name is subject to future changes',  # TODO: rename: iterwaitupdatedistribution?
-    'verbose': '3  #v verbosity e.g. of initial/final message, -1 is very quiet, -9 maximally quiet, may not be fully implemented',
-    'verb_append': '0  # initial evaluation counter, if append, do not overwrite output files',
-    'verb_disp': '100  #v verbosity: display console output every verb_disp iteration',
-    'verb_filenameprefix': CMADataLogger.default_prefix + '  # output path and filenames prefix',
-    'verb_log': '1  #v verbosity: write data to files every verb_log iteration, writing can be time critical on fast to evaluate functions',
-    'verb_log_expensive': 'N * (N <= 50)  # allow to execute eigendecomposition for logging every verb_log_expensive iteration, 0 or False for never',
-    'verb_plot': '0  #v in fmin(): plot() is called every verb_plot iteration',
-    'verb_time': 'True  #v output timings on console',
-    'vv': '{}  #? versatile set or dictionary for hacking purposes, value found in self.opts["vv"]'
-}
+    typical_x='None  # used with scaling_of_variables',
+    updatecovwait='None  #v number of iterations without distribution update, name is subject to future changes',  # TODO: rename: iterwaitupdatedistribution?
+    verbose='3  #v verbosity e.g. of initial/final message, -1 is very quiet, -9 maximally quiet, may not be fully implemented',
+    verb_append='0  # initial evaluation counter, if append, do not overwrite output files',
+    verb_disp='100  #v verbosity: display console output every verb_disp iteration',
+    verb_filenameprefix=CMADataLogger.default_prefix + '  # output path and filenames prefix',
+    verb_log='1  #v verbosity: write data to files every verb_log iteration, writing can be time critical on fast to evaluate functions',
+    verb_log_expensive='N * (N <= 50)  # allow to execute eigendecomposition for logging every verb_log_expensive iteration, 0 or False for never',
+    verb_plot='0  #v in fmin(): plot() is called every verb_plot iteration',
+    verb_time='True  #v output timings on console',
+    vv='{}  #? versatile set or dictionary for hacking purposes, value found in self.opts["vv"]'
+    ):
+    """use this function to get keyword completion for `CMAOptions`.
+
+    ``cma.CMAOptions('substr')`` provides even substring search.
+
+    returns default options as a `dict` (not a `cma.CMAOptions` `dict`).
+    """
+    return dict(locals())  # is defined before and used by CMAOptions, so it can't return CMAOptions
+
+cma_default_options = cma_default_options_()  # will later be reassigned as CMAOptions(dict)
+cma_versatile_options = tuple(sorted(k for (k, v) in cma_default_options.items()
+                                     if v.find(' #v ') > 0))
+cma_allowed_options_keys = dict([s.lower(), s] for s in cma_default_options)
 
 class CMAOptions(dict):
     """a dictionary with the available options and their default values
@@ -551,7 +565,8 @@ class CMAOptions(dict):
     @staticmethod
     def defaults():
         """return a dictionary with default option values and description"""
-        return dict((str(k), str(v)) for k, v in cma_default_options.items())
+        return cma_default_options
+        # return dict((str(k), str(v)) for k, v in cma_default_options_().items())
         # getting rid of the u of u"name" by str(u"name")
         # return dict(cma_default_options)
 
@@ -568,7 +583,8 @@ class CMAOptions(dict):
         necessarily be evaluated again.
 
         """
-        return tuple(sorted(i[0] for i in list(CMAOptions.defaults().items()) if i[1].find(' #v ') > 0))
+        return cma_versatile_options
+        # return tuple(sorted(i[0] for i in list(CMAOptions.defaults().items()) if i[1].find(' #v ') > 0))
     def check(self, options=None):
         """check for ambiguous keys and move attributes into dict"""
         self.check_values(options)
@@ -584,7 +600,9 @@ class CMAOptions(dict):
         for key in options:
             correct_key = corrected_key(key)
             if correct_key is None:
-                raise ValueError("""%s is not a valid option""" % key)
+                raise ValueError("""%s is not a valid option.\n""" 
+                                'Valid options are %s' % 
+                                (key, str(list(cma_default_options))))
             if correct_key in validated_keys:
                 if key == correct_key:
                     key = original_keys[validated_keys.index(key)]
@@ -821,10 +839,13 @@ class CMAOptions(dict):
 
         """
         matching_keys = []
-        for allowed_key in CMAOptions.defaults():
-            if allowed_key.lower() == key.lower():
-                return allowed_key
-            if allowed_key.lower().startswith(key.lower()):
+        key = key.lower()  # this was somewhat slow, so it is speed optimized now
+        if key in cma_allowed_options_keys:
+            return cma_allowed_options_keys[key]
+        for allowed_key in cma_allowed_options_keys:
+            if allowed_key.startswith(key):
+                if len(matching_keys) > 0:
+                    return None
                 matching_keys.append(allowed_key)
         return matching_keys[0] if len(matching_keys) == 1 else None
 
@@ -856,7 +877,7 @@ class CMAOptions(dict):
         """
         self.check()
         if defaults is None:
-            defaults = cma_default_options
+            defaults = cma_default_options_()
         # TODO: this needs rather the parameter N instead of loc
         if 'N' in loc:  # TODO: __init__ of CMA can be simplified
             popsize = self('popsize', defaults['popsize'], loc)
@@ -958,6 +979,8 @@ else:
 
         """
 
+cma_default_options = CMAOptions(cma_default_options_())
+
 class _CMAEvolutionStrategyResult(tuple):
     """A results tuple from `CMAEvolutionStrategy` property ``result``.
 
@@ -987,7 +1010,7 @@ class _CMAEvolutionStrategyResult(tuple):
     - ``list(fit.fit).find(0)`` is the index of the first sampled solution
       of the last completed iteration in ``pop_sorted``.
 
-    """
+"""  # here starts the code: (beating the code folding glitch)
     # remark: a tuple is immutable, hence we cannot change it anymore
     # in __init__. This would work if we inherited from a `list`.
     @staticmethod
@@ -1298,7 +1321,7 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
     :See also: `fmin` (), `OOOptimizer`, `CMAOptions`, `plot` (), `ask` (),
         `tell` (), `ask_and_eval` ()
 
-    """
+"""  # here starts the code: (beating the code folding glitch)
     @property  # read only attribute decorator for a method
     def popsize(self):
         """number of samples by default returned by `ask` ()
@@ -1312,26 +1335,54 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
     #         """
     #         raise RuntimeError("popsize cannot be changed")
 
-    def stop(self, check=True, ignore_list=()):
+    def stop(self, check=True, ignore_list=(), check_in_same_iteration=False,
+             get_value=None):
         """return the termination status as dictionary.
 
-        With ``check==False``, the termination conditions are not checked
+        With ``check == False``, the termination conditions are not checked
         and the status might not reflect the current situation.
+        ``check_on_same_iteration == False`` (new) does not re-check during
+        the same iteration. When termination options are manually changed,
+        it must be set to `True` to advance afterwards.
         ``stop().clear()`` removes the currently active termination
         conditions.
 
         As a convenience feature, keywords in `ignore_list` are removed from
         the conditions.
 
-        """
-        if (check and self.countiter > 0 and
+        If `get_value` is set to a condition name (not the empty string),
+        `stop` does not update the termination dictionary but returns the
+        measured value that would be compared to the threshold. This only
+        works for some conditions, like 'tolx'. If the condition name is
+        not known or cannot be computed, `None` is returned and no warning
+        is issued.
+
+        Testing `get_value` functionality:
+
+        >>> import cma
+        >>> es = cma.CMAEvolutionStrategy(2 * [1], 1e4, {'verbose': -9})
+        >>> with warnings.catch_warnings(record=True) as w:
+        ...     es.stop(get_value='tolx')  # triggers zero iteration warning
+        ...     assert len(w) == 1 or print([str(wi) for wi in w])
+        >>> es = es.optimize(cma.ff.sphere, iterations=2)
+        >>> assert 1e3 < es.stop(get_value='tolx') < 1e4 or print(es.stop(get_value='tolx'))
+        >>> assert es.stop() == {}
+        >>> assert es.stop(get_value='catch 22') is None
+
+"""
+        if (check and self.countiter > 0 and self.opts['termination_callback'] and
                 self.opts['termination_callback'] != str(self.opts['termination_callback'])):
             self.callbackstop = utils.ListOfCallables(self.opts['termination_callback'])(self)
 
-        res = self._stopdict(self, check)  # update the stopdict and return a Dict (self)
+        self._stopdict._get_value = get_value  # a hack to avoid passing arguments down to _add_stop and back
+        # check_on_same_iteration == False makes como code much faster
+        res = self._stopdict(self, check_in_same_iteration or get_value or (  # update the stopdict and return a Dict (self)
+                                   check and self.countiter != self._stopdict.lastiter))
         if ignore_list:
             for key in ignore_list:
                 res.pop(key, None)
+        if get_value:  # deliver _value and reset
+            res, self._stopdict._value = self._stopdict._value, None
         return res
 
     def __init__(self, x0, sigma0, inopts=None):
@@ -2586,9 +2637,8 @@ class CMAEvolutionStrategy(interfaces.OOOptimizer):
             fit.histmedian.pop()
         if len(fit.hist) > 10 + 30 * N / sp.popsize:
             fit.hist.pop()
-        if self.countiter == 1:
+        if fit.median0 is None:
             fit.median0 = fit.median
-            fit.median_min = fit.median
         if fit.median_min > fit.median:
             fit.median_min = fit.median
 
@@ -3350,10 +3400,12 @@ class _CMAStopDict(dict):
     def __init__(self, d={}):
         update = isinstance(d, CMAEvolutionStrategy)
         super(_CMAStopDict, self).__init__({} if update else d)
-        self._stoplist = []  # to keep multiple entries
+        self.stoplist = []  # to keep multiple entries
         self.lastiter = 0  # probably not necessary
+        self._get_value = None  # a hack to pass some value
+        self._value = None  # in iteration zero value is always None
         try:
-            self._stoplist = d._stoplist  # multiple entries
+            self.stoplist = d.stoplist  # multiple entries
         except:
             pass
         try:
@@ -3383,6 +3435,8 @@ class _CMAStopDict(dict):
         assert es is not None
 
         if es.countiter == 0:  # in this case termination tests fail
+            if self._get_value:
+                warnings.warn("Cannot get stop value before the first iteration")
             self.__init__()
             return self
 
@@ -3397,21 +3451,26 @@ class _CMAStopDict(dict):
         self.lastiter = es.countiter
         self.es = es
 
-        self.clear()  # compute conditions from scratch
+        self._get_value or self.clear()  # compute conditions from scratch
 
         N = es.N
         opts = es.opts
         self.opts = opts  # a hack to get _addstop going
 
         # check user versatile options from signals file
-        try:
-            # in 5-D: adds 0% if file does not exist and 25% = 0.2ms per iteration if it exists and verbose=-9
-            # old measure: adds about 40% time in 5-D, 15% if file is not present
-            # to avoid any file checking set signals_filename to None or ''
-            if opts['signals_filename'] and os.path.isfile(self.opts['signals_filename']):
-                with open(opts['signals_filename'], 'r') as f:
-                    s = f.read()
+
+        # in 5-D: adds 0% if file does not exist and 25% = 0.2ms per iteration if it exists and verbose=-9
+        # old measure: adds about 40% time in 5-D, 15% if file is not present
+        # to avoid any file checking set signals_filename to None or ''
+        if opts['verbose'] >= -9 and opts['signals_filename'] and os.path.isfile(self.opts['signals_filename']):
+            with open(opts['signals_filename'], 'r') as f:
+                s = f.read()
+            try:
                 d = dict(ast.literal_eval(s.strip()))
+            except SyntaxError:
+                warnings.warn("SyntaxError when parsing the following expression with `ast.literal_eval`:"
+                            "\n\n%s\n(contents of file %s)" % (s, str(self.opts['signals_filename'])))
+            else:
                 for key in list(d):
                     if key not in opts.versatile_options():
                         utils.print_warning("        unkown or non-versatile option '%s' found in file %s.\n"
@@ -3421,9 +3480,6 @@ class _CMAStopDict(dict):
                 opts.update(d)
                 for key in d:
                     opts.eval(key, {'N': N, 'dim': N})
-        except SyntaxError:
-            warnings.warn("SyntaxError when `ast.literal_eval` contents\n"
-                          "of file %s" % str(self.opts['signals_filename']))
 
         # fitness: generic criterion, user defined w/o default
         self._addstop('ftarget',
@@ -3436,27 +3492,35 @@ class _CMAStopDict(dict):
                       es.countiter >= 1.0 * opts['maxiter'])
         # tolx, tolfacupx: generic criteria
         # tolfun, tolfunhist (CEC:tolfun includes hist)
-        self._addstop('tolx',
-                      np.all(es.sigma * (es.sigma_vec * es.pc) < opts['tolx']) and
-                      np.all(es.sigma * (es.sigma_vec * np.sqrt(es.dC)) < opts['tolx']))
+
+        sigma_x_sigma_vec_x_sqrtdC = es.sigma * (es.sigma_vec.scaling * np.sqrt(es.dC))
         self._addstop('tolfacupx',
-                      np.any(es.sigma * es.sigma_vec.scaling * es.dC**0.5 >
+                      np.any(sigma_x_sigma_vec_x_sqrtdC >
                           es.sigma0 * es.sigma_vec0 * opts['tolfacupx']))
+        self._addstop('tolx',
+                      all(sigma_x_sigma_vec_x_sqrtdC < opts['tolx']) and
+                      all(es.sigma * (es.sigma_vec.scaling * es.pc) < opts['tolx']),
+                      max(sigma_x_sigma_vec_x_sqrtdC) if self._get_value else None)
+                      # None only to be backwards compatible for the time being
+
+        current_fitness_range = max(es.fit.fit) - min(es.fit.fit)
+        historic_fitness_range = max(es.fit.hist) - min(es.fit.hist)
         self._addstop('tolfun',
-                      max(es.fit.fit) - min(es.fit.fit) < opts['tolfun'] and  # fit.fit is sorted including bound penalties
-                      max(es.fit.hist) - min(es.fit.hist) < opts['tolfun'])
+                      current_fitness_range < opts['tolfun'] and  # fit.fit is sorted including bound penalties
+                      historic_fitness_range < opts['tolfun'])
         self._addstop('tolfunrel',
-                      max(es.fit.fit) - min(es.fit.fit) < opts['tolfunrel'] * (es.fit.median0 - es.fit.median_min))
+                      current_fitness_range < opts['tolfunrel'] * (es.fit.median0 - es.fit.median_min),
+                      current_fitness_range if self._get_value else None)
         self._addstop('tolfunhist',
                       len(es.fit.hist) > 9 and
-                      max(es.fit.hist) - min(es.fit.hist) < opts['tolfunhist'])
+                      historic_fitness_range < opts['tolfunhist'])
 
         # worst seen false positive: table N=80,lam=80, getting worse for fevals=35e3 \approx 50 * N**1.5
         # but the median is not so much getting worse
         # / 5 reflects the sparsity of histbest/median
         # / 2 reflects the left and right part to be compared
         ## meta_parameters.tolstagnation_multiplier == 1.0
-        l = int(max(( 1.0 * opts['tolstagnation'] / 5. / 2, len(es.fit.histbest) / 10)))
+        l = max(( 1.0 * opts['tolstagnation'] / 5. / 2, len(es.fit.histbest) / 10))
         # TODO: why max(..., len(histbest)/10) ???
         # TODO: the problem in the beginning is only with best ==> ???
         if 11 < 3:  # print for debugging
@@ -3465,18 +3529,22 @@ class _CMAStopDict(dict):
                   np.median(es.fit.histmedian[:l]) >= np.median(es.fit.histmedian[l:2 * l]),
                   np.median(es.fit.histbest[:l]) >= np.median(es.fit.histbest[l:2 * l])))
         # equality should handle flat fitness
-        self._addstop('tolstagnation',  # leads sometimes early stop on ftablet, fcigtab, N>=50?
-                      1 < 3 and opts['tolstagnation'] and es.countiter > N * (5 + 100 / es.popsize) and
-                      len(es.fit.histbest) > 100 and 2 * l < len(es.fit.histbest) and
-                      np.median(es.fit.histmedian[:l]) >= np.median(es.fit.histmedian[l:2 * l]) and
-                      np.median(es.fit.histbest[:l]) >= np.median(es.fit.histbest[l:2 * l]))
+        if l <= es.countiter:
+            l = int(l)  # doesn't work for infinite l
+            self._addstop('tolstagnation',  # leads sometimes early stop on ftablet, fcigtab, N>=50?
+                    1 < 3 and opts['tolstagnation'] and es.countiter > N * (5 + 100 / es.popsize) and
+                    len(es.fit.histbest) > 100 and 2 * l < len(es.fit.histbest) and
+                    np.median(es.fit.histmedian[:l]) >= np.median(es.fit.histmedian[l:2 * l]) and
+                    np.median(es.fit.histbest[:l]) >= np.median(es.fit.histbest[l:2 * l]))
         # iiinteger: stagnation termination can prevent to find the optimum
 
         self._addstop('tolupsigma', opts['tolupsigma'] and
-                      es.sigma / np.max(es.D) > es.sigma0 * opts['tolupsigma'])
+                      es.sigma / np.max(es.D) > es.sigma0 * opts['tolupsigma'],
+                      es.sigma / np.max(es.D) if self._get_value else None)
         try:
             self._addstop('timeout',
-                          es.timer.elapsed > opts['timeout'])
+                          es.timer.elapsed > opts['timeout'],
+                          es.timer.elapsed if self._get_value else None)
         except AttributeError:
             if es.countiter <= 0: 
                 pass 
@@ -3490,15 +3558,15 @@ class _CMAStopDict(dict):
         if 1 < 3:
             # non-user defined, method specific
             # noeffectaxis (CEC: 0.1sigma), noeffectcoord (CEC:0.2sigma), conditioncov
-            idx = np.nonzero(es.mean == es.mean + 0.2 * es.sigma *
-                             es.sigma_vec.scaling * es.dC**0.5)[0]
+            idx = np.nonzero(es.mean == es.mean + 0.2 * sigma_x_sigma_vec_x_sqrtdC)[0]
             self._addstop('noeffectcoord', any(idx), list(idx))
 #                         any([es.mean[i] == es.mean[i] + 0.2 * es.sigma *
 #                                                         (es.sigma_vec if np.isscalar(es.sigma_vec) else es.sigma_vec[i]) *
 #                                                         sqrt(es.dC[i])
 #                              for i in range(N)])
 #                )
-            if opts['CMA_diagonal'] is not True and es.countiter > opts['CMA_diagonal']:
+            if (opts['CMA_diagonal'] is not True and es.countiter > opts['CMA_diagonal'] and
+                (es.countiter % 1) == 0):  # save another factor of two?
                 i = es.countiter % N
                 try:
                     self._addstop('noeffectaxis',
@@ -3543,7 +3611,10 @@ class _CMAStopDict(dict):
         return self
 
     def _addstop(self, key, cond=True, val=None):
-        if cond:
+        if key == self._get_value:
+            self._value = val
+            self._get_value = None
+        elif cond:
             self.stoplist.append(key)  # can have the same key twice
             self[key] = val if val is not None \
                             else self.opts.get(key, None)

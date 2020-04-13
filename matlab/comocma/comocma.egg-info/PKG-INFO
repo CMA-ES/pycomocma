@@ -1,0 +1,15 @@
+Metadata-Version: 1.0
+Name: comocma
+Version: 0.5.0
+Summary: UNKNOWN
+Home-page: UNKNOWN
+Author: Cheikh Toure and Nikolaus Hansen
+Author-email: UNKNOWN
+License: UNKNOWN
+Description: 
+        This module contains the implementation of the Sofomore algorithm in 2 objectives, defined in 
+        the paper [Toure, Cheikh, et al. "Uncrowded Hypervolume Improvement: 
+                COMO-CMA-ES and the Sofomore framework." 
+                GECCO'19-Genetic and Evolutionary Computation Conference. 2019.].
+        
+Platform: UNKNOWN
