@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-This module contains the implementation of the Sofomore algorithm, defined in 
+This module contains the implementation of the Multiobjective framework called
+Sofomore, and its instantiation with cma-es to obtain COMO-CMA-ES, defined in 
 the paper [Toure, Cheikh, et al. "Uncrowded Hypervolume Improvement: 
         COMO-CMA-ES and the Sofomore framework." 
         GECCO'19-Genetic and Evolutionary Computation Conference. 2019.].
+
 Only the bi-objective framework is functional and has been thoroughly tested.
 """
 
@@ -102,7 +104,7 @@ class Sofomore(interfaces.OOOptimizer):
     class, which is the same interface used by the `pycma` module. An object 
     instance is generated as following::
         
-        >>> import cma, como
+        >>> import cma, comocma
         >>> import numpy as np
         >>> reference_point = [11, 11]
         >>> num_kernels = 11 # the number of points we seek to have on the Pareto front
@@ -332,7 +334,7 @@ class Sofomore(interfaces.OOOptimizer):
             Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
             >>> moes.sorted(key = lambda k: moes.archive.contributing_hypervolume(
             ...                          k.objective_values)) # doctest:+ELLIPSIS
-            [<comocma.CmaKernel object at***
+            [<comocma.como.CmaKernel object at***
             
         sorts w.r.t. archive contribution (clones may get positive contribution).
 
