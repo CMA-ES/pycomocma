@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 """
-from hv import HyperVolume
+from .hv import HyperVolume
 import itertools
 
 import numpy as np

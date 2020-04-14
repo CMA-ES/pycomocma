@@ -18,12 +18,12 @@ import ast
 import numpy as np
 import cma
 from cma import interfaces
-from nondominatedarchive import NonDominatedList
+from .nondominatedarchive import NonDominatedList
 from moarchiving import BiobjectiveNondominatedSortedList
 import warnings
 import cma.utilities.utils
 import os
-from sofomore_logger import SofomoreDataLogger
+from .sofomore_logger import SofomoreDataLogger
 
 
 class Sofomore(interfaces.OOOptimizer):

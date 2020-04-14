@@ -7,7 +7,7 @@ For the time being, only the bi-objective case is tested and functional.
 
 
 ```python
-import cma, como
+import cma, comocma
 ```
 
 # Setting parameters
@@ -23,15 +23,15 @@ sigma0 = 0.2    # initial step-sizes
 
 
 ```python
-list_of_solvers = como.get_cmas(num_kernels * [dimension * [0]], sigma0) # produce `num_kernels cma instances`
-moes = como.Sofomore(list_of_solvers, [1.1,1.1]) # create a como-cma-es instance
+list_of_solvers = comocma.get_cmas(num_kernels * [dimension * [0]], sigma0) # produce `num_kernels cma instances`
+moes = comocma.Sofomore(list_of_solvers, [1.1,1.1]) # create a como-cma-es instance
 ```
 
 # Setting a callable bi-objective function
 
 
 ```python
-fitness = como.FitFun(lambda x: 1/len(x) * cma.ff.sphere(x), lambda x: 1/len(x) * cma.ff.sphere(x-1))
+fitness = comocma.FitFun(lambda x: 1/len(x) * cma.ff.sphere(x), lambda x: 1/len(x) * cma.ff.sphere(x-1))
 # a callable bi-objective function
 ```
 
@@ -78,7 +78,7 @@ moes.optimize(fitness)
 
 
 
-    <como.Sofomore at 0x11a9566d0>
+    <comocma.Sofomore at 0x11a9566d0>
 
 
 
@@ -160,12 +160,12 @@ moes.logger.plot_stds()
 
 
 ```python
-list_of_solvers = como.get_cmas(num_kernels * [dimension * [0]], 0.2, inopts = {'bounds': [0.2, 0.9], 
+list_of_solvers = comocma.get_cmas(num_kernels * [dimension * [0]], 0.2, inopts = {'bounds': [0.2, 0.9], 
                                                                                 'tolx': 10**-7,
                                                                                'popsize': 32}) # produce `num_kernels cma instances`
-moes = como.Sofomore(list_of_solvers, [0.6,0.9], {'verb_disp': 50}) # create a COMO-CMA-ES instance
+moes = comocma.Sofomore(list_of_solvers, [0.6,0.9], {'verb_disp': 50}) # create a COMO-CMA-ES instance
 
-fitness = como.FitFun(lambda x: 1/len(x) * cma.ff.sphere(x), lambda x: 1/len(x) * cma.ff.sphere(x-1))
+fitness = comocma.FitFun(lambda x: 1/len(x) * cma.ff.sphere(x), lambda x: 1/len(x) * cma.ff.sphere(x-1))
 ```
 
 
