@@ -24,10 +24,16 @@ except LookupError:
   # indicates a multi-file module and that we have a cma folder and cma/__init__.py file
 
 try:
-    with open('README.txt') as file:
-        long_description = file.read()  # now assign long_description=long_description below
+    with open('README.md') as file_:
+        long_description = file_.read()  # now assign long_description=long_description below
 except IOError:  # file not found
-    pass
+    warnings.warn("README.md file not found")
+else:
+    try:
+        with open('README.txt') as file:
+            long_description = file.read()  # now assign long_description=long_description below
+    except IOError:  # file not found
+        pass
 
 
 
