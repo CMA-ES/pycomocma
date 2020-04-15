@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+          "DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <title>comocma.como : API documentation</title>
+
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <link type="text/css" href="bootstrap.min.css" rel="stylesheet" />
+    <link type="text/css" href="apidocs.css" rel="stylesheet" />
+  </head>
+  <body>
+
+    <nav class="navbar navbar-default">
+      <div class="container">
+        <div class="navbar-header">
+          <a href="index.html" class="navbar-brand">
+            comocma API Documentation
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <div id="showPrivate">
+      <button onclick="togglePrivate()" class="btn btn-link">Toggle Private API</button>
+    </div>
+
+    <div class="container">
+
+      <div class="page-header">
+        <h1 class="module"><code>comocma.como</code> <small>module documentation</small></h1>
+
+        <span id="partOf">
+          Part of <code><a href="comocma.html" data-type="Package" class="code">comocma</a></code>
+          
+          
+        </span>
+      </div>
+
+      <div class="extrasDocstring">
+        
+      </div>
+
+      <div class="moduleDocstring">
+        <pre>This module contains the implementation of the Multiobjective framework called
+Sofomore, and its instantiation with cma-es to obtain COMO-CMA-ES, defined in 
+the paper [Toure, Cheikh, et al. "Uncrowded Hypervolume Improvement: 
+        COMO-CMA-ES and the Sofomore framework." 
+        GECCO'19-Genetic and Evolutionary Computation Conference. 2019.].
+
+Only the bi-objective framework is functional and has been thoroughly tested.</pre>
+      </div>
+
+      <div id="splitTables">
+        <table class="children sortable" id="id2">
+  
+  <tr class="class">
+    
+    <td>Class</td>
+    <td><a href="comocma.como.Sofomore.html" data-type="Class" class="code">Sofomore</a></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="class">
+    
+    <td>Class</td>
+    <td><a href="comocma.como.IndicatorFront.html" data-type="Class" class="code">IndicatorFront</a></td>
+    <td><span>with <a href="comocma.como.IndicatorFront.html#hypervolume_improvement"><code>hypervolume_improvement</code></a> method based on a varying empirical front.</span></td>
+  </tr><tr class="function">
+    
+    <td>Function</td>
+    <td><a href="comocma.como.html#get_cmas" data-type="Function" class="code">get_cmas</a></td>
+    <td><span>Factory function that produces <code>len(x_starts)</code> instances of type <code>cmaKernel</code>.</span></td>
+  </tr><tr class="class">
+    
+    <td>Class</td>
+    <td><a href="comocma.como.CmaKernel.html" data-type="Class" class="code">CmaKernel</a></td>
+    <td><span>inheriting from the <code>cma.CMAEvolutionStrategy</code> class, by adding the property <a href="comocma.como.CmaKernel.html#incumbent"><code>incumbent</code></a>, the attributes <code>objective_values</code> and <code>_last_offspring_f_values</code>.</span></td>
+  </tr><tr class="class">
+    
+    <td>Class</td>
+    <td><a href="comocma.como.FitFun.html" data-type="Class" class="code">FitFun</a></td>
+    <td><span>Define a callable multiobjective function from single objective ones. Example: fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)).</span></td>
+  </tr><tr class="function">
+    
+    <td>Function</td>
+    <td><a href="comocma.como.html#sort_random" data-type="Function" class="code">sort_random</a></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="function">
+    
+    <td>Function</td>
+    <td><a href="comocma.como.html#sort_increasing" data-type="Function" class="code">sort_increasing</a></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="function">
+    
+    <td>Function</td>
+    <td><a href="comocma.como.html#sort_decreasing" data-type="Function" class="code">sort_decreasing</a></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="function">
+    
+    <td>Function</td>
+    <td><a href="comocma.como.html#sort_even_odds" data-type="Function" class="code">sort_even_odds</a></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="function">
+    
+    <td>Function</td>
+    <td><a href="comocma.como.html#sort_odds_even" data-type="Function" class="code">sort_odds_even</a></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr>
+</table>
+        
+
+          
+      </div>
+
+      <div id="childList">
+
+        <div class="basefunction">
+  
+  <a name="comocma.como.get_cmas">
+    
+  </a>
+  <a name="get_cmas">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    get_cmas(x_starts, sigma_starts, inopts=None, number_created_kernels=0):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <pre>Factory function that produces `len(x_starts)` instances of type `cmaKernel`.
+
+Parameters
+----------
+x_starts : TYPE list or list of lists or list of or ndarrays or ndarray
+    The initial means of the returned cmas.
+sigma_starts : TYPE float or list of floats
+    The initial step-sizes of the returned cmas.
+inopts : TYPE dict or list of dicts, optional
+    The cmas' options.
+number_created_kernels : TYPE int, optional
+    Used as the starting index for the returned cma's names.
+    The values of the options' key 'verb_filenameprefix' rely upon this
+    argument `number_created_kernels`.
+
+Returns
+-------
+A list of `CmaKernel` instances.
+
+Example::
+    &gt;&gt;&gt; import comocma
+    &gt;&gt;&gt; dimension = 10
+    &gt;&gt;&gt; sigma0 = 0.5
+    &gt;&gt;&gt; num_kernels = 11
+    &gt;&gt;&gt; cma_opts = {'tolx': 10**-4, 'popsize': 32}
+    &gt;&gt;&gt; list_of_solvers = comocma.get_cmas(num_kernels * [dimension * [0]], sigma0, cma_opts) 
+    
+    produce `num_kernels` cma instances.</pre>
+  </div>
+</div><div class="basefunction">
+  
+  <a name="comocma.como.sort_random">
+    
+  </a>
+  <a name="sort_random">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    sort_random(i):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <pre>Used for the update order of a Sofomore instance.
+Example::
+    moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_random})
+randomly picks the kernels to update in the `tell` method of Sofomore.</pre>
+  </div>
+</div><div class="basefunction">
+  
+  <a name="comocma.como.sort_increasing">
+    
+  </a>
+  <a name="sort_increasing">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    sort_increasing(i):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <pre>Example::
+    moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_increasing})
+updates respectively `self[0]`, `self[1]`, ..., `self[-1]` 
+in the `tell` method of Sofomore.</pre>
+  </div>
+</div><div class="basefunction">
+  
+  <a name="comocma.como.sort_decreasing">
+    
+  </a>
+  <a name="sort_decreasing">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    sort_decreasing(i):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <pre>Example::
+    moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_decreasing})
+updates respectively `self[-1]`, `self[-2]`, ..., `self[0]`
+in the `tell` method of Sofomore.</pre>
+  </div>
+</div><div class="basefunction">
+  
+  <a name="comocma.como.sort_even_odds">
+    
+  </a>
+  <a name="sort_even_odds">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    sort_even_odds(i):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <pre>Example::
+    moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_even_odds})
+pick the kernels with even indices before the kernels with odd indices in
+the `tell` method of Sofomore.</pre>
+  </div>
+</div><div class="basefunction">
+  
+  <a name="comocma.como.sort_odds_even">
+    
+  </a>
+  <a name="sort_odds_even">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    sort_odds_even(i):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <pre>Example::
+    moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_odds_even})
+pick the kernels with odd indices before the kernels with even indices 
+in the `tell` method of Sofomore.</pre>
+  </div>
+</div>
+
+      </div>
+      <address>
+        <a href="index.html">API Documentation</a> for comocma, generated by <a href="https://github.com/twisted/pydoctor/">pydoctor</a> at 2020-04-15 03:24:52.
+      </address>
+
+    </div>
+
+    <script type="text/javascript" src="pydoctor.js"></script>
+
+  </body>
+</html>

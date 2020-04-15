@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+          "DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <title>comocma.hv.MultiList : API documentation</title>
+
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <link type="text/css" href="bootstrap.min.css" rel="stylesheet" />
+    <link type="text/css" href="apidocs.css" rel="stylesheet" />
+  </head>
+  <body>
+
+    <nav class="navbar navbar-default">
+      <div class="container">
+        <div class="navbar-header">
+          <a href="index.html" class="navbar-brand">
+            comocma API Documentation
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <div id="showPrivate">
+      <button onclick="togglePrivate()" class="btn btn-link">Toggle Private API</button>
+    </div>
+
+    <div class="container">
+
+      <div class="page-header">
+        <h1 class="class"><code>comocma.hv.MultiList</code> <small>class documentation</small></h1>
+
+        <span id="partOf">
+          Part of <code><a href="comocma.html" data-type="Package" class="code">comocma</a>.<a href="comocma.hv.html" data-type="Module" class="code">hv</a></code>
+          
+          <a href="classIndex.html#comocma.hv.MultiList">(View In Hierarchy)</a>
+        </span>
+      </div>
+
+      <div class="extrasDocstring">
+        
+      </div>
+
+      <div class="moduleDocstring">
+        <div><p>A special data structure needed by FonsecaHyperVolume.</p>
+<p>It consists of several doubly linked lists that share common nodes. So,
+every node has multiple predecessors and successors, one in every list.</p><table class="fieldTable"></table></div>
+      </div>
+
+      <div id="splitTables">
+        <table class="children sortable" id="id9">
+  
+  <tr class="class">
+    
+    <td>Class</td>
+    <td><a href="comocma.hv.MultiList.Node.html" data-type="Class" class="code">Node</a></td>
+    <td><span class="undocumented">Undocumented</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.hv.MultiList.html#__init__" data-type="Method" class="code">__init__</a></td>
+    <td><span>Constructor.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.hv.MultiList.html#__str__" data-type="Method" class="code">__str__</a></td>
+    <td><span class="undocumented">Undocumented</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.hv.MultiList.html#__len__" data-type="Method" class="code">__len__</a></td>
+    <td><span>Returns the number of lists that are included in this MultiList.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.hv.MultiList.html#getLength" data-type="Method" class="code">getLength</a></td>
+    <td><span>Returns the length of the i-th list.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.hv.MultiList.html#append" data-type="Method" class="code">append</a></td>
+    <td><span>Appends a node to the end of the list at the given index.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.hv.MultiList.html#extend" data-type="Method" class="code">extend</a></td>
+    <td><span>Extends the list at the given index with the nodes.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.hv.MultiList.html#remove" data-type="Method" class="code">remove</a></td>
+    <td><span>Removes and returns 'node' from all lists in [0, 'index'[.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.hv.MultiList.html#reinsert" data-type="Method" class="code">reinsert</a></td>
+    <td><span>Inserts 'node' at the position it had in all lists in [0, 'index'[ before it was removed. This method assumes that the next and previous nodes of the node that is reinserted are in the list.</span></td>
+  </tr>
+</table>
+        
+
+          
+      </div>
+
+      <div id="childList">
+
+        <div class="basemethod">
+  
+  <a name="comocma.hv.MultiList.__init__">
+    
+  </a>
+  <a name="__init__">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    __init__(self, numberLists):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>Constructor.</p>
+<p>Builds 'numberLists' doubly linked lists.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.hv.MultiList.__str__">
+    
+  </a>
+  <a name="__str__">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    __str__(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div class="undocumented">Undocumented</div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.hv.MultiList.__len__">
+    
+  </a>
+  <a name="__len__">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    __len__(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>Returns the number of lists that are included in this MultiList.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.hv.MultiList.getLength">
+    
+  </a>
+  <a name="getLength">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    getLength(self, i):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>Returns the length of the i-th list.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.hv.MultiList.append">
+    
+  </a>
+  <a name="append">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    append(self, node, index):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>Appends a node to the end of the list at the given index.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.hv.MultiList.extend">
+    
+  </a>
+  <a name="extend">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    extend(self, nodes, index):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>Extends the list at the given index with the nodes.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.hv.MultiList.remove">
+    
+  </a>
+  <a name="remove">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    remove(self, node, index, bounds):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>Removes and returns 'node' from all lists in [0, 'index'[.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.hv.MultiList.reinsert">
+    
+  </a>
+  <a name="reinsert">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    reinsert(self, node, index, bounds):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>Inserts 'node' at the position it had in all lists in [0, 'index'[
+before it was removed. This method assumes that the next and previous
+nodes of the node that is reinserted are in the list.<table class="fieldTable"></table></div>
+  </div>
+</div>
+
+      </div>
+      <address>
+        <a href="index.html">API Documentation</a> for comocma, generated by <a href="https://github.com/twisted/pydoctor/">pydoctor</a> at 2020-04-15 03:24:52.
+      </address>
+
+    </div>
+
+    <script type="text/javascript" src="pydoctor.js"></script>
+
+  </body>
+</html>

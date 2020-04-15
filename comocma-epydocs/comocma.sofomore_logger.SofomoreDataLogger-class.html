@@ -1,0 +1,690 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>comocma.sofomore_logger.SofomoreDataLogger</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="comocma-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+      <th class="navbar" width="100%"></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <span class="breadcrumbs">
+        <a href="comocma-module.html">Package&nbsp;comocma</a> ::
+        <a href="comocma.sofomore_logger-module.html">Module&nbsp;sofomore_logger</a> ::
+        Class&nbsp;SofomoreDataLogger
+      </span>
+    </td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+        <tr><td align="right"><span class="options">[<a href="javascript:void(0);" class="privatelink"
+    onclick="toggle_private();">hide&nbsp;private</a>]</span></td></tr>
+        <tr><td align="right"><span class="options"
+            >[<a href="frames.html" target="_top">frames</a
+            >]&nbsp;|&nbsp;<a href="comocma.sofomore_logger.SofomoreDataLogger-class.html"
+            target="_top">no&nbsp;frames</a>]</span></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<!-- ==================== CLASS DESCRIPTION ==================== -->
+<h1 class="epydoc">Class SofomoreDataLogger</h1><p class="nomargin-top"><span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger">source&nbsp;code</a></span></p>
+<pre class="base-tree">
+                   object --+    
+                            |    
+cma.interfaces.BaseDataLogger --+
+                                |
+                               <strong class="uidshort">SofomoreDataLogger</strong>
+</pre>
+
+<hr />
+<p>data logger for class `CMAEvolutionStrategy`.</p>
+  <p>The logger is identified by its name prefix and (over-)writes or reads
+  according data files. Therefore, the logger must be considered as 
+  *global* variable with unpredictable side effects, if two loggers with 
+  the same name and on the same working folder are used at the same 
+  time.</p>
+  <h1 class="heading">Examples</h1>
+    <p>:</p>
+<pre class="literalblock">
+   import cma
+   es = cma.CMAEvolutionStrategy(...)
+   logger = cma.CMADataLogger().register(es)
+   while not es.stop():
+       ...
+       logger.add()  # add can also take an argument
+
+   logger.plot() # or a short cut can be used:
+   cma.plot()  # plot data from logger with default name
+
+   logger2 = cma.CMADataLogger('just_another_filename_prefix').load()
+   logger2.plot()
+   logger2.disp()
+
+   import cma
+   from matplotlib.pylab import *
+   res = cma.fmin(cma.ff.sphere, rand(10), 1e-0)
+   logger = res[-1]  # the CMADataLogger
+   logger.load()  # by &quot;default&quot; data are on disk
+   semilogy(logger.f[:,0], logger.f[:,5])  # plot f versus iteration, see file header
+   cma.s.figshow()
+</pre>
+  <h1 class="heading">Details</h1>
+    <p>After loading data, the logger has the attributes `xmean`, 
+    `xrecent`, `std`, `f`, `D` and `corrspec` corresponding to ``xmean``, 
+    ``xrecentbest``, ``stddev``, ``fit``, ``axlen`` and ``axlencorr`` 
+    filename trails.</p>
+    <p>:See: `disp` (), `plot` ()</p>
+
+<!-- ==================== INSTANCE METHODS ==================== -->
+<a name="section-InstanceMethods"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Instance Methods</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-InstanceMethods"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.sofomore_logger.SofomoreDataLogger-class.html#__init__" class="summary-sig-name">__init__</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">name_prefix</span>=<span class="summary-sig-default"><code class="variable-quote">'</code><code class="variable-string">outsofomore/</code><code class="variable-quote">'</code></span>,
+        <span class="summary-sig-arg">modulo</span>=<span class="summary-sig-default">1</span>,
+        <span class="summary-sig-arg">append</span>=<span class="summary-sig-default">False</span>)</span><br />
+      initialize logging of data from a `CMAEvolutionStrategy` instance, 
+      default ``modulo=1`` means logging with each call</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.__init__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.sofomore_logger.SofomoreDataLogger-class.html#register" class="summary-sig-name">register</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">es</span>,
+        <span class="summary-sig-arg">append</span>=<span class="summary-sig-default">None</span>,
+        <span class="summary-sig-arg">modulo</span>=<span class="summary-sig-default">None</span>)</span><br />
+      register a `Sofomore` instance for logging, ``append=True`` appends 
+      to previous data logged under the same name, by default previous data
+      are overwritten.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.register">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="initialize"></a><span class="summary-sig-name">initialize</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">modulo</span>=<span class="summary-sig-default">None</span>)</span><br />
+      reset logger, overwrite original files, `modulo`: log only every 
+      modulo call</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.initialize">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.sofomore_logger.SofomoreDataLogger-class.html#add" class="summary-sig-name">add</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">es</span>=<span class="summary-sig-default">None</span>,
+        <span class="summary-sig-arg">more_data</span>=<span class="summary-sig-default"><code class="variable-group">(</code><code class="variable-group">)</code></span>,
+        <span class="summary-sig-arg">modulo</span>=<span class="summary-sig-default">None</span>)</span><br />
+      append some logging data from `Sofomore` class instance `es`, if 
+      ``number_of_times_called % modulo`` equals to zero, never if 
+      ``modulo==0``.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.add">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.sofomore_logger.SofomoreDataLogger-class.html#load" class="summary-sig-name">load</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">filenames</span>)</span><br />
+      load data from file `name` or `self.filename`</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.load">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.sofomore_logger.SofomoreDataLogger-class.html#plot" class="summary-sig-name">plot</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">filename</span>,
+        <span class="summary-sig-arg">x_iteration</span>=<span class="summary-sig-default">0</span>)</span><br />
+      abstract method, plot data</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.plot">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="plot_front"></a><span class="summary-sig-name">plot_front</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">aspect</span>=<span class="summary-sig-default">None</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.plot_front">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="plot_ratios"></a><span class="summary-sig-name">plot_ratios</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">iabscissa</span>=<span class="summary-sig-default">1</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.plot_ratios">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="plot_divers"></a><span class="summary-sig-name">plot_divers</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">iabscissa</span>=<span class="summary-sig-default">1</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.plot_divers">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="plot_stds"></a><span class="summary-sig-name">plot_stds</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">iabscissa</span>=<span class="summary-sig-default">1</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.plot_stds">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_enter_plotting"></a><span class="summary-sig-name">_enter_plotting</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">fontsize</span>=<span class="summary-sig-default">7</span>)</span><br />
+      assumes that a figure is open</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger._enter_plotting">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_finalize_plotting"></a><span class="summary-sig-name">_finalize_plotting</span>(<span class="summary-sig-arg">self</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger._finalize_plotting">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_xlabel"></a><span class="summary-sig-name">_xlabel</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">iabscissa</span>=<span class="summary-sig-default">1</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger._xlabel">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>cma.interfaces.BaseDataLogger</code></b>:
+      <code>disp</code>,
+      <code>save</code>
+      </p>
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__delattr__</code>,
+      <code>__format__</code>,
+      <code>__getattribute__</code>,
+      <code>__hash__</code>,
+      <code>__new__</code>,
+      <code>__reduce__</code>,
+      <code>__reduce_ex__</code>,
+      <code>__repr__</code>,
+      <code>__setattr__</code>,
+      <code>__sizeof__</code>,
+      <code>__str__</code>,
+      <code>__subclasshook__</code>
+      </p>
+    </td>
+  </tr>
+</table>
+<!-- ==================== CLASS VARIABLES ==================== -->
+<a name="section-ClassVariables"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Class Variables</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-ClassVariables"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="default_prefix"></a><span class="summary-name">default_prefix</span> = <code title="'outsofomore/'"><code class="variable-quote">'</code><code class="variable-string">outsofomore/</code><code class="variable-quote">'</code></code>
+    </td>
+  </tr>
+</table>
+<!-- ==================== INSTANCE VARIABLES ==================== -->
+<a name="section-InstanceVariables"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Instance Variables</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-InstanceVariables"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="modulo"></a><span class="summary-name">modulo</span><br />
+      how often to record data, allows calling `add` without args
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="append"></a><span class="summary-name">append</span><br />
+      append to previous data
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="counter"></a><span class="summary-name">counter</span><br />
+      number of calls to `add`
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>cma.interfaces.BaseDataLogger</code></b>:
+      <code>filename</code>,
+      <code>optim</code>
+      </p>
+    <div class="private">    <p class="indent-wrapped-lines"><b>Inherited from <code>cma.interfaces.BaseDataLogger</code></b> (private):
+      <code>_data</code>
+      </p></div>
+    </td>
+  </tr>
+</table>
+<!-- ==================== PROPERTIES ==================== -->
+<a name="section-Properties"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Properties</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-Properties"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>cma.interfaces.BaseDataLogger</code></b>:
+      <code>data</code>
+      </p>
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__class__</code>
+      </p>
+    </td>
+  </tr>
+</table>
+<!-- ==================== METHOD DETAILS ==================== -->
+<a name="section-MethodDetails"></a>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Method Details</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-MethodDetails"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+<a name="__init__"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">__init__</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">name_prefix</span>=<span class="sig-default"><code class="variable-quote">'</code><code class="variable-string">outsofomore/</code><code class="variable-quote">'</code></span>,
+        <span class="sig-arg">modulo</span>=<span class="sig-default">1</span>,
+        <span class="sig-arg">append</span>=<span class="sig-default">False</span>)</span>
+    <br /><em class="fname">(Constructor)</em>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.__init__">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>initialize logging of data from a `CMAEvolutionStrategy` instance, 
+  default ``modulo=1`` means logging with each call</p>
+  <dl class="fields">
+    <dt>Overrides:
+        object.__init__
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="register"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">register</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">es</span>,
+        <span class="sig-arg">append</span>=<span class="sig-default">None</span>,
+        <span class="sig-arg">modulo</span>=<span class="sig-default">None</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.register">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>register a `Sofomore` instance for logging, ``append=True`` appends to
+  previous data logged under the same name, by default previous data are 
+  overwritten.</p>
+  <dl class="fields">
+    <dt>Overrides:
+        cma.interfaces.BaseDataLogger.register
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="add"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">add</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">es</span>=<span class="sig-default">None</span>,
+        <span class="sig-arg">more_data</span>=<span class="sig-default"><code class="variable-group">(</code><code class="variable-group">)</code></span>,
+        <span class="sig-arg">modulo</span>=<span class="sig-default">None</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.add">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>append some logging data from `Sofomore` class instance `es`, if 
+  ``number_of_times_called % modulo`` equals to zero, never if 
+  ``modulo==0``.</p>
+  <p>``more_data`` is a list of additional data to be recorded where each 
+  data entry must have the same length.</p>
+  <p>When used for a different optimizer class, this function can be 
+  (easily?) adapted by changing the assignments under INTERFACE in the 
+  implemention.</p>
+  <dl class="fields">
+    <dt>Overrides:
+        cma.interfaces.BaseDataLogger.add
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="load"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">load</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">filenames</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.load">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>load data from file `name` or `self.filename`</p>
+  <dl class="fields">
+    <dt>Overrides:
+        cma.interfaces.BaseDataLogger.load
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="plot"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">plot</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">filename</span>,
+        <span class="sig-arg">x_iteration</span>=<span class="sig-default">0</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.sofomore_logger-pysrc.html#SofomoreDataLogger.plot">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>abstract method, plot data</p>
+  <dl class="fields">
+    <dt>Overrides:
+        cma.interfaces.BaseDataLogger.plot
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<br />
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="comocma-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+      <th class="navbar" width="100%"></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Wed Apr 15 04:05:07 2020
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>

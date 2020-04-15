@@ -1,0 +1,1308 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>comocma.como.Sofomore</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="comocma-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+      <th class="navbar" width="100%"></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <span class="breadcrumbs">
+        <a href="comocma-module.html">Package&nbsp;comocma</a> ::
+        <a href="comocma.como-module.html">Module&nbsp;como</a> ::
+        Class&nbsp;Sofomore
+      </span>
+    </td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+        <tr><td align="right"><span class="options">[<a href="javascript:void(0);" class="privatelink"
+    onclick="toggle_private();">hide&nbsp;private</a>]</span></td></tr>
+        <tr><td align="right"><span class="options"
+            >[<a href="frames.html" target="_top">frames</a
+            >]&nbsp;|&nbsp;<a href="comocma.como.Sofomore-class.html"
+            target="_top">no&nbsp;frames</a>]</span></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<!-- ==================== CLASS DESCRIPTION ==================== -->
+<h1 class="epydoc">Class Sofomore</h1><p class="nomargin-top"><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore">source&nbsp;code</a></span></p>
+<pre class="base-tree">
+                object --+    
+                         |    
+cma.interfaces.OOOptimizer --+
+                             |
+                            <strong class="uidshort">Sofomore</strong>
+</pre>
+
+<hr />
+<pre class="literalblock">
+
+Sofomore framework for multiobjective optimization, with the 
+ask-and-tell interface.
+See: [Toure, Cheikh, et al. &quot;Uncrowded Hypervolume Improvement: 
+    COMO-CMA-ES and the Sofomore framework.&quot; 
+    GECCO'19-Genetic and Evolutionary Computation Conference. 2019.].
+    
+Calling Sequences
+=================
+
+- ``moes = Sofomore(list_of_solvers_instances, reference_point, opts)``
+
+- ``moes = Sofomore(list_of_solvers_instances, reference_point)``
+
+- ``moes = Sofomore(list_of_solvers_instances, 
+                         reference_point).optimize(objective_fcts)``
+
+Arguments   
+=========
+`list_of_solvers_instances`
+    list of instances of single-objective solvers.
+    It's generally created via a factory function.
+    Let's take the example of a factory function that returns cma-es 
+    instances, called `get_cmas`. Then:
+    ``list_of_solvers_instances = get_cmas(11 * [x0], sigma0)`` 
+    creates a list of 11 cma-es instances of initial mean `x0` and initial 
+    step-size `sigma0`.
+    A single-objective solver instance must have the following
+    attributes and methods:
+        - `incumbent`: an attribute that gives an estimate of 
+        the single-objective solver.
+        - `objective_values`: an attribute that stores the objective 
+        values of the incumbent.
+        - `stop`: a method returning a dictionary representing the 
+        termination status.
+        - `ask`: generates new candidate solutions.
+        - `tell`: passes the objective values and updates the states of the
+        single-objective solvers.
+            
+        
+`opts`
+    opts, a dictionary with optional settings related to the 
+    Sofomore framework. It mainly contains the following keys:
+        - 'archive': default value is `True`. 
+        If its value is `True`, tracks the non-dominated
+        points that dominate the reference point, among the points evaluated
+        so far during the optimization.
+        The archive will not interfere with the optimization 
+        process.
+        - 'indicator_front': default value is `None`. Used via
+        `self.indicator_front = IndicatorFront(self.opts['indicator_front'])` 
+        within the __init__ method of Sofomore. See the class IndicatorFront
+        for more details.
+        - 'restart': used to define in __init__ the attribute `restart` via
+        `self.restart = self.opts['restart']`.
+        - 'update_order': default value is a function that takes a natural 
+        integer as input and returns a random number between 0 and 1.
+        It is used as a `key value` in: `sorted(..., key = ...)`, and guides the
+        order in which the kernels will be updated during the optimization.
+
+
+`reference_point`  
+    reference point of the multiobjective optimization.
+    Its default value is `None` but should be set by the user 
+    beforehand to guarantee an optimal p-distribution convergence of 
+    the Hypervolume indicator of `p` points towards the Pareto set/front.
+    It can be changed dynamically by the user if needed.
+    
+
+Main interface / usage
+======================
+The interface is inherited from the generic `OOOptimizer`
+class, which is the same interface used by the `pycma` module. An object 
+instance is generated as following::
+    
+    &gt;&gt;&gt; import cma, comocma
+    &gt;&gt;&gt; import numpy as np
+    &gt;&gt;&gt; reference_point = [11, 11]
+    &gt;&gt;&gt; num_kernels = 11 # the number of points we seek to have on the Pareto front
+    &gt;&gt;&gt; dimension = 10 # the dimension of the search space
+    &gt;&gt;&gt; x0 = dimension * [0] # an initial mean for cma
+    &gt;&gt;&gt; sigma0 = 0.2 # initial step-size for cma
+    &gt;&gt;&gt; list_of_solvers_instances = comocma.get_cmas(num_kernels * [x0], sigma0, {'verbose':-9})
+    &gt;&gt;&gt; # `comocma.get_cmas` is a factory function that returns `num_kernels` cma-es instances
+    &gt;&gt;&gt; moes = comocma.Sofomore(list_of_solvers_instances,
+    ...                      reference_point) #instantiation of our MO optimizer
+
+The least verbose interface is via the optimize method::
+    &gt;&gt;&gt; fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
+    &gt;&gt;&gt; moes.optimize(fitness) # doctest:+ELLIPSIS
+    Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&amp;max stds***
+    
+More verbosely, the optimization of the callable multiobjective function 
+`fitness` is done via the `ask-and-tell` interface::
+ 
+    &gt;&gt;&gt; moes = comocma.Sofomore(list_of_solvers_instances, reference_point)
+    &gt;&gt;&gt; while not moes.stop() and moes.countiter &lt; 30:
+    ...     solutions = moes.ask() # `ask` delivers new candidate solutions
+    ...     objective_values = [fitness(x) for x in solutions]
+    ...     moes.tell(solutions, objective_values)
+    ...  # `tell` updates the MO instance by passing the respective function values.
+    ...     moes.disp() # display data on the evolution of the optimization 
+
+One iteration of the `optimize` interface is equivalent to one step in the 
+loop of the `ask-and-tell` interface. But for the latter, the prototyper has
+more controls to analyse and guide the optimization, due to the access of 
+the instance between the `ask` and the `tell` calls.
+
+Attributes and Properties
+=========================
+
+- `archive`: list of non-dominated points among all points evaluated 
+so far, which dominate the reference point.
+- `countevals`: the number of function evaluations.
+- `countiter`: the number of iterations.
+- `dimension`: is the dimension of the search space.
+- `indicator_front`: the indicator used as a changing fitness inside an
+iteration of Sofomore. By default it is the UHVI of all the objective values
+of the kernels' incumbents, except the kernel being optimized.
+See the class `IndicatorFront` for more details.
+- `isarchive`: a boolean accessible via `self.opts['archive']`. If `True`,
+we keep track of the archive, otherwise we don't.
+- `kernels`: initialized with `list_of_solvers_instances`, 
+and is the list of single-objective solvers.
+- `key_sort_indices`: default value is `self.opts['update_order']`.
+It is a function used as a key to sort some kernels' indices, in order to
+select the first indices during the call of the `ask` method.
+- `logger`: an attribute that accounts for the way we log the Sofomore data
+during an optimization. `self.logger` is an instance of the SofomoreDataLogger
+class.
+- `NDA`: it is the non-dominated archiving method used within Sofomore.
+By default the class `BiobjectiveNondominatedSortedList` is used
+in two objectives and the class (non tested yet) `NonDominatedList` is used
+for three or more objectives.
+- `opts`: passed options.
+- `offspring`: list of tuples of the index of a kernel with its 
+corresponding candidate solutions, that we generally get with the cma's 
+`ask` method.
+- `pareto_front_cut`: list of non-dominated points among the incumbents of 
+`self.kernels`, which dominate the reference point.
+- `pareto_set_cut`: preimage of `pareto_front_cut`.
+- `reference_point`: the current reference point.
+- `restart`: accessible via `self.opts['restart']`. If not `None`, a callback
+function that adds kernels after a kernel of the running Sofomore instance
+stops. Its default value is `None`, meaning that we do not do any restart.
+- `_active_indices`: the indices of the kernels that have not stopped yet.
+- `_last_stopped_kernel_id`: the index of the last stopped kernel.
+- `_told_indices`: the kernels' indices for which we will evaluate the 
+objective values of their incumbents, before the next call of the `tell` 
+method. And before the first call of `tell`, they are the indices of all the
+initial kernels (i.e. `range(len(self))`). And before another call of 
+`tell`, they are the indices of the kernels from which we have sampled new 
+candidate solutions during the penultimate `ask` method. 
+Note that we should call the `ask` method before any call of the `tell`
+method.
+
+</pre>
+
+<!-- ==================== INSTANCE METHODS ==================== -->
+<a name="section-InstanceMethods"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Instance Methods</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-InstanceMethods"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.Sofomore-class.html#__init__" class="summary-sig-name">__init__</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">list_of_solvers_instances</span>,
+        <span class="summary-sig-arg">reference_point</span>=<span class="summary-sig-default">None</span>,
+        <span class="summary-sig-arg">opts</span>=<span class="summary-sig-default">None</span>)</span><br />
+      Initialization:</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.__init__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="__iter__"></a><span class="summary-sig-name">__iter__</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      make `self` iterable.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.__iter__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="__getitem__"></a><span class="summary-sig-name">__getitem__</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">i</span>)</span><br />
+      make `self` subscriptable.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.__getitem__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.Sofomore-class.html#__len__" class="summary-sig-name">__len__</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      return length of the `Sofomore` instance by calling ``len(.)``.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.__len__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.Sofomore-class.html#_UHVI_indicator_archive" class="summary-sig-name" onclick="show_private();">_UHVI_indicator_archive</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">kernel</span>)</span><br />
+      return archive for uncrowded hypervolume improvement indicator for 
+      `kernel`.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore._UHVI_indicator_archive">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.Sofomore-class.html#_UHVI_indicator" class="summary-sig-name" onclick="show_private();">_UHVI_indicator</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">kernel</span>)</span><br />
+      return indicator function(!) for uncrowded hypervolume improvement 
+      for `kernel`.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore._UHVI_indicator">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.Sofomore-class.html#sorted" class="summary-sig-name">sorted</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">key</span>=<span class="summary-sig-default">None</span>,
+        <span class="summary-sig-arg">reverse</span>=<span class="summary-sig-default">True</span>,
+        <span class="summary-sig-arg">**kwargs</span>)</span><br />
+      return a reversed sorted list of kernels.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.sorted">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.Sofomore-class.html#ask" class="summary-sig-name">ask</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">number_to_ask</span>=<span class="summary-sig-default">1</span>)</span><br />
+      get the kernels' incumbents to be evaluated and sample new candidate solutions from 
+`number_to_ask` kernels.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.ask">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.Sofomore-class.html#tell" class="summary-sig-name">tell</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">solutions</span>,
+        <span class="summary-sig-arg">objective_values</span>)</span><br />
+      pass objective function values to update the state variables of some 
+kernels, `self._told_indices` and eventually `self.archive`.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.tell">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.Sofomore-class.html#stop" class="summary-sig-name">stop</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      return a nonempty dictionary when all kernels stop, containing all the
+termination status.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.stop">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.Sofomore-class.html#add" class="summary-sig-name">add</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">kernels</span>)</span><br />
+      add `kernels` of type `list` to `self.kernels`.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.add">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.Sofomore-class.html#remove" class="summary-sig-name">remove</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">kernels</span>)</span><br />
+      remove elements of the `kernels` (type `list`) that belong to 
+      `self.kernels`, and update the `_active_indices` attribute.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.remove">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_indices_to_ask"></a><span class="summary-sig-name">_indices_to_ask</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">number_to_ask</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore._indices_to_ask">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.Sofomore-class.html#inactivate" class="summary-sig-name">inactivate</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">kernel</span>)</span><br />
+      inactivate `kernel`, assuming that it's an element of `self.kernels`,
+      or an index in `range(len(self))`.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.inactivate">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.Sofomore-class.html#activate" class="summary-sig-name">activate</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">kernel</span>)</span><br />
+      activate `kernel` when it was inactivated beforehand.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.activate">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.Sofomore-class.html#disp_annotation" class="summary-sig-name">disp_annotation</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      copy-pasted from `cma.evolution_strategy`.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.disp_annotation">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.Sofomore-class.html#disp" class="summary-sig-name">disp</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">modulo</span>=<span class="summary-sig-default">None</span>)</span><br />
+      copy-pasted from `cma.evolution_strategy`.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.disp">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>cma.interfaces.OOOptimizer</code></b>:
+      <code>initialize</code>,
+      <code>optimize</code>
+      </p>
+    <div class="private">    <p class="indent-wrapped-lines"><b>Inherited from <code>cma.interfaces.OOOptimizer</code></b> (private):
+      <code>_force_final_logging</code>,
+      <code>_prepare_callback_list</code>
+      </p></div>
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__delattr__</code>,
+      <code>__format__</code>,
+      <code>__getattribute__</code>,
+      <code>__hash__</code>,
+      <code>__new__</code>,
+      <code>__reduce__</code>,
+      <code>__reduce_ex__</code>,
+      <code>__repr__</code>,
+      <code>__setattr__</code>,
+      <code>__sizeof__</code>,
+      <code>__str__</code>,
+      <code>__subclasshook__</code>
+      </p>
+    </td>
+  </tr>
+</table>
+<!-- ==================== PROPERTIES ==================== -->
+<a name="section-Properties"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Properties</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-Properties"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a href="comocma.como.Sofomore-class.html#pareto_front_cut" class="summary-name">pareto_front_cut</a><br />
+      return the non-dominated solutions dominating the reference point, 
+      among the kernels' objective values.
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a href="comocma.como.Sofomore-class.html#pareto_set_cut" class="summary-name">pareto_set_cut</a><br />
+      return the non-dominated solutions whose images dominate the 
+      reference point, among the kernels' incumbents.
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a href="comocma.como.Sofomore-class.html#pareto_front_uncut" class="summary-name">pareto_front_uncut</a><br />
+      provisorial, return _all_ non-dominated objective values 
+      irrespectively
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a href="comocma.como.Sofomore-class.html#termination_status" class="summary-name">termination_status</a><br />
+      return a dictionary of the current termination states of the kernels.
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a href="comocma.como.Sofomore-class.html#median_stds" class="summary-name">median_stds</a>
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a href="comocma.como.Sofomore-class.html#max_max_stds" class="summary-name">max_max_stds</a>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>cma.interfaces.OOOptimizer</code></b>:
+      <code>result</code>
+      </p>
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__class__</code>
+      </p>
+    </td>
+  </tr>
+</table>
+<!-- ==================== METHOD DETAILS ==================== -->
+<a name="section-MethodDetails"></a>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Method Details</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-MethodDetails"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+<a name="__init__"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">__init__</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">list_of_solvers_instances</span>,
+        <span class="sig-arg">reference_point</span>=<span class="sig-default">None</span>,
+        <span class="sig-arg">opts</span>=<span class="sig-default">None</span>)</span>
+    <br /><em class="fname">(Constructor)</em>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.__init__">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Initialization:</p>
+  <ul>
+    <li>
+      `list_of_solvers_instances` is a list of single-objective solvers' 
+      instances
+    </li>
+    <li>
+      The reference_point is set by the user during the initialization.
+    </li>
+    <li>
+      `opts` is a dictionary updating the values of 'indicator_front', 
+      'archive', 'restart', 'update_order'; that respond respectfully to 
+      the changing fitness we will choose within an iteration of Sofomore, 
+      whether or not keeping an archive, how to do the restart in case of 
+      any restart, and the order of update of the kernels. It also has the 
+      keys 'verb_filename', 'verb_log' and 'verb_disp'; that respectfully 
+      indicate the name of the filename containing the Sofomore data, the 
+      logging of the Sofomore data every 'verb_log' iterations and the 
+      display of the data via `self.disp()` every 'verb_disp' iterations.
+    </li>
+  </ul>
+  <dl class="fields">
+    <dt>Overrides:
+        object.__init__
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="__len__"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">__len__</span>(<span class="sig-arg">self</span>)</span>
+    <br /><em class="fname">(Length operator)</em>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.__len__">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>return length of the `Sofomore` instance by calling ``len(.)``.</p>
+  <p>The length is the number of (active and inactive) kernels and hence 
+  consistent with subscription like ``[moes[i] for i in range(len(moes)) if
+  i in moes._active_indices]``.</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="_UHVI_indicator_archive"></a>
+<div class="private">
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">_UHVI_indicator_archive</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">kernel</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore._UHVI_indicator_archive">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>return archive for uncrowded hypervolume improvement indicator for 
+  `kernel`.</p>
+  <p>`kernel` can also be the respective index in `self`.</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="_UHVI_indicator"></a>
+<div class="private">
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">_UHVI_indicator</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">kernel</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore._UHVI_indicator">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>return indicator function(!) for uncrowded hypervolume improvement for
+  `kernel`.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">import</span> comocma, cma
+<span class="py-prompt">&gt;&gt;&gt; </span>list_of_solvers_instances = comocma.get_cmas(13 * [5 * [1]], 0.7, {<span class="py-string">'verbose'</span>:-9})
+<span class="py-prompt">&gt;&gt;&gt; </span>fitness = comocma.FitFun(cma.ff.sphere, <span class="py-keyword">lambda</span> x: cma.ff.sphere(x-1))
+<span class="py-prompt">&gt;&gt;&gt; </span>moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
+<span class="py-prompt">&gt;&gt;&gt; </span>moes.optimize(fitness, iterations=37) <span class="py-comment"># doctest:+ELLIPSIS</span>
+<span class="py-output">Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&amp;max stds***</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>moes._UHVI_indicator(moes[1])(moes[2].objective_values) <span class="py-comment"># doctest:+ELLIPSIS</span>
+<span class="py-output">***</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>moes._UHVI_indicator(1)(moes[2].objective_values) <span class="py-comment"># doctest:+ELLIPSIS</span>
+<span class="py-output">***</span></pre>
+  <p>both return the UHVI indicator function for kernel 1 and evaluate 
+  kernel 2 on it:</p>
+<pre class="literalblock">
+  &gt;&gt;&gt; [[moes._UHVI_indicator(k)(k.objective_values)] for k in moes] # doctest:+ELLIPSIS
+  ***
+</pre>
+  <p>is the list of UHVI values for all kernels where kernels occupying the
+  very same objective value have indicator value zero.</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="sorted"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">sorted</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">key</span>=<span class="sig-default">None</span>,
+        <span class="sig-arg">reverse</span>=<span class="sig-default">True</span>,
+        <span class="sig-arg">**kwargs</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.sorted">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>return a reversed sorted list of kernels.</p>
+  <p>By default kernels are reversed sorted by HV contribution or UHVI 
+  (which we aim to maximize) in the set of kernels. Exact copies have zero 
+  or negative UHVI value.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">import</span> comocma, cma
+<span class="py-prompt">&gt;&gt;&gt; </span>list_of_solvers_instances = comocma.get_cmas(13 * [5 * [1]], 0.7, {<span class="py-string">'verbose'</span>:-9})
+<span class="py-prompt">&gt;&gt;&gt; </span>fitness = comocma.FitFun(cma.ff.sphere, <span class="py-keyword">lambda</span> x: cma.ff.sphere(x-1))
+<span class="py-prompt">&gt;&gt;&gt; </span>moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
+<span class="py-prompt">&gt;&gt;&gt; </span>moes.optimize(fitness, iterations=31) <span class="py-comment"># doctest:+ELLIPSIS</span>
+<span class="py-output">Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&amp;max stds***</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>moes.sorted(key = <span class="py-keyword">lambda</span> k: moes.archive.contributing_hypervolume(
+<span class="py-more">... </span>                         k.objective_values)) <span class="py-comment"># doctest:+ELLIPSIS</span>
+<span class="py-output">[&lt;comocma.como.CmaKernel object at***</span></pre>
+  <p>sorts w.r.t. archive contribution (clones may get positive 
+  contribution).</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="ask"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">ask</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">number_to_ask</span>=<span class="sig-default">1</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.ask">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <pre class="literalblock">
+
+get the kernels' incumbents to be evaluated and sample new candidate solutions from 
+`number_to_ask` kernels.
+The sampling is done by calling the `ask` method of the
+`cma.CMAEvolutionStrategy` class.
+The indices of the considered kernels' incumbents are given by the 
+`_told_indices` attribute.
+
+To get the `number_to_ask` kernels, we use the function `self.key_sort_indices` as
+a key to sort `self._remaining_indices_to_ask` (which is the list of
+kernels' indices wherein we choose the first `number_to_ask` elements.
+And if `number_to_ask` is larger than `len(self._remaining_indices_to_ask)`,
+we select the list `self._remaining_indices_to_ask` extended with the  
+first `number_to_ask - len(self._remaining_indices_to_ask)` elements
+of `range(len(self))`, sorted with `self.key_sort_indices` as key.
+
+Arguments
+---------
+- `number_to_ask`: the number of kernels for which we sample solutions
+ from, it is of TYPE int or str and is smaller or equal to `len(self)`.
+ The unique case where it is a str instance is when it is equal to 
+ &quot;all&quot;, meaning that all the kernels are asked. That case is mainly used
+ on parallel mode by distributing the evaluations of the kernels at the
+ same time before calling the `tell` method. The opposite is when
+ `number_to_ask` is equal to 1, which is the exact COMO-CMA-ES algorithm,
+ where the evaluations are done sequentially by updating the kernels one
+ by one.
+
+Return
+------
+The list of the kernels' incumbents to be evaluated, extended with a
+list of N-dimensional (N is the dimension of the search space) 
+candidate solutions generated from `number_to_ask` kernels 
+to be evaluated.
+
+:See: the `ask` method from the class `cma.CMAEvolutionStrategy`,
+    in `evolution_strategy.py` from the `cma` module.
+    
+
+</pre>
+  <dl class="fields">
+    <dt>Overrides:
+        cma.interfaces.OOOptimizer.ask
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="tell"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">tell</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">solutions</span>,
+        <span class="sig-arg">objective_values</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.tell">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <pre class="literalblock">
+
+pass objective function values to update the state variables of some 
+kernels, `self._told_indices` and eventually `self.archive`.
+Arguments
+---------
+`solutions`
+    list or array of points (of type `numpy.ndarray`), most presumably 
+    before delivered by the `ask()` method.
+`objective_values`
+    list of multiobjective function values (of type `list`)
+    corresponding to the respective points in `solutions`.
+`constraints_values`
+    list of list of constraint values: each element is a list containing
+    the values of one constraint function, that are obtained by evaluation
+    on `solutions`.
+    
+
+Details
+-------
+To update a kernel, `tell()` applies the kernel's `tell` method
+to the kernel's corresponding candidate solutions (offspring) along
+with the &quot;changing&quot; fitness `- self.indicator_front.hypervolume_improvement`.
+
+:See: 
+    - the `tell` method from the class `cma.CMAEvolutionStrategy`,
+    in `evolution_strategy.py` from the `cma` module.
+    - the `hypervolume_improvement` method from the class
+    `BiobjectiveNondominatedSortedList`, in the module `moarchiving.py`
+    - the `hypervolume_improvement` method from the class
+    `NonDominatedList`, in the module `nondominatedarchive.py`
+
+</pre>
+  <dl class="fields">
+    <dt>Overrides:
+        cma.interfaces.OOOptimizer.tell
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="stop"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">stop</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.stop">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <pre class="literalblock">
+
+return a nonempty dictionary when all kernels stop, containing all the
+termination status. Therefore it's solely ... on the kernels' `stop`
+method, which also return dictionaries.
+Return
+------
+For example with 5 kernels, stop should return either None, or a `dict`
+of the form:
+    {0: dict0,
+     1: dict1,
+     2: dict2,
+     3: dict2,
+     4: dict4},
+where each index `i` is a key which value is the `dict` instance
+`self.kernels[i].stop()`
+
+</pre>
+  <dl class="fields">
+    <dt>Overrides:
+        cma.interfaces.OOOptimizer.stop
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="add"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">add</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">kernels</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.add">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>add `kernels` of type `list` to `self.kernels`. Generally, `kernels` 
+  are created from a factory function. If `kernels` is of length 1, the 
+  brackets can be omitted.</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="remove"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">remove</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">kernels</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.remove">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>remove elements of the `kernels` (type `list`) that belong to 
+  `self.kernels`, and update the `_active_indices` attribute. If `kernels` 
+  is of length 1, the brackets can be omitted.</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="inactivate"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">inactivate</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">kernel</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.inactivate">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>inactivate `kernel`, assuming that it's an element of `self.kernels`, 
+  or an index in `range(len(self))`. When inactivated, `kernel` is no 
+  longer updated, it is ignored. However we do not remove it from 
+  `self.kernels`, meaning that `kernel` might still play a role, due to its
+  eventual trace in `self.pareto_front_cut`.</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="activate"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">activate</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">kernel</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.activate">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>activate `kernel` when it was inactivated beforehand. Otherwise it 
+  remains quiet.</p>
+  <p>We expect the kernel's `stop` method in interest to look like: 
+  kernel.stop() = {'callback': ['kernel turned off']}</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="disp_annotation"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">disp_annotation</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.disp_annotation">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>copy-pasted from `cma.evolution_strategy`. print annotation line for 
+  `disp` ()</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="disp"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">disp</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">modulo</span>=<span class="sig-default">None</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#Sofomore.disp">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>copy-pasted from `cma.evolution_strategy`. print current state 
+  variables in a single-line. copy-pasted from `cma.evolution_strategy` 
+  module</p>
+  <p>Prints only if ``iteration_counter % modulo == 0``.</p>
+  <p>:See also: `disp_annotation`.</p>
+  <dl class="fields">
+    <dt>Overrides:
+        cma.interfaces.OOOptimizer.disp
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<br />
+<!-- ==================== PROPERTY DETAILS ==================== -->
+<a name="section-PropertyDetails"></a>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Property Details</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-PropertyDetails"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+<a name="pareto_front_cut"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <h3 class="epydoc">pareto_front_cut</h3>
+  <p>return the non-dominated solutions dominating the reference point, 
+  among the kernels' objective values. It's the image of 
+  `self.pareto_set_cut`.</p>
+  <dl class="fields">
+    <dt>Get Method:</dt>
+    <dd class="value"><span class="summary-sig"><i>unreachable</i>.pareto_front_cut(<span class="summary-sig-arg">self</span>)</span>
+        - return the non-dominated solutions dominating the reference point, among 
+the kernels' objective values.
+    </dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="pareto_set_cut"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <h3 class="epydoc">pareto_set_cut</h3>
+  <p>return the non-dominated solutions whose images dominate the reference
+  point, among the kernels' incumbents. It's the pre-image of 
+  `self.pareto_front_cut`.</p>
+  <dl class="fields">
+    <dt>Get Method:</dt>
+    <dd class="value"><span class="summary-sig"><i>unreachable</i>.pareto_set_cut(<span class="summary-sig-arg">self</span>)</span>
+        - return the non-dominated solutions whose images dominate the reference 
+point, among the kernels' incumbents.
+    </dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="pareto_front_uncut"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <h3 class="epydoc">pareto_front_uncut</h3>
+  <p>provisorial, return _all_ non-dominated objective values 
+  irrespectively</p>
+  <p>of the current reference point. Only points whose contributing HV does
+  not depend on the current reference point still have the same cHV in the 
+  resulting `list`. HV improvements in general may change.</p>
+  <dl class="fields">
+    <dt>Get Method:</dt>
+    <dd class="value"><span class="summary-sig"><i>unreachable</i>.pareto_front_uncut(<span class="summary-sig-arg">self</span>)</span>
+        - provisorial, return _all_ non-dominated objective values irrespectively
+    </dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="termination_status"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <h3 class="epydoc">termination_status</h3>
+  <p>return a dictionary of the current termination states of the 
+  kernels.</p>
+  <dl class="fields">
+    <dt>Get Method:</dt>
+    <dd class="value"><span class="summary-sig"><i>unreachable</i>.termination_status(<span class="summary-sig-arg">self</span>)</span>
+        - return a dictionary of the current termination states of the kernels.
+    </dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="median_stds"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <h3 class="epydoc">median_stds</h3>
+  
+  <dl class="fields">
+    <dt>Get Method:</dt>
+    <dd class="value"><span class="summary-sig"><i>unreachable</i>.median_stds(<span class="summary-sig-arg">self</span>)</span>
+    </dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="max_max_stds"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <h3 class="epydoc">max_max_stds</h3>
+  
+  <dl class="fields">
+    <dt>Get Method:</dt>
+    <dd class="value"><span class="summary-sig"><i>unreachable</i>.max_max_stds(<span class="summary-sig-arg">self</span>)</span>
+    </dd>
+  </dl>
+</td></tr></table>
+</div>
+<br />
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="comocma-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+      <th class="navbar" width="100%"></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Wed Apr 15 04:05:07 2020
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>

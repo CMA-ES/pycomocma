@@ -1,0 +1,931 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+          "DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <title>comocma.como.Sofomore : API documentation</title>
+
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <link type="text/css" href="bootstrap.min.css" rel="stylesheet" />
+    <link type="text/css" href="apidocs.css" rel="stylesheet" />
+  </head>
+  <body>
+
+    <nav class="navbar navbar-default">
+      <div class="container">
+        <div class="navbar-header">
+          <a href="index.html" class="navbar-brand">
+            comocma API Documentation
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <div id="showPrivate">
+      <button onclick="togglePrivate()" class="btn btn-link">Toggle Private API</button>
+    </div>
+
+    <div class="container">
+
+      <div class="page-header">
+        <h1 class="class"><code>comocma.como.Sofomore(<span title="cma.interfaces.OOOptimizer">interfaces.OOOptimizer</span>)</code> <small>class documentation</small></h1>
+
+        <span id="partOf">
+          Part of <code><a href="comocma.html" data-type="Package" class="code">comocma</a>.<a href="comocma.como.html" data-type="Module" class="code">como</a></code>
+          
+          <a href="classIndex.html#comocma.como.Sofomore">(View In Hierarchy)</a>
+        </span>
+      </div>
+
+      <div class="extrasDocstring">
+        
+      </div>
+
+      <div class="moduleDocstring">
+        <pre>Sofomore framework for multiobjective optimization, with the 
+ask-and-tell interface.
+See: [Toure, Cheikh, et al. "Uncrowded Hypervolume Improvement: 
+    COMO-CMA-ES and the Sofomore framework." 
+    GECCO'19-Genetic and Evolutionary Computation Conference. 2019.].
+    
+Calling Sequences
+=================
+
+- ``moes = Sofomore(list_of_solvers_instances, reference_point, opts)``
+
+- ``moes = Sofomore(list_of_solvers_instances, reference_point)``
+
+- ``moes = Sofomore(list_of_solvers_instances, 
+                         reference_point).optimize(objective_fcts)``
+
+Arguments   
+=========
+`list_of_solvers_instances`
+    list of instances of single-objective solvers.
+    It's generally created via a factory function.
+    Let's take the example of a factory function that returns cma-es 
+    instances, called `get_cmas`. Then:
+    ``list_of_solvers_instances = get_cmas(11 * [x0], sigma0)`` 
+    creates a list of 11 cma-es instances of initial mean `x0` and initial 
+    step-size `sigma0`.
+    A single-objective solver instance must have the following
+    attributes and methods:
+        - `incumbent`: an attribute that gives an estimate of 
+        the single-objective solver.
+        - `objective_values`: an attribute that stores the objective 
+        values of the incumbent.
+        - `stop`: a method returning a dictionary representing the 
+        termination status.
+        - `ask`: generates new candidate solutions.
+        - `tell`: passes the objective values and updates the states of the
+        single-objective solvers.
+            
+        
+`opts`
+    opts, a dictionary with optional settings related to the 
+    Sofomore framework. It mainly contains the following keys:
+        - 'archive': default value is `True`. 
+        If its value is `True`, tracks the non-dominated
+        points that dominate the reference point, among the points evaluated
+        so far during the optimization.
+        The archive will not interfere with the optimization 
+        process.
+        - 'indicator_front': default value is `None`. Used via
+        `self.indicator_front = IndicatorFront(self.opts['indicator_front'])` 
+        within the __init__ method of Sofomore. See the class IndicatorFront
+        for more details.
+        - 'restart': used to define in __init__ the attribute `restart` via
+        `self.restart = self.opts['restart']`.
+        - 'update_order': default value is a function that takes a natural 
+        integer as input and returns a random number between 0 and 1.
+        It is used as a `key value` in: `sorted(..., key = ...)`, and guides the
+        order in which the kernels will be updated during the optimization.
+
+
+`reference_point`  
+    reference point of the multiobjective optimization.
+    Its default value is `None` but should be set by the user 
+    beforehand to guarantee an optimal p-distribution convergence of 
+    the Hypervolume indicator of `p` points towards the Pareto set/front.
+    It can be changed dynamically by the user if needed.
+    
+
+Main interface / usage
+======================
+The interface is inherited from the generic `OOOptimizer`
+class, which is the same interface used by the `pycma` module. An object 
+instance is generated as following::
+    
+    &gt;&gt;&gt; import cma, comocma
+    &gt;&gt;&gt; import numpy as np
+    &gt;&gt;&gt; reference_point = [11, 11]
+    &gt;&gt;&gt; num_kernels = 11 # the number of points we seek to have on the Pareto front
+    &gt;&gt;&gt; dimension = 10 # the dimension of the search space
+    &gt;&gt;&gt; x0 = dimension * [0] # an initial mean for cma
+    &gt;&gt;&gt; sigma0 = 0.2 # initial step-size for cma
+    &gt;&gt;&gt; list_of_solvers_instances = comocma.get_cmas(num_kernels * [x0], sigma0, {'verbose':-9})
+    &gt;&gt;&gt; # `comocma.get_cmas` is a factory function that returns `num_kernels` cma-es instances
+    &gt;&gt;&gt; moes = comocma.Sofomore(list_of_solvers_instances,
+    ...                      reference_point) #instantiation of our MO optimizer
+
+The least verbose interface is via the optimize method::
+    &gt;&gt;&gt; fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
+    &gt;&gt;&gt; moes.optimize(fitness) # doctest:+ELLIPSIS
+    Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&amp;max stds***
+    
+More verbosely, the optimization of the callable multiobjective function 
+`fitness` is done via the `ask-and-tell` interface::
+ 
+    &gt;&gt;&gt; moes = comocma.Sofomore(list_of_solvers_instances, reference_point)
+    &gt;&gt;&gt; while not moes.stop() and moes.countiter &lt; 30:
+    ...     solutions = moes.ask() # `ask` delivers new candidate solutions
+    ...     objective_values = [fitness(x) for x in solutions]
+    ...     moes.tell(solutions, objective_values)
+    ...  # `tell` updates the MO instance by passing the respective function values.
+    ...     moes.disp() # display data on the evolution of the optimization 
+
+One iteration of the `optimize` interface is equivalent to one step in the 
+loop of the `ask-and-tell` interface. But for the latter, the prototyper has
+more controls to analyse and guide the optimization, due to the access of 
+the instance between the `ask` and the `tell` calls.
+
+Attributes and Properties
+=========================
+
+- `archive`: list of non-dominated points among all points evaluated 
+so far, which dominate the reference point.
+- `countevals`: the number of function evaluations.
+- `countiter`: the number of iterations.
+- `dimension`: is the dimension of the search space.
+- `indicator_front`: the indicator used as a changing fitness inside an
+iteration of Sofomore. By default it is the UHVI of all the objective values
+of the kernels' incumbents, except the kernel being optimized.
+See the class `IndicatorFront` for more details.
+- `isarchive`: a boolean accessible via `self.opts['archive']`. If `True`,
+we keep track of the archive, otherwise we don't.
+- `kernels`: initialized with `list_of_solvers_instances`, 
+and is the list of single-objective solvers.
+- `key_sort_indices`: default value is `self.opts['update_order']`.
+It is a function used as a key to sort some kernels' indices, in order to
+select the first indices during the call of the `ask` method.
+- `logger`: an attribute that accounts for the way we log the Sofomore data
+during an optimization. `self.logger` is an instance of the SofomoreDataLogger
+class.
+- `NDA`: it is the non-dominated archiving method used within Sofomore.
+By default the class `BiobjectiveNondominatedSortedList` is used
+in two objectives and the class (non tested yet) `NonDominatedList` is used
+for three or more objectives.
+- `opts`: passed options.
+- `offspring`: list of tuples of the index of a kernel with its 
+corresponding candidate solutions, that we generally get with the cma's 
+`ask` method.
+- `pareto_front_cut`: list of non-dominated points among the incumbents of 
+`self.kernels`, which dominate the reference point.
+- `pareto_set_cut`: preimage of `pareto_front_cut`.
+- `reference_point`: the current reference point.
+- `restart`: accessible via `self.opts['restart']`. If not `None`, a callback
+function that adds kernels after a kernel of the running Sofomore instance
+stops. Its default value is `None`, meaning that we do not do any restart.
+- `_active_indices`: the indices of the kernels that have not stopped yet.
+- `_last_stopped_kernel_id`: the index of the last stopped kernel.
+- `_told_indices`: the kernels' indices for which we will evaluate the 
+objective values of their incumbents, before the next call of the `tell` 
+method. And before the first call of `tell`, they are the indices of all the
+initial kernels (i.e. `range(len(self))`). And before another call of 
+`tell`, they are the indices of the kernels from which we have sampled new 
+candidate solutions during the penultimate `ask` method. 
+Note that we should call the `ask` method before any call of the `tell`
+method.</pre>
+      </div>
+
+      <div id="splitTables">
+        <table class="children sortable" id="id3">
+  
+  <tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#__init__" data-type="Method" class="code">__init__</a></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#__iter__" data-type="Method" class="code">__iter__</a></td>
+    <td><span>make <code>self</code> iterable.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#__getitem__" data-type="Method" class="code">__getitem__</a></td>
+    <td><span>make <code>self</code> subscriptable.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#__len__" data-type="Method" class="code">__len__</a></td>
+    <td><span>return length of the <a href="comocma.como.Sofomore.html"><code>Sofomore</code></a> instance by calling <tt class="rst-docutils literal"><span class="pre">len(.)</span></tt>.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#sorted" data-type="Method" class="code">sorted</a></td>
+    <td><span>return a reversed sorted list of kernels.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#ask" data-type="Method" class="code">ask</a></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#tell" data-type="Method" class="code">tell</a></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#pareto_front_cut" data-type="Method" class="code">pareto_front_cut</a></td>
+    <td><span>return the non-dominated solutions dominating the reference point, among the kernels' objective values. It's the image of <code>self.pareto_set_cut</code>.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#pareto_set_cut" data-type="Method" class="code">pareto_set_cut</a></td>
+    <td><span>return the non-dominated solutions whose images dominate the reference point, among the kernels' incumbents. It's the pre-image of <code>self.pareto_front_cut</code>.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#pareto_front_uncut" data-type="Method" class="code">pareto_front_uncut</a></td>
+    <td><span>provisorial, return _all_ non-dominated objective values irrespectively</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#stop" data-type="Method" class="code">stop</a></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#termination_status" data-type="Method" class="code">termination_status</a></td>
+    <td><span>return a dictionary of the current termination states of the kernels.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#add" data-type="Method" class="code">add</a></td>
+    <td><span>add <code>kernels</code> of type <a href="http://docs.python.org/library/stdtypes.html#list"><code>list</code></a> to <code>self.kernels</code>. Generally, <code>kernels</code> are created from a factory function. If <code>kernels</code> is of length 1, the brackets can be omitted.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#remove" data-type="Method" class="code">remove</a></td>
+    <td><span>remove elements of the <code>kernels</code> (type <a href="http://docs.python.org/library/stdtypes.html#list"><code>list</code></a>) that belong to <code>self.kernels</code>, and update the <code>_active_indices</code> attribute. If <code>kernels</code> is of length 1, the brackets can be omitted.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#median_stds" data-type="Method" class="code">median_stds</a></td>
+    <td><span class="undocumented">Undocumented</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#max_max_stds" data-type="Method" class="code">max_max_stds</a></td>
+    <td><span class="undocumented">Undocumented</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#inactivate" data-type="Method" class="code">inactivate</a></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#activate" data-type="Method" class="code">activate</a></td>
+    <td><span>activate <code>kernel</code> when it was inactivated beforehand. Otherwise it remains quiet.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#disp_annotation" data-type="Method" class="code">disp_annotation</a></td>
+    <td><span>copy-pasted from <code>cma.evolution_strategy</code>. print annotation line for <a href="comocma.como.Sofomore.html#disp"><code>disp</code></a> ()</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#disp" data-type="Method" class="code">disp</a></td>
+    <td><span>copy-pasted from <code>cma.evolution_strategy</code>. print current state variables in a single-line. copy-pasted from <code>cma.evolution_strategy</code> module</span></td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#_UHVI_indicator_archive" data-type="Method" class="code">_UHVI_indicator_archive</a></td>
+    <td><span>return archive for uncrowded hypervolume improvement indicator for <code>kernel</code>.</span></td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#_UHVI_indicator" data-type="Method" class="code">_UHVI_indicator</a></td>
+    <td><span>return indicator function(!) for uncrowded hypervolume improvement for <code>kernel</code>.</span></td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.Sofomore.html#_indices_to_ask" data-type="Method" class="code">_indices_to_ask</a></td>
+    <td><span class="undocumented">Undocumented</span></td>
+  </tr>
+</table>
+        
+
+          
+      </div>
+
+      <div id="childList">
+
+        <div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.__init__">
+    
+  </a>
+  <a name="__init__">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    __init__(self, list_of_solvers_instances, reference_point=None, opts=None):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <pre>Initialization:
+- `list_of_solvers_instances` is a list of single-objective 
+solvers' instances
+- The reference_point is set by the user during the 
+initialization.
+- `opts` is a dictionary updating the values of 'indicator_front',
+'archive', 'restart', 'update_order'; that respond respectfully to
+the changing fitness we will choose within an iteration of Sofomore,
+whether or not keeping an archive, how to do the restart in case of
+any restart, and the order of update of the kernels. It also has
+the keys 'verb_filename', 'verb_log' and 'verb_disp'; that 
+respectfully indicate the name of the filename containing the Sofomore
+data, the logging of the Sofomore data every 'verb_log' iterations
+and the display of the data via `self.disp()` every 'verb_disp'
+iterations. </pre>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.__iter__">
+    
+  </a>
+  <a name="__iter__">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    __iter__(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>make <code>self</code> iterable.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.__getitem__">
+    
+  </a>
+  <a name="__getitem__">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    __getitem__(self, i):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>make <code>self</code> subscriptable.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.__len__">
+    
+  </a>
+  <a name="__len__">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    __len__(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>return length of the <a href="comocma.como.Sofomore.html"><code>Sofomore</code></a> instance by calling <tt class="rst-docutils literal"><span class="pre">len(.)</span></tt>.</p>
+<p>The length is the number of (active and inactive) kernels
+and hence consistent with subscription like
+<tt class="rst-docutils literal">[moes[i] for i in range(len(moes)) if i in moes._active_indices]</tt>.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  <a name="comocma.como.Sofomore._UHVI_indicator_archive">
+    
+  </a>
+  <a name="_UHVI_indicator_archive">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    _UHVI_indicator_archive(self, kernel):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>return archive for uncrowded hypervolume improvement indicator for <code>kernel</code>.</p>
+<p><code>kernel</code> can also be the respective index in <code>self</code>.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  <a name="comocma.como.Sofomore._UHVI_indicator">
+    
+  </a>
+  <a name="_UHVI_indicator">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    _UHVI_indicator(self, kernel):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>return indicator function(!) for uncrowded hypervolume improvement for <code>kernel</code>.</p>
+<blockquote>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">import</span> comocma, cma
+<span class="py-prompt">&gt;&gt;&gt; </span>list_of_solvers_instances = comocma.get_cmas(13 * [5 * [1]], 0.7, {<span class="py-string">'verbose'</span>:-9})
+<span class="py-prompt">&gt;&gt;&gt; </span>fitness = comocma.FitFun(cma.ff.sphere, <span class="py-keyword">lambda</span> x: cma.ff.sphere(x-1))
+<span class="py-prompt">&gt;&gt;&gt; </span>moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
+<span class="py-prompt">&gt;&gt;&gt; </span>moes.optimize(fitness, iterations=37) <span class="py-comment"># doctest:+ELLIPSIS</span>
+<span class="py-output">Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&amp;max stds***</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>moes._UHVI_indicator(moes[1])(moes[2].objective_values) <span class="py-comment"># doctest:+ELLIPSIS</span>
+<span class="py-output">***</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>moes._UHVI_indicator(1)(moes[2].objective_values) <span class="py-comment"># doctest:+ELLIPSIS</span>
+<span class="py-output">***</span></pre>
+</blockquote>
+<p>both return the UHVI indicator function for kernel 1 and evaluate
+kernel 2 on it:</p>
+<pre class="rst-literal-block">
+&gt;&gt;&gt; [[moes._UHVI_indicator(k)(k.objective_values)] for k in moes] # doctest:+ELLIPSIS
+***
+</pre>
+<p>is the list of UHVI values for all kernels where kernels occupying the
+very same objective value have indicator value zero.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.sorted">
+    
+  </a>
+  <a name="sorted">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    sorted(self, key=None, reverse=True, **kwargs):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>return a reversed sorted list of kernels.</p>
+<p>By default kernels are reversed sorted by HV contribution or UHVI
+(which we aim to maximize) in the set of kernels. Exact copies have
+zero or negative UHVI value.</p>
+<blockquote>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">import</span> comocma, cma
+<span class="py-prompt">&gt;&gt;&gt; </span>list_of_solvers_instances = comocma.get_cmas(13 * [5 * [1]], 0.7, {<span class="py-string">'verbose'</span>:-9})
+<span class="py-prompt">&gt;&gt;&gt; </span>fitness = comocma.FitFun(cma.ff.sphere, <span class="py-keyword">lambda</span> x: cma.ff.sphere(x-1))
+<span class="py-prompt">&gt;&gt;&gt; </span>moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
+<span class="py-prompt">&gt;&gt;&gt; </span>moes.optimize(fitness, iterations=31) <span class="py-comment"># doctest:+ELLIPSIS</span>
+<span class="py-output">Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&amp;max stds***</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>moes.sorted(key = <span class="py-keyword">lambda</span> k: moes.archive.contributing_hypervolume(
+<span class="py-more">... </span>                         k.objective_values)) <span class="py-comment"># doctest:+ELLIPSIS</span>
+<span class="py-output">[&lt;comocma.como.CmaKernel object at***</span></pre>
+</blockquote>
+<p>sorts w.r.t. archive contribution (clones may get positive contribution).</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.ask">
+    
+  </a>
+  <a name="ask">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    ask(self, number_to_ask=1):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <pre>get the kernels' incumbents to be evaluated and sample new candidate solutions from 
+`number_to_ask` kernels.
+The sampling is done by calling the `ask` method of the
+`cma.CMAEvolutionStrategy` class.
+The indices of the considered kernels' incumbents are given by the 
+`_told_indices` attribute.
+
+To get the `number_to_ask` kernels, we use the function `self.key_sort_indices` as
+a key to sort `self._remaining_indices_to_ask` (which is the list of
+kernels' indices wherein we choose the first `number_to_ask` elements.
+And if `number_to_ask` is larger than `len(self._remaining_indices_to_ask)`,
+we select the list `self._remaining_indices_to_ask` extended with the  
+first `number_to_ask - len(self._remaining_indices_to_ask)` elements
+of `range(len(self))`, sorted with `self.key_sort_indices` as key.
+
+Arguments
+---------
+- `number_to_ask`: the number of kernels for which we sample solutions
+ from, it is of TYPE int or str and is smaller or equal to `len(self)`.
+ The unique case where it is a str instance is when it is equal to 
+ "all", meaning that all the kernels are asked. That case is mainly used
+ on parallel mode by distributing the evaluations of the kernels at the
+ same time before calling the `tell` method. The opposite is when
+ `number_to_ask` is equal to 1, which is the exact COMO-CMA-ES algorithm,
+ where the evaluations are done sequentially by updating the kernels one
+ by one.
+
+Return
+------
+The list of the kernels' incumbents to be evaluated, extended with a
+list of N-dimensional (N is the dimension of the search space) 
+candidate solutions generated from `number_to_ask` kernels 
+to be evaluated.
+
+:See: the `ask` method from the class `cma.CMAEvolutionStrategy`,
+    in `evolution_strategy.py` from the `cma` module.
+    </pre>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.tell">
+    
+  </a>
+  <a name="tell">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    tell(self, solutions, objective_values):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <pre>pass objective function values to update the state variables of some 
+kernels, `self._told_indices` and eventually `self.archive`.
+Arguments
+---------
+`solutions`
+    list or array of points (of type `numpy.ndarray`), most presumably 
+    before delivered by the `ask()` method.
+`objective_values`
+    list of multiobjective function values (of type `list`)
+    corresponding to the respective points in `solutions`.
+`constraints_values`
+    list of list of constraint values: each element is a list containing
+    the values of one constraint function, that are obtained by evaluation
+    on `solutions`.
+    
+
+Details
+-------
+To update a kernel, `tell()` applies the kernel's `tell` method
+to the kernel's corresponding candidate solutions (offspring) along
+with the "changing" fitness `- self.indicator_front.hypervolume_improvement`.
+
+:See: 
+    - the `tell` method from the class `cma.CMAEvolutionStrategy`,
+    in `evolution_strategy.py` from the `cma` module.
+    - the `hypervolume_improvement` method from the class
+    `BiobjectiveNondominatedSortedList`, in the module `moarchiving.py`
+    - the `hypervolume_improvement` method from the class
+    `NonDominatedList`, in the module `nondominatedarchive.py`</pre>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.pareto_front_cut">
+    
+  </a>
+  <a name="pareto_front_cut">
+    
+  </a>
+  <div class="functionHeader">
+    @property<br />
+    def
+    pareto_front_cut(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>return the non-dominated solutions dominating the reference point,
+among the kernels' objective values.
+It's the image of <code>self.pareto_set_cut</code>.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.pareto_set_cut">
+    
+  </a>
+  <a name="pareto_set_cut">
+    
+  </a>
+  <div class="functionHeader">
+    @property<br />
+    def
+    pareto_set_cut(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>return the non-dominated solutions whose images dominate the
+reference point, among the kernels' incumbents.
+It's the pre-image of <code>self.pareto_front_cut</code>.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.pareto_front_uncut">
+    
+  </a>
+  <a name="pareto_front_uncut">
+    
+  </a>
+  <div class="functionHeader">
+    @property<br />
+    def
+    pareto_front_uncut(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>provisorial, return _all_ non-dominated objective values irrespectively</p>
+<p>of the current reference point. Only points whose contributing HV
+does not depend on the current reference point still have the same
+cHV in the resulting <a href="http://docs.python.org/library/stdtypes.html#list"><code>list</code></a>. HV improvements in general may change.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.stop">
+    
+  </a>
+  <a name="stop">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    stop(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <pre>return a nonempty dictionary when all kernels stop, containing all the
+termination status. Therefore it's solely ... on the kernels' `stop`
+method, which also return dictionaries.
+Return
+------
+For example with 5 kernels, stop should return either None, or a `dict`
+of the form:
+    {0: dict0,
+     1: dict1,
+     2: dict2,
+     3: dict2,
+     4: dict4},
+where each index `i` is a key which value is the `dict` instance
+`self.kernels[i].stop()`</pre>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.termination_status">
+    
+  </a>
+  <a name="termination_status">
+    
+  </a>
+  <div class="functionHeader">
+    @property<br />
+    def
+    termination_status(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>return a dictionary of the current termination states of the kernels.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.add">
+    
+  </a>
+  <a name="add">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    add(self, kernels):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>add <code>kernels</code> of type <a href="http://docs.python.org/library/stdtypes.html#list"><code>list</code></a> to <code>self.kernels</code>.
+Generally, <code>kernels</code> are created from a factory function.
+If <code>kernels</code> is of length 1, the brackets can be omitted.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.remove">
+    
+  </a>
+  <a name="remove">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    remove(self, kernels):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>remove elements of the <code>kernels</code> (type <a href="http://docs.python.org/library/stdtypes.html#list"><code>list</code></a>) that belong to
+<code>self.kernels</code>, and update the <code>_active_indices</code> attribute.
+If <code>kernels</code> is of length 1, the brackets can be omitted.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.median_stds">
+    
+  </a>
+  <a name="median_stds">
+    
+  </a>
+  <div class="functionHeader">
+    @property<br />
+    def
+    median_stds(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div class="undocumented">Undocumented</div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.max_max_stds">
+    
+  </a>
+  <a name="max_max_stds">
+    
+  </a>
+  <div class="functionHeader">
+    @property<br />
+    def
+    max_max_stds(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div class="undocumented">Undocumented</div>
+  </div>
+</div><div class="basemethod private">
+  
+  <a name="comocma.como.Sofomore._indices_to_ask">
+    
+  </a>
+  <a name="_indices_to_ask">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    _indices_to_ask(self, number_to_ask):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div class="undocumented">Undocumented</div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.inactivate">
+    
+  </a>
+  <a name="inactivate">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    inactivate(self, kernel):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>inactivate <code>kernel</code>, assuming that it's an element of <code>self.kernels</code>,
+or an index in <code>range(len(self))</code>.
+When inactivated, <code>kernel</code> is no longer updated, it is ignored.
+However we do not remove it from <code>self.kernels</code>, meaning that <code>kernel</code>
+might still play a role, due to its eventual trace in <code>self.pareto_front_cut</code>.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.activate">
+    
+  </a>
+  <a name="activate">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    activate(self, kernel):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>activate <code>kernel</code> when it was inactivated beforehand. Otherwise
+it remains quiet.</p>
+<p>We expect the kernel's <a href="comocma.como.Sofomore.html#stop"><code>stop</code></a> method in interest to look like:
+kernel.stop() = {'callback': ['kernel turned off']}</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.disp_annotation">
+    
+  </a>
+  <a name="disp_annotation">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    disp_annotation(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>copy-pasted from <code>cma.evolution_strategy</code>.
+print annotation line for <a href="comocma.como.Sofomore.html#disp"><code>disp</code></a> ()<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.Sofomore.disp">
+    
+  </a>
+  <a name="disp">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    disp(self, modulo=None):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>copy-pasted from <code>cma.evolution_strategy</code>.
+print current state variables in a single-line.
+copy-pasted from <code>cma.evolution_strategy</code> module</p>
+<p>Prints only if <tt class="rst-docutils literal">iteration_counter % modulo == 0</tt>.</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName">See Also</td><td colspan="2"><a href="comocma.como.Sofomore.html#disp_annotation"><code>disp_annotation</code></a>.</td></tr></table></div>
+  </div>
+</div>
+
+      </div>
+      <address>
+        <a href="index.html">API Documentation</a> for comocma, generated by <a href="https://github.com/twisted/pydoctor/">pydoctor</a> at 2020-04-15 03:24:52.
+      </address>
+
+    </div>
+
+    <script type="text/javascript" src="pydoctor.js"></script>
+
+  </body>
+</html>

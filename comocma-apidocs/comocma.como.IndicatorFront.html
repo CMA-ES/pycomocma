@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+          "DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <title>comocma.como.IndicatorFront : API documentation</title>
+
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <link type="text/css" href="bootstrap.min.css" rel="stylesheet" />
+    <link type="text/css" href="apidocs.css" rel="stylesheet" />
+  </head>
+  <body>
+
+    <nav class="navbar navbar-default">
+      <div class="container">
+        <div class="navbar-header">
+          <a href="index.html" class="navbar-brand">
+            comocma API Documentation
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <div id="showPrivate">
+      <button onclick="togglePrivate()" class="btn btn-link">Toggle Private API</button>
+    </div>
+
+    <div class="container">
+
+      <div class="page-header">
+        <h1 class="class"><code>comocma.como.IndicatorFront</code> <small>class documentation</small></h1>
+
+        <span id="partOf">
+          Part of <code><a href="comocma.html" data-type="Package" class="code">comocma</a>.<a href="comocma.como.html" data-type="Module" class="code">como</a></code>
+          
+          <a href="classIndex.html#comocma.como.IndicatorFront">(View In Hierarchy)</a>
+        </span>
+      </div>
+
+      <div class="extrasDocstring">
+        
+      </div>
+
+      <div class="moduleDocstring">
+        <pre>with `hypervolume_improvement` method based on a varying empirical front.
+
+The front is either all kernels but one or based on the
+`list_attribute` of `moes` (like `archive`) as given on
+initialization.
+
+Usage::
+    &gt;&gt;&gt; import comocma, cma
+    &gt;&gt;&gt; list_of_solvers_instances = comocma.get_cmas(13 * [5 * [0.4]], 0.7, {'verbose':-9})
+    &gt;&gt;&gt; fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
+    &gt;&gt;&gt; moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
+    &gt;&gt;&gt; moes.front_observed = IndicatorFront()
+    &gt;&gt;&gt; moes.optimize(fitness, iterations=47) # doctest:+ELLIPSIS
+    Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&amp;max stds***
+    &gt;&gt;&gt; moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
+    &gt;&gt;&gt; moes.front_observed = IndicatorFront(list_attribute='archive')
+    &gt;&gt;&gt; moes.optimize(fitness, iterations=37) # doctest:+ELLIPSIS
+    Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&amp;max stds***
+    &gt;&gt;&gt; moes.front_observed.set_kernel(moes[3], moes)
+    &gt;&gt;&gt; f_points = [moes.front_observed.hypervolume_improvement(point)
+    ...             for point in moes[3]._last_offspring_f_values] </pre>
+      </div>
+
+      <div id="splitTables">
+        <table class="children sortable" id="id4">
+  
+  <tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.IndicatorFront.html#__init__" data-type="Method" class="code">__init__</a></td>
+    <td><span><tt class="rst-docutils literal">getattr(moes, list_attribute)</tt> contains the list to create the front.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.IndicatorFront.html#hypervolume_improvement" data-type="Method" class="code">hypervolume_improvement</a></td>
+    <td><span class="undocumented">Undocumented</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.IndicatorFront.html#set_kernel" data-type="Method" class="code">set_kernel</a></td>
+    <td><span>Set empirical front for evolving the given kernel.</span></td>
+  </tr>
+</table>
+        
+
+          
+      </div>
+
+      <div id="childList">
+
+        <div class="basemethod">
+  
+  <a name="comocma.como.IndicatorFront.__init__">
+    
+  </a>
+  <a name="__init__">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    __init__(self, list_attribute=None, NDA=None):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p><tt class="rst-docutils literal">getattr(moes, list_attribute)</tt> contains the list to create the front.</p>
+<p><code>NDA</code> is a non-dominated archive with a <a href="comocma.como.IndicatorFront.html#hypervolume_improvement"><code>hypervolume_improvement</code></a> method.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.IndicatorFront.hypervolume_improvement">
+    
+  </a>
+  <a name="hypervolume_improvement">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    hypervolume_improvement(self, point):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div class="undocumented">Undocumented</div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.IndicatorFront.set_kernel">
+    
+  </a>
+  <a name="set_kernel">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    set_kernel(self, kernel, moes, lazy=True):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>Set empirical front for evolving the given kernel.</p>
+<p>By default, make changes only when kernel has changed.</p>
+<p>Details: <tt class="rst-docutils literal">moes.reference_point</tt> and, in case, its attribute
+with name <code>self.list_attribute: str</code> is used.</p><table class="fieldTable"></table></div>
+  </div>
+</div>
+
+      </div>
+      <address>
+        <a href="index.html">API Documentation</a> for comocma, generated by <a href="https://github.com/twisted/pydoctor/">pydoctor</a> at 2020-04-15 03:24:52.
+      </address>
+
+    </div>
+
+    <script type="text/javascript" src="pydoctor.js"></script>
+
+  </body>
+</html>

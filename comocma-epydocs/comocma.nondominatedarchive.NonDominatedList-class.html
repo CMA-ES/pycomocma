@@ -1,0 +1,1119 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>comocma.nondominatedarchive.NonDominatedList</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="comocma-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+      <th class="navbar" width="100%"></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <span class="breadcrumbs">
+        <a href="comocma-module.html">Package&nbsp;comocma</a> ::
+        <a href="comocma.nondominatedarchive-module.html">Module&nbsp;nondominatedarchive</a> ::
+        Class&nbsp;NonDominatedList
+      </span>
+    </td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+        <tr><td align="right"><span class="options">[<a href="javascript:void(0);" class="privatelink"
+    onclick="toggle_private();">hide&nbsp;private</a>]</span></td></tr>
+        <tr><td align="right"><span class="options"
+            >[<a href="frames.html" target="_top">frames</a
+            >]&nbsp;|&nbsp;<a href="comocma.nondominatedarchive.NonDominatedList-class.html"
+            target="_top">no&nbsp;frames</a>]</span></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<!-- ==================== CLASS DESCRIPTION ==================== -->
+<h1 class="epydoc">Class NonDominatedList</h1><p class="nomargin-top"><span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList">source&nbsp;code</a></span></p>
+<pre class="base-tree">
+object --+    
+         |    
+      list --+
+             |
+            <strong class="uidshort">NonDominatedList</strong>
+</pre>
+
+<hr />
+<p>A list of objective values in an empirical Pareto front, meaning that 
+  no point strictly domminates another one in all objectives.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> nondominatedarchive <span class="py-keyword">import</span> NonDominatedList
+<span class="py-prompt">&gt;&gt;&gt; </span>a = NonDominatedList([[1,0.9], [0,1], [0,2]], [2, 2])</pre>
+
+<!-- ==================== INSTANCE METHODS ==================== -->
+<a name="section-InstanceMethods"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Instance Methods</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-InstanceMethods"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">new empty list</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.nondominatedarchive.NonDominatedList-class.html#__init__" class="summary-sig-name">__init__</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">list_of_f_tuples</span>=<span class="summary-sig-default">None</span>,
+        <span class="summary-sig-arg">reference_point</span>=<span class="summary-sig-default">None</span>)</span><br />
+      elements of list_of_f_tuples not in the empirical front are pruned 
+      away `reference_point` is also used to compute the hypervolume, with 
+      the hv module of Simon Wessing.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.__init__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="add"></a><span class="summary-sig-name">add</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">f_tuple</span>)</span><br />
+      add `f_tuple` in `self` if it is not dominated in all objectives.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.add">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.nondominatedarchive.NonDominatedList-class.html#remove" class="summary-sig-name">remove</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">f_tuple</span>)</span><br />
+      remove element `f_pair`.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.remove">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="add_list"></a><span class="summary-sig-name">add_list</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">list_of_f_tuples</span>)</span><br />
+      add list of f_tuples, not using the add method to avoid calling 
+      self.prune() several times.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.add_list">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="prune"></a><span class="summary-sig-name">prune</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      remove point dominated by another one in all objectives.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.prune">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.nondominatedarchive.NonDominatedList-class.html#dominates" class="summary-sig-name">dominates</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">f_tuple</span>)</span><br />
+      return `True` if any element of `self` dominates or is equal to 
+      `f_tuple`.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.dominates">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.nondominatedarchive.NonDominatedList-class.html#dominates_with" class="summary-sig-name">dominates_with</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">idx</span>,
+        <span class="summary-sig-arg">f_tuple</span>)</span><br />
+      return `True` if ``self[idx]`` dominates or is equal to `f_tuple`.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.dominates_with">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="dominates_with_old"></a><span class="summary-sig-name">dominates_with_old</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">idx</span>,
+        <span class="summary-sig-arg">f_tuple</span>)</span><br />
+      deprecated code, now taken over by dominates_wit_for</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.dominates_with_old">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.nondominatedarchive.NonDominatedList-class.html#dominates_with_for" class="summary-sig-name">dominates_with_for</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">idx</span>,
+        <span class="summary-sig-arg">f_tuple</span>)</span><br />
+      returns true if self[idx] weakly dominates f_tuple</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.dominates_with_for">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.nondominatedarchive.NonDominatedList-class.html#dominators" class="summary-sig-name">dominators</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">f_tuple</span>,
+        <span class="summary-sig-arg">number_only</span>=<span class="summary-sig-default">False</span>)</span><br />
+      return the list of all `f_tuple`-dominating elements in `self`,</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.dominators">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.nondominatedarchive.NonDominatedList-class.html#in_domain" class="summary-sig-name">in_domain</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">f_tuple</span>,
+        <span class="summary-sig-arg">reference_point</span>=<span class="summary-sig-default">None</span>)</span><br />
+      return `True` if `f_tuple` is dominating the reference point,</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.in_domain">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.nondominatedarchive.NonDominatedList-class.html#_strictly_dominates" class="summary-sig-name" onclick="show_private();">_strictly_dominates</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">f_tuple</span>)</span><br />
+      return `True` if any element of `self` strictly dominates `f_tuple`.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList._strictly_dominates">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.nondominatedarchive.NonDominatedList-class.html#_strictly_dominates_with" class="summary-sig-name" onclick="show_private();">_strictly_dominates_with</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">idx</span>,
+        <span class="summary-sig-arg">f_tuple</span>)</span><br />
+      return `True` if ``self[idx]`` strictly dominates `f_tuple`.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList._strictly_dominates_with">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_projection"></a><span class="summary-sig-name">_projection</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">f_tuple</span>,
+        <span class="summary-sig-arg">i</span>,
+        <span class="summary-sig-arg">x</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList._projection">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_projection_to_empirical_front"></a><span class="summary-sig-name">_projection_to_empirical_front</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">f_tuple</span>)</span><br />
+      return the orthogonal projections of f_tuple on the empirical front, 
+      with respect to the coodinates axis.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList._projection_to_empirical_front">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.nondominatedarchive.NonDominatedList-class.html#contributing_hypervolume" class="summary-sig-name">contributing_hypervolume</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">f_tuple</span>)</span><br />
+      Hypervolume improvement of f_tuple with respect to self.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.contributing_hypervolume">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="distance_to_pareto_front"></a><span class="summary-sig-name">distance_to_pareto_front</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">f_tuple</span>)</span><br />
+      Compute the distance of a dominated f_tuple to the empirical Pareto 
+      front.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.distance_to_pareto_front">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.nondominatedarchive.NonDominatedList-class.html#hypervolume_improvement" class="summary-sig-name">hypervolume_improvement</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">f_tuple</span>)</span><br />
+      return how much `f_tuple` would improve the hypervolume.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.hypervolume_improvement">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.nondominatedarchive.NonDominatedList-class.html#_asserts" class="summary-sig-name" onclick="show_private();">_asserts</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      make all kind of consistency assertions.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList._asserts">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>list</code></b>:
+      <code>__add__</code>,
+      <code>__contains__</code>,
+      <code>__delitem__</code>,
+      <code>__delslice__</code>,
+      <code>__eq__</code>,
+      <code>__ge__</code>,
+      <code>__getattribute__</code>,
+      <code>__getitem__</code>,
+      <code>__getslice__</code>,
+      <code>__gt__</code>,
+      <code>__iadd__</code>,
+      <code>__imul__</code>,
+      <code>__iter__</code>,
+      <code>__le__</code>,
+      <code>__len__</code>,
+      <code>__lt__</code>,
+      <code>__mul__</code>,
+      <code>__ne__</code>,
+      <code>__new__</code>,
+      <code>__repr__</code>,
+      <code>__reversed__</code>,
+      <code>__rmul__</code>,
+      <code>__setitem__</code>,
+      <code>__setslice__</code>,
+      <code>__sizeof__</code>,
+      <code>append</code>,
+      <code>count</code>,
+      <code>extend</code>,
+      <code>index</code>,
+      <code>insert</code>,
+      <code>pop</code>,
+      <code>reverse</code>,
+      <code>sort</code>
+      </p>
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__delattr__</code>,
+      <code>__format__</code>,
+      <code>__reduce__</code>,
+      <code>__reduce_ex__</code>,
+      <code>__setattr__</code>,
+      <code>__str__</code>,
+      <code>__subclasshook__</code>
+      </p>
+    </td>
+  </tr>
+</table>
+<!-- ==================== STATIC METHODS ==================== -->
+<a name="section-StaticMethods"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Static Methods</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-StaticMethods"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_random_archive"></a><span class="summary-sig-name">_random_archive</span>(<span class="summary-sig-arg">max_size</span>=<span class="summary-sig-default">500</span>,
+        <span class="summary-sig-arg">p_ref_point</span>=<span class="summary-sig-default">0.5</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList._random_archive">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_random_archive_many"></a><span class="summary-sig-name">_random_archive_many</span>(<span class="summary-sig-arg">k</span>,
+        <span class="summary-sig-arg">max_size</span>=<span class="summary-sig-default">500</span>,
+        <span class="summary-sig-arg">p_ref_point</span>=<span class="summary-sig-default">0.5</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList._random_archive_many">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+</table>
+<!-- ==================== CLASS VARIABLES ==================== -->
+<a name="section-ClassVariables"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Class Variables</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-ClassVariables"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>list</code></b>:
+      <code>__hash__</code>
+      </p>
+    </td>
+  </tr>
+</table>
+<!-- ==================== PROPERTIES ==================== -->
+<a name="section-Properties"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Properties</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-Properties"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a href="comocma.nondominatedarchive.NonDominatedList-class.html#kink_points" class="summary-name">kink_points</a><br />
+      Create the 'kink' points from elements of self.
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a href="comocma.nondominatedarchive.NonDominatedList-class.html#hypervolume" class="summary-name">hypervolume</a><br />
+      hypervolume of the entire list w.r.t.
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__class__</code>
+      </p>
+    </td>
+  </tr>
+</table>
+<!-- ==================== METHOD DETAILS ==================== -->
+<a name="section-MethodDetails"></a>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Method Details</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-MethodDetails"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+<a name="__init__"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">__init__</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">list_of_f_tuples</span>=<span class="sig-default">None</span>,
+        <span class="sig-arg">reference_point</span>=<span class="sig-default">None</span>)</span>
+    <br /><em class="fname">(Constructor)</em>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.__init__">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>elements of list_of_f_tuples not in the empirical front are pruned 
+  away `reference_point` is also used to compute the hypervolume, with the 
+  hv module of Simon Wessing.</p>
+  <dl class="fields">
+    <dt>Returns: new empty list</dt>
+    <dt>Overrides:
+        object.__init__
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="remove"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">remove</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">f_tuple</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.remove">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>remove element `f_pair`.</p>
+  <p>Raises a `ValueError` (like `list`) if ``f_pair is not in self``. To 
+  avoid the error, checking ``if f_pair is in self`` first is a possible 
+  coding solution, like</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> moarchiving <span class="py-keyword">import</span> BiobjectiveNondominatedSortedList
+<span class="py-prompt">&gt;&gt;&gt; </span>nda = BiobjectiveNondominatedSortedList([[2, 3]])
+<span class="py-prompt">&gt;&gt;&gt; </span>f_pair = [1, 2]
+<span class="py-prompt">&gt;&gt;&gt; </span>assert [2, 3] <span class="py-keyword">in</span> nda <span class="py-keyword">and</span> f_pair <span class="py-keyword">not</span> <span class="py-keyword">in</span> nda
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">if</span> f_pair <span class="py-keyword">in</span> nda:
+<span class="py-more">... </span>    nda.remove(f_pair)
+<span class="py-prompt">&gt;&gt;&gt; </span>nda = BiobjectiveNondominatedSortedList._random_archive(p_ref_point=1)
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">for</span> pair <span class="py-keyword">in</span> list(nda):
+<span class="py-more">... </span>    len_ = len(nda)
+<span class="py-more">... </span>    state = nda._state()
+<span class="py-more">... </span>    nda.remove(pair)
+<span class="py-more">... </span>    assert len(nda) == len_ - 1
+<span class="py-more">... </span>    <span class="py-keyword">if</span> 100 * pair[0] - int(100 * pair[0]) &lt; 0.7:
+<span class="py-more">... </span>        res = nda.add(pair)
+<span class="py-more">... </span>        assert all(state[i] == nda._state()[i] <span class="py-keyword">for</span> i <span class="py-keyword">in</span> [0, 2, 3])</pre>
+  <p>Return `None` (like `list.remove`).</p>
+  <dl class="fields">
+    <dt>Overrides:
+        list.remove
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="dominates"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">dominates</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">f_tuple</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.dominates">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>return `True` if any element of `self` dominates or is equal to 
+  `f_tuple`.</p>
+  <p>Otherwise return `False`.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> nondominatedarchive <span class="py-keyword">import</span> NonDominatedList <span class="py-keyword">as</span> NDA
+<span class="py-prompt">&gt;&gt;&gt; </span>a = NDA([[0.39, 0.075], [0.0087, 0.14]])
+<span class="py-prompt">&gt;&gt;&gt; </span>a.dominates(a[0])  <span class="py-comment"># is always True if `a` is not empty</span>
+<span class="py-output">True</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.dominates([-1, 33]) <span class="py-keyword">or</span> a.dominates([33, -1])
+<span class="py-output">False</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a._asserts()</pre>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="dominates_with"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">dominates_with</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">idx</span>,
+        <span class="sig-arg">f_tuple</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.dominates_with">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <pre class="literalblock">
+return `True` if ``self[idx]`` dominates or is equal to `f_tuple`.
+
+Otherwise return `False` or `None` if `idx` is out-of-range.
+
+&gt;&gt;&gt; from nondominatedarchive import NonDominatedList as NDA
+&gt;&gt;&gt; NDA().dominates_with(0, [1, 2]) is None  # empty NDA
+True
+
+:todo: add more doctests that actually test the functionality and
+       not only whether the return value is correct if empty
+
+</pre>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="dominates_with_for"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">dominates_with_for</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">idx</span>,
+        <span class="sig-arg">f_tuple</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.dominates_with_for">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>returns true if self[idx] weakly dominates f_tuple</p>
+  <p>replaces dominates_with_old because it turned out to run quicker</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="dominators"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">dominators</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">f_tuple</span>,
+        <span class="sig-arg">number_only</span>=<span class="sig-default">False</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.dominators">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>return the list of all `f_tuple`-dominating elements in `self`,</p>
+  <p>including an equal element. ``len(....dominators(...))`` is hence the 
+  number of dominating elements which can also be obtained without creating
+  the list with ``number_only=True``.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> nondominatedarchive <span class="py-keyword">import</span> NonDominatedList <span class="py-keyword">as</span> NDA
+<span class="py-prompt">&gt;&gt;&gt; </span>a = NDA([[1.2, 0.1], [0.5, 1]])
+<span class="py-prompt">&gt;&gt;&gt; </span>len(a)
+<span class="py-output">2</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.dominators([2, 3]) == a
+<span class="py-output">True</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.dominators([0.5, 1])
+<span class="py-output">[(0.5, 1)]</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>len(a.dominators([0.6, 3])), a.dominators([0.6, 3], number_only=True)
+<span class="py-output">(1, 1)</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.dominators([0.5, 0.9])
+<span class="py-output">[]</span></pre>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="in_domain"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">in_domain</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">f_tuple</span>,
+        <span class="sig-arg">reference_point</span>=<span class="sig-default">None</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.in_domain">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>return `True` if `f_tuple` is dominating the reference point,</p>
+  <p>`False` otherwise. `True` means that `f_tuple` contributes to the 
+  hypervolume if not dominated by other elements.</p>
+  <p>`f_tuple` may also be an index in `self` in which case 
+  ``self[f_tuple]`` is tested to be in-domain.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> nondominatedarchive <span class="py-keyword">import</span> NonDominatedList <span class="py-keyword">as</span> NDA
+<span class="py-prompt">&gt;&gt;&gt; </span>a = NDA([[2.2, 0.1], [0.5, 1]], reference_point=[2, 2])
+<span class="py-prompt">&gt;&gt;&gt; </span>assert len(a) == 1
+<span class="py-prompt">&gt;&gt;&gt; </span>a.in_domain([0, 0])
+<span class="py-output">True</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.in_domain([2, 1])
+<span class="py-output">False</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>all(a.in_domain(ai) <span class="py-keyword">for</span> ai <span class="py-keyword">in</span> a)
+<span class="py-output">True</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.in_domain(0)
+<span class="py-output">True</span></pre>
+  <p>TODO: improve name?</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="_strictly_dominates"></a>
+<div class="private">
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">_strictly_dominates</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">f_tuple</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList._strictly_dominates">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>return `True` if any element of `self` strictly dominates 
+  `f_tuple`.</p>
+  <p>Otherwise return `False`.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> nondominatedarchive <span class="py-keyword">import</span> NonDominatedList <span class="py-keyword">as</span> NDA
+<span class="py-prompt">&gt;&gt;&gt; </span>a = NDA([[0.39, 0.075], [0.0087, 0.14]])
+<span class="py-prompt">&gt;&gt;&gt; </span>a.dominates(a[0])  <span class="py-comment"># is always True if `a` is not empty</span>
+<span class="py-output">True</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a.dominates([-1, 33]) <span class="py-keyword">or</span> a.dominates([33, -1])
+<span class="py-output">False</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a._asserts()</pre>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="_strictly_dominates_with"></a>
+<div class="private">
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">_strictly_dominates_with</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">idx</span>,
+        <span class="sig-arg">f_tuple</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList._strictly_dominates_with">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>return `True` if ``self[idx]`` strictly dominates `f_tuple`.</p>
+  <p>Otherwise return `False` or `None` if `idx` is out-of-range.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> nondominatedarchive <span class="py-keyword">import</span> NonDominatedList <span class="py-keyword">as</span> NDA
+<span class="py-prompt">&gt;&gt;&gt; </span>NDA()._strictly_dominates_with(0, [1, 2]) <span class="py-keyword">is</span> None  <span class="py-comment"># empty NDA</span>
+<span class="py-output">True</span></pre>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="contributing_hypervolume"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">contributing_hypervolume</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">f_tuple</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.contributing_hypervolume">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Hypervolume improvement of f_tuple with respect to self. TODO: the 
+  argument should be an index, as in moarchiving.</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="hypervolume_improvement"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">hypervolume_improvement</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">f_tuple</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList.hypervolume_improvement">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>return how much `f_tuple` would improve the hypervolume.</p>
+  <p>If dominated, return the distance to the empirical pareto front 
+  multiplied by -1. Else if not in domain, return distance to the reference
+  point dominating area times -1.</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="_asserts"></a>
+<div class="private">
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">_asserts</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.nondominatedarchive-pysrc.html#NonDominatedList._asserts">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>make all kind of consistency assertions.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">import</span> nondominatedarchive
+<span class="py-prompt">&gt;&gt;&gt; </span>a = nondominatedarchive.NonDominatedList(
+<span class="py-more">... </span>   [[-0.749, -1.188], [-0.557, 1.1076],
+<span class="py-more">... </span>   [0.2454, 0.4724], [-1.146, -0.110]], [10, 10])
+<span class="py-prompt">&gt;&gt;&gt; </span>a._asserts()
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">for</span> p <span class="py-keyword">in</span> list(a):
+<span class="py-more">... </span>    a.remove(p)
+<span class="py-prompt">&gt;&gt;&gt; </span>assert len(a) == 0
+<span class="py-prompt">&gt;&gt;&gt; </span>try: a.remove([0, 0])
+<span class="py-more">... </span><span class="py-keyword">except</span> ValueError: <span class="py-keyword">pass</span>
+<span class="py-more">... </span><span class="py-keyword">else</span>: raise AssertionError(<span class="py-string">&quot;remove did not raise ValueError&quot;</span>)</pre>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> numpy.random <span class="py-keyword">import</span> rand
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">for</span> _ <span class="py-keyword">in</span> range(120):
+<span class="py-more">... </span>    a = nondominatedarchive.NonDominatedList._random_archive()
+<span class="py-more">... </span>    <span class="py-keyword">if</span> a.reference_point:
+<span class="py-more">... </span>        <span class="py-keyword">for</span> f_tuple <span class="py-keyword">in</span> rand(10, 2):
+<span class="py-more">... </span>            h0 = a.hypervolume
+<span class="py-more">... </span>            hi = a.hypervolume_improvement(list(f_tuple))
+<span class="py-more">... </span>            assert a.hypervolume == h0  <span class="py-comment"># works OK with Fraction</span></pre>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">for</span> _ <span class="py-keyword">in</span> range(10):
+<span class="py-more">... </span>    <span class="py-keyword">for</span> k <span class="py-keyword">in</span> range(3,10):                    
+<span class="py-more">... </span>        a = nondominatedarchive.NonDominatedList._random_archive_many(k)
+<span class="py-more">... </span>        <span class="py-keyword">if</span> a.reference_point:
+<span class="py-more">... </span>            <span class="py-keyword">for</span> f_tuple <span class="py-keyword">in</span> rand(10, k):
+<span class="py-more">... </span>                h0 = a.contributing_hypervolume(list(f_tuple))
+<span class="py-more">... </span>                hi = a.hypervolume_improvement(list(f_tuple))
+<span class="py-more">... </span>                assert h0 &gt;= 0            
+<span class="py-more">... </span>                assert h0 == hi <span class="py-keyword">or</span> (h0 == 0 <span class="py-keyword">and</span> hi &lt; 0)</pre>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<br />
+<!-- ==================== PROPERTY DETAILS ==================== -->
+<a name="section-PropertyDetails"></a>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Property Details</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-PropertyDetails"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+<a name="kink_points"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <h3 class="epydoc">kink_points</h3>
+  <p>Create the 'kink' points from elements of self. If f_tuple is not 
+  None, also add the projections of f_tuple to the empirical front, with 
+  respect to the axes</p>
+  <dl class="fields">
+    <dt>Get Method:</dt>
+    <dd class="value"><span class="summary-sig"><i>unreachable</i>.kink_points(<span class="summary-sig-arg">self</span>)</span>
+        - Create the 'kink' points from elements of self.
+    </dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="hypervolume"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <h3 class="epydoc">hypervolume</h3>
+  <p>hypervolume of the entire list w.r.t. the &quot;initial&quot; 
+  reference point.</p>
+  <p>Raise `ValueError` when no reference point was given initially.</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> nondominatedarchive <span class="py-keyword">import</span> NonDominatedList <span class="py-keyword">as</span> NDA
+<span class="py-prompt">&gt;&gt;&gt; </span>a = NDA([[0.5, 0.4], [0.3, 0.7]], [2, 2.1])
+<span class="py-prompt">&gt;&gt;&gt; </span>a._asserts()
+<span class="py-prompt">&gt;&gt;&gt; </span>a.reference_point == [2, 2.1]
+<span class="py-output">True</span>
+<span class="py-output"></span><span class="py-prompt">&gt;&gt;&gt; </span>a._asserts()</pre>
+  <dl class="fields">
+    <dt>Get Method:</dt>
+    <dd class="value"><span class="summary-sig"><i>unreachable</i>.hypervolume(<span class="summary-sig-arg">self</span>)</span>
+        - hypervolume of the entire list w.r.t.
+    </dd>
+  </dl>
+</td></tr></table>
+</div>
+<br />
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="comocma-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+      <th class="navbar" width="100%"></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Wed Apr 15 04:05:07 2020
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>

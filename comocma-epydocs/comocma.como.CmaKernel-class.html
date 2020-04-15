@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>comocma.como.CmaKernel</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="comocma-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+      <th class="navbar" width="100%"></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <span class="breadcrumbs">
+        <a href="comocma-module.html">Package&nbsp;comocma</a> ::
+        <a href="comocma.como-module.html">Module&nbsp;como</a> ::
+        Class&nbsp;CmaKernel
+      </span>
+    </td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+        <tr><td align="right"><span class="options">[<a href="javascript:void(0);" class="privatelink"
+    onclick="toggle_private();">hide&nbsp;private</a>]</span></td></tr>
+        <tr><td align="right"><span class="options"
+            >[<a href="frames.html" target="_top">frames</a
+            >]&nbsp;|&nbsp;<a href="comocma.como.CmaKernel-class.html"
+            target="_top">no&nbsp;frames</a>]</span></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<!-- ==================== CLASS DESCRIPTION ==================== -->
+<h1 class="epydoc">Class CmaKernel</h1><p class="nomargin-top"><span class="codelink"><a href="comocma.como-pysrc.html#CmaKernel">source&nbsp;code</a></span></p>
+<pre class="base-tree">
+                             object --+        
+                                      |        
+             cma.interfaces.OOOptimizer --+    
+                                          |    
+cma.evolution_strategy.CMAEvolutionStrategy --+
+                                              |
+                                             <strong class="uidshort">CmaKernel</strong>
+</pre>
+
+<hr />
+<p>inheriting from the `cma.CMAEvolutionStrategy` class, by adding the 
+  property `incumbent`, the attributes `objective_values` and 
+  `_last_offspring_f_values`.</p>
+
+<!-- ==================== INSTANCE METHODS ==================== -->
+<a name="section-InstanceMethods"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Instance Methods</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-InstanceMethods"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.CmaKernel-class.html#__init__" class="summary-sig-name">__init__</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">x0</span>,
+        <span class="summary-sig-arg">sigma0</span>,
+        <span class="summary-sig-arg">inopts</span>=<span class="summary-sig-default">None</span>)</span><br />
+      Arguments
+=========
+`x0`
+    initial solution, starting point.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#CmaKernel.__init__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="comocma.como.CmaKernel-class.html#_copy_light" class="summary-sig-name" onclick="show_private();">_copy_light</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">sigma</span>=<span class="summary-sig-default">None</span>,
+        <span class="summary-sig-arg">inopts</span>=<span class="summary-sig-default">None</span>)</span><br />
+      tentative copy of self, versatile (interface and functionalities may 
+      change).</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="comocma.como-pysrc.html#CmaKernel._copy_light">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>cma.evolution_strategy.CMAEvolutionStrategy</code></b>:
+      <code>alleviate_conditioning</code>,
+      <code>alleviate_conditioning_in_coordinates</code>,
+      <code>ask</code>,
+      <code>ask_and_eval</code>,
+      <code>ask_geno</code>,
+      <code>disp</code>,
+      <code>disp_annotation</code>,
+      <code>feed_for_resume</code>,
+      <code>get_mirror</code>,
+      <code>get_selective_mirrors</code>,
+      <code>inject</code>,
+      <code>mahalanobis_norm</code>,
+      <code>manage_plateaus</code>,
+      <code>plot</code>,
+      <code>random_rescale_to_mahalanobis</code>,
+      <code>repair_genotype</code>,
+      <code>result_pretty</code>,
+      <code>stop</code>,
+      <code>tell</code>
+      </p>
+    <div class="private">    <p class="indent-wrapped-lines"><b>Inherited from <code>cma.evolution_strategy.CMAEvolutionStrategy</code></b> (private):
+      <code>_prepare_injection_directions</code>,
+      <code>_random_rescaling_factor_to_mahalanobis_size</code>,
+      <code>_set_x0</code>,
+      <code>_updateBDfromSM</code>
+      </p></div>
+    <p class="indent-wrapped-lines"><b>Inherited from <code>cma.interfaces.OOOptimizer</code></b>:
+      <code>initialize</code>,
+      <code>optimize</code>
+      </p>
+    <div class="private">    <p class="indent-wrapped-lines"><b>Inherited from <code>cma.interfaces.OOOptimizer</code></b> (private):
+      <code>_force_final_logging</code>,
+      <code>_prepare_callback_list</code>
+      </p></div>
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__delattr__</code>,
+      <code>__format__</code>,
+      <code>__getattribute__</code>,
+      <code>__hash__</code>,
+      <code>__new__</code>,
+      <code>__reduce__</code>,
+      <code>__reduce_ex__</code>,
+      <code>__repr__</code>,
+      <code>__setattr__</code>,
+      <code>__sizeof__</code>,
+      <code>__str__</code>,
+      <code>__subclasshook__</code>
+      </p>
+    </td>
+  </tr>
+</table>
+<!-- ==================== PROPERTIES ==================== -->
+<a name="section-Properties"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Properties</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-Properties"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a href="comocma.como.CmaKernel-class.html#incumbent" class="summary-name">incumbent</a><br />
+      it gives the 'repaired' mean of a cma-es.
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>cma.evolution_strategy.CMAEvolutionStrategy</code></b>:
+      <code>condition_number</code>,
+      <code>isotropic_mean_shift</code>,
+      <code>popsize</code>,
+      <code>result</code>
+      </p>
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__class__</code>
+      </p>
+    </td>
+  </tr>
+</table>
+<!-- ==================== METHOD DETAILS ==================== -->
+<a name="section-MethodDetails"></a>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Method Details</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-MethodDetails"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+<a name="__init__"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">__init__</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">x0</span>,
+        <span class="sig-arg">sigma0</span>,
+        <span class="sig-arg">inopts</span>=<span class="sig-default">None</span>)</span>
+    <br /><em class="fname">(Constructor)</em>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#CmaKernel.__init__">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <pre class="literalblock">
+
+Arguments
+=========
+`x0`
+    initial solution, starting point. `x0` is given as &quot;phenotype&quot;
+    which means, if::
+
+        opts = {'transformation': [transform, inverse]}
+
+    is given and ``inverse is None``, the initial mean is not
+    consistent with `x0` in that ``transform(mean)`` does not
+    equal to `x0` unless ``transform(mean)`` equals ``mean``.
+`sigma0`
+    initial standard deviation.  The problem variables should
+    have been scaled, such that a single standard deviation
+    on all variables is useful and the optimum is expected to
+    lie within about `x0` +- ``3*sigma0``. See also options
+    `scaling_of_variables`. Often one wants to check for
+    solutions close to the initial point. This allows,
+    for example, for an easier check of consistency of the
+    objective function and its interfacing with the optimizer.
+    In this case, a much smaller `sigma0` is advisable.
+`inopts`
+    options, a dictionary with optional settings,
+    see class `cma.CMAOptions`.
+
+</pre>
+  <dl class="fields">
+    <dt>Overrides:
+        object.__init__
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="_copy_light"></a>
+<div class="private">
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">_copy_light</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">sigma</span>=<span class="sig-default">None</span>,
+        <span class="sig-arg">inopts</span>=<span class="sig-default">None</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="comocma.como-pysrc.html#CmaKernel._copy_light">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>tentative copy of self, versatile (interface and functionalities may 
+  change).</p>
+  <p>This may not work depending on the used sampler.</p>
+  <p>Copy mean and sample distribution parameters and input options.</p>
+  <p>Do not copy evolution paths, termination status or other state 
+  variables.</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<br />
+<!-- ==================== PROPERTY DETAILS ==================== -->
+<a name="section-PropertyDetails"></a>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Property Details</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-PropertyDetails"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+<a name="incumbent"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <h3 class="epydoc">incumbent</h3>
+  <p>it gives the 'repaired' mean of a cma-es. For a problem with bound 
+  constraints, `self.incumbent` in inside the bounds.</p>
+  <dl class="fields">
+    <dt>Get Method:</dt>
+    <dd class="value"><span class="summary-sig"><i>unreachable</i>.incumbent(<span class="summary-sig-arg">self</span>)</span>
+        - it gives the 'repaired' mean of a cma-es.
+    </dd>
+  </dl>
+</td></tr></table>
+</div>
+<br />
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="comocma-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+      <th class="navbar" width="100%"></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Wed Apr 15 04:05:07 2020
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>

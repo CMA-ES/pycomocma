@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+          "DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <title>comocma.como.CmaKernel : API documentation</title>
+
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <link type="text/css" href="bootstrap.min.css" rel="stylesheet" />
+    <link type="text/css" href="apidocs.css" rel="stylesheet" />
+  </head>
+  <body>
+
+    <nav class="navbar navbar-default">
+      <div class="container">
+        <div class="navbar-header">
+          <a href="index.html" class="navbar-brand">
+            comocma API Documentation
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <div id="showPrivate">
+      <button onclick="togglePrivate()" class="btn btn-link">Toggle Private API</button>
+    </div>
+
+    <div class="container">
+
+      <div class="page-header">
+        <h1 class="class"><code>comocma.como.CmaKernel(<span title="cma.CMAEvolutionStrategy">cma.CMAEvolutionStrategy</span>)</code> <small>class documentation</small></h1>
+
+        <span id="partOf">
+          Part of <code><a href="comocma.html" data-type="Package" class="code">comocma</a>.<a href="comocma.como.html" data-type="Module" class="code">como</a></code>
+          
+          <a href="classIndex.html#comocma.como.CmaKernel">(View In Hierarchy)</a>
+        </span>
+      </div>
+
+      <div class="extrasDocstring">
+        
+      </div>
+
+      <div class="moduleDocstring">
+        <div>inheriting from the <code>cma.CMAEvolutionStrategy</code> class, by adding the property
+<a href="comocma.como.CmaKernel.html#incumbent"><code>incumbent</code></a>, the attributes <code>objective_values</code> and <code>_last_offspring_f_values</code>.<table class="fieldTable"></table></div>
+      </div>
+
+      <div id="splitTables">
+        <table class="children sortable" id="id5">
+  
+  <tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.CmaKernel.html#__init__" data-type="Method" class="code">__init__</a></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.CmaKernel.html#incumbent" data-type="Method" class="code">incumbent</a></td>
+    <td><span>it gives the 'repaired' mean of a cma-es. For a problem with bound constraints, <code>self.incumbent</code> in inside the bounds.</span></td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><a href="comocma.como.CmaKernel.html#_copy_light" data-type="Method" class="code">_copy_light</a></td>
+    <td><span>tentative copy of self, versatile (interface and functionalities may change).</span></td>
+  </tr>
+</table>
+        
+
+          
+      </div>
+
+      <div id="childList">
+
+        <div class="basemethod">
+  
+  <a name="comocma.como.CmaKernel.__init__">
+    
+  </a>
+  <a name="__init__">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    __init__(self, x0, sigma0, inopts=None):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><dl class="rst-docutils">
+<dt><code>x0</code></dt>
+<dd><p class="rst-first">initial solution, starting point. <code>x0</code> is given as "phenotype"
+which means, if:</p>
+<pre class="rst-literal-block">
+opts = {'transformation': [transform, inverse]}
+</pre>
+<p class="rst-last">is given and <tt class="rst-docutils literal">inverse is None</tt>, the initial mean is not
+consistent with <code>x0</code> in that <tt class="rst-docutils literal">transform(mean)</tt> does not
+equal to <code>x0</code> unless <tt class="rst-docutils literal">transform(mean)</tt> equals <tt class="rst-docutils literal">mean</tt>.</p>
+</dd>
+<dt><code>sigma0</code></dt>
+<dd>initial standard deviation.  The problem variables should
+have been scaled, such that a single standard deviation
+on all variables is useful and the optimum is expected to
+lie within about <code>x0</code> +- <tt class="rst-docutils literal">3*sigma0</tt>. See also options
+<code>scaling_of_variables</code>. Often one wants to check for
+solutions close to the initial point. This allows,
+for example, for an easier check of consistency of the
+objective function and its interfacing with the optimizer.
+In this case, a much smaller <code>sigma0</code> is advisable.</dd>
+<dt><code>inopts</code></dt>
+<dd>options, a dictionary with optional settings,
+see class <code>cma.CMAOptions</code>.</dd>
+</dl><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.como.CmaKernel.incumbent">
+    
+  </a>
+  <a name="incumbent">
+    
+  </a>
+  <div class="functionHeader">
+    @property<br />
+    def
+    incumbent(self):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>it gives the 'repaired' mean of a cma-es. For a problem with bound
+constraints, <code>self.incumbent</code> in inside the bounds.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  <a name="comocma.como.CmaKernel._copy_light">
+    
+  </a>
+  <a name="_copy_light">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    _copy_light(self, sigma=None, inopts=None):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>tentative copy of self, versatile (interface and functionalities may change).</p>
+<p>This may not work depending on the used sampler.</p>
+<p>Copy mean and sample distribution parameters and input options.</p>
+<p>Do not copy evolution paths, termination status or other state variables.</p><table class="fieldTable"></table></div>
+  </div>
+</div>
+
+      </div>
+      <address>
+        <a href="index.html">API Documentation</a> for comocma, generated by <a href="https://github.com/twisted/pydoctor/">pydoctor</a> at 2020-04-15 03:24:52.
+      </address>
+
+    </div>
+
+    <script type="text/javascript" src="pydoctor.js"></script>
+
+  </body>
+</html>

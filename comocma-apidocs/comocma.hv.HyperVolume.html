@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+          "DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <title>comocma.hv.HyperVolume : API documentation</title>
+
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <link type="text/css" href="bootstrap.min.css" rel="stylesheet" />
+    <link type="text/css" href="apidocs.css" rel="stylesheet" />
+  </head>
+  <body>
+
+    <nav class="navbar navbar-default">
+      <div class="container">
+        <div class="navbar-header">
+          <a href="index.html" class="navbar-brand">
+            comocma API Documentation
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <div id="showPrivate">
+      <button onclick="togglePrivate()" class="btn btn-link">Toggle Private API</button>
+    </div>
+
+    <div class="container">
+
+      <div class="page-header">
+        <h1 class="class"><code>comocma.hv.HyperVolume</code> <small>class documentation</small></h1>
+
+        <span id="partOf">
+          Part of <code><a href="comocma.html" data-type="Package" class="code">comocma</a>.<a href="comocma.hv.html" data-type="Module" class="code">hv</a></code>
+          
+          <a href="classIndex.html#comocma.hv.HyperVolume">(View In Hierarchy)</a>
+        </span>
+      </div>
+
+      <div class="extrasDocstring">
+        
+      </div>
+
+      <div class="moduleDocstring">
+        <div><p>Hypervolume computation based on variant 3 of the algorithm in the paper:
+C. M. Fonseca, L. Paquete, and M. Lopez-Ibanez. An improved dimension-sweep
+algorithm for the hypervolume indicator. In IEEE Congress on Evolutionary
+Computation, pages 1157-1163, Vancouver, Canada, July 2006.</p>
+<p>Minimization is implicitly assumed here!</p><table class="fieldTable"></table></div>
+      </div>
+
+      <div id="splitTables">
+        <table class="children sortable" id="id8">
+  
+  <tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.hv.HyperVolume.html#__init__" data-type="Method" class="code">__init__</a></td>
+    <td><span>Constructor.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.hv.HyperVolume.html#compute" data-type="Method" class="code">compute</a></td>
+    <td><span>Returns the hypervolume that is dominated by a non-dominated front.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.hv.HyperVolume.html#hvRecursive" data-type="Method" class="code">hvRecursive</a></td>
+    <td><span>Recursive call to hypervolume calculation.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.hv.HyperVolume.html#preProcess" data-type="Method" class="code">preProcess</a></td>
+    <td><span>Sets up the list data structure needed for calculation.</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><a href="comocma.hv.HyperVolume.html#sortByDimension" data-type="Method" class="code">sortByDimension</a></td>
+    <td><span>Sorts the list of nodes by the i-th value of the contained points.</span></td>
+  </tr>
+</table>
+        
+
+          
+      </div>
+
+      <div id="childList">
+
+        <div class="basemethod">
+  
+  <a name="comocma.hv.HyperVolume.__init__">
+    
+  </a>
+  <a name="__init__">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    __init__(self, referencePoint):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>Constructor.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.hv.HyperVolume.compute">
+    
+  </a>
+  <a name="compute">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    compute(self, front):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>Returns the hypervolume that is dominated by a non-dominated front.</p>
+<p>Before the HV computation, front and reference point are translated, so
+that the reference point is [0, ..., 0].</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.hv.HyperVolume.hvRecursive">
+    
+  </a>
+  <a name="hvRecursive">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    hvRecursive(self, dimIndex, length, bounds):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div><p>Recursive call to hypervolume calculation.</p>
+<p>In contrast to the paper, the code assumes that the reference point
+is [0, ..., 0]. This allows the avoidance of a few operations.</p><table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.hv.HyperVolume.preProcess">
+    
+  </a>
+  <a name="preProcess">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    preProcess(self, front):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>Sets up the list data structure needed for calculation.<table class="fieldTable"></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  <a name="comocma.hv.HyperVolume.sortByDimension">
+    
+  </a>
+  <a name="sortByDimension">
+    
+  </a>
+  <div class="functionHeader">
+    
+    def
+    sortByDimension(self, nodes, i):
+    
+  </div>
+  <div class="docstring functionBody">
+    
+    
+    <div>Sorts the list of nodes by the i-th value of the contained points.<table class="fieldTable"></table></div>
+  </div>
+</div>
+
+      </div>
+      <address>
+        <a href="index.html">API Documentation</a> for comocma, generated by <a href="https://github.com/twisted/pydoctor/">pydoctor</a> at 2020-04-15 03:24:52.
+      </address>
+
+    </div>
+
+    <script type="text/javascript" src="pydoctor.js"></script>
+
+  </body>
+</html>
