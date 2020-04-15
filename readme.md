@@ -3,6 +3,9 @@
 
 For the time being, only the bi-objective case is tested and functional.
 
+# Installation 
+
+# Use cases 
 
 ## Instantiating a multiobjective solver
 
@@ -133,9 +136,9 @@ while not moes.stop():
 ### Argument of `moes.ask`
 
 ```python
-solutions = moes.ask() : we generate offspring for only one kernel (sequential)
-solutions = moes.ask(“all”): we generate offspring simultaneously for all kernels (parallel)
-solutions = moes.ask(number_asks): we generate offspring for `number_asks` kernels
+solutions = moes.ask() # we generate offspring for only one kernel (sequential)
+solutions = moes.ask(“all”) # we generate offspring simultaneously for all kernels (parallel)
+solutions = moes.ask(number_asks) # we generate offspring for `number_asks` kernels
 ```
 
 ## Picklable object: saving and resuming a MO optimization with the  `ask-and-tell` interface
@@ -196,7 +199,7 @@ moes.optimize(fitness, iterations=400)
 
 ## Example of plots
 
-### Sofomore plots
+### COMO-CMA-ES data plottings
 
 ```python
 moes.logger.plot_front()
@@ -208,7 +211,7 @@ moes.logger.plot_divers()
 ```
 ![image info](./readme_images/divers.png )
 
-### CMA-ES plots 
+### CMA-ES plots of written data
 
 ```python
 cma.plot("cma_kernels/0")
