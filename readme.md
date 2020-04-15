@@ -12,7 +12,8 @@ For the time being, only the bi-objective case is tested and functional.
 ## Testing of the `comocma` module
 
 The script
-```python -m comocma
+```
+python -m comocma
 ```
 runs the test written in the `__main__` file.
 
