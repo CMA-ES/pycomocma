@@ -39,6 +39,7 @@ setup(name='comocma',
       description= "Multiobjective framework Sofomore, instantiated with"
                     "the single-objective solver CMA-ES to obtain"
                     "the Multiobjective evolutionary algorithm COMO-CMA-ES.",
+      long_description_content_type = 'text/markdown',
       author="Cheikh Toure and Nikolaus Hansen",
       author_email="first_author_firstname.first_author_lastname@polytechnique.edu",
       # " second_author_firstname.second_author_lastname@inria.fr", 
