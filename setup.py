@@ -22,32 +22,29 @@ except LookupError:
 
 
 try:
-    with open('README.md') as file_:
+    with open('readme.md') as file_:
         long_description = file_.read()  # now assign long_description=long_description below
 except IOError:  # file not found
-    warnings.warn("README.md file not found")
+    warnings.warn("readme.md file not found")
 else:
     try:
-        with open('README.txt') as file:
+        with open('readme.txt') as file:
             long_description = file.read()  # now assign long_description=long_description below
     except IOError:  # file not found
         pass
 
-
-
-
 setup(name='comocma',
       long_description=long_description,  # __doc__
       version=__version__.split()[0],
-      description= "Mulitobjective framework Sofomore, instantiated with" +
-      "the single-objective solver CMA-ES to obtain" +
-      "the Multiobjective evolutionary algorithm COMO-CMA-ES.",
+      description= "Multiobjective framework Sofomore, instantiated with"
+                    "the single-objective solver CMA-ES to obtain"
+                    "the Multiobjective evolutionary algorithm COMO-CMA-ES.",
       author="Cheikh Toure and Nikolaus Hansen",
-      author_email="first_author_firstname.first_author_lastname at polytechnique dot edu" +
-      " second_author_firstname.second_author_lastname at inria dot fr", 
-      maintainer="Cheikh Toure and Nikolaus Hansen",
-      maintainer_email="first_author_firstname.first_author_lastname at polytechnique dot edu" +
-      " second_author_firstname.second_author_lastname at inria dot fr",
+      author_email="first_author_firstname.first_author_lastname@polytechnique.edu",
+      # " second_author_firstname.second_author_lastname@inria.fr", 
+      # maintainer="Cheikh Toure and Nikolaus Hansen",
+      # maintainer_email="first_author_firstname.first_author_lastname at polytechnique dot edu" +
+      # " second_author_firstname.second_author_lastname at inria dot fr",
       url="https://github.com/CMA-ES/pycomocma",
       license="BSD",
       classifiers = [
@@ -67,7 +64,7 @@ setup(name='comocma',
       ],
       keywords=["optimization", "multi-objective", "CMA-ES", "cmaes", "evolution strategy",],
       packages = ['comocma'],
-      requires=["cma", "moarchiving", "numpy"],
+      install_requires=["cma>=3", "moarchiving", "numpy"],
       package_data={'': ['LICENSE']},
       )
 
