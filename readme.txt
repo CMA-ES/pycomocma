@@ -7,8 +7,25 @@ For the time being, only the bi-objective case is tested and functional.
 
 ## Installation
 
+Either via
+```
+pip install git+https://github.com/CMA-ES/pycomocma.git@master
+```
+
+or simply via
+
+```
+pip install comocma
+```
+The single file [`moarchiving.py`](https://github.com/CMA-ES/moarchiving/moarchiving/moarchiving.py) (from the `moarchiving/` folder) can also be directly used by itself when copied in the current folder or in a path visible to Python (e.g. a path contained in `sys.path`).
+
 
 ## Links
+
+- [Code on Github](https://github.com/CMA-ES/pycomocma)
+- Documentation (possibly slighly outdated) in
+  - [apidocs format](https://cma-es.github.io/pycomocma/comocma-apidocs/index.html)
+  - [epydocs format](https://cma-es.github.io/moarchiving/comocma-epydocs/index.html)
 
 ## Testing of the `comocma` module
 
@@ -230,5 +247,9 @@ moes.logger.plot_divers()
 cma.plot("cma_kernels/0")
 ```
 ![image info](./readme_images/cma-example.png )
+
+
+
+
 
 
