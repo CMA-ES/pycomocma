@@ -24,7 +24,7 @@ pip install comocma
 - [Code on Github](https://github.com/CMA-ES/pycomocma)
 - Documentation in
   - [apidocs format](https://cma-es.github.io/pycomocma/comocma-apidocs/index.html)
-  - [epydocs format](https://cma-es.github.io/moarchiving/comocma-epydocs/index.html)
+  - [epydocs format](https://cma-es.github.io/pycomocma/comocma-epydocs/index.html)
 
 ## Testing of the `comocma` module
 
@@ -246,6 +246,8 @@ moes.logger.plot_divers()
 cma.plot("cma_kernels/0")
 ```
 ![image info](./readme_images/cma-example.png )
+
+
 
 
 
