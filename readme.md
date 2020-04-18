@@ -7,6 +7,7 @@ For the time being, only the bi-objective case is tested and functional.
 
 ## Installation
 
+
 ## Links
 
 ## Testing of the `comocma` module
@@ -47,12 +48,11 @@ fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callab
 fitness3 = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1), lambda x: cma.ff.sphere(x+1)) # a callable multiobjective function
 ```
 
-### Single-objective options as cma’s options: a use case with few cma'options
+### Single-objective options: a use case with few cma-es' options
 ```python
 list_of_solvers = comocma.get_cmas(num_kernels * [dimension * [0]], 0.2, inopts={'bounds': [0.2, 0.9], 'tolx': 10**-7,'popsize': 32}) 
 # produce `num_kernels cma instances`
-moes = comocma.Sofomore(list_of_solvers, [1.1, 1.1]) # create a 
-como-cma-es instance
+moes = comocma.Sofomore(list_of_solvers, [1.1, 1.1]) # create a como-cma-es instance
 ```
 
 ### Use case with some Multiobjective options
@@ -180,9 +180,9 @@ for i in range(100):
     moes.tell(solutions, objective_values)
     moes.disp()
 
-pickle.dump(moes, open('saved-mocma-object.pkl', ‘wb')) # we save the instance
+pickle.dump(moes, open('saved-mocma-object.pkl', 'wb')) # we save the instance
 print('saved')
-del moes  # let's start fresh
+del moes  # deleting completely the Sofomore instance
 ```
 
 ### Output

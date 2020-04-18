@@ -1,11 +1,5 @@
 comocma	comocma-module.html
-comocma.sort_random	comocma.como-module.html#sort_random
-comocma.sort_odds_even	comocma.como-module.html#sort_odds_even
-comocma.sort_increasing	comocma.como-module.html#sort_increasing
-comocma.sort_decreasing	comocma.como-module.html#sort_decreasing
-comocma.get_cmas	comocma.como-module.html#get_cmas
 comocma.__package__	comocma-module.html#__package__
-comocma.sort_even_odds	comocma.como-module.html#sort_even_odds
 comocma.__main__	comocma.__main__-module.html
 comocma.__main__.__package__	comocma.__main__-module.html#__package__
 comocma.como	comocma.como-module.html
