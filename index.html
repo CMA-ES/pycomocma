@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<!--Converted via md-to-html-->
+<html>
+ <head>
+ </head>
+ <body>
+  <h1>
+   Introduction
+  </h1>
+  <p>
+   <code>
+    pycomocma
+   </code>
+   is a Python implementation of
+   <a href="https://hal.inria.fr/hal-02103694/document">
+    COMO-CMA-ES
+   </a>
+   which is a Multiobjective Evolution Strategy, based upon the
+   <a href="https://en.wikipedia.org/wiki/CMA-ES">
+    Covariance Matrix Adaptation Evolution Strategy
+   </a>
+  </p>
+  <p>
+   (
+   <a href="http://cma.gforge.inria.fr/">
+    CMA-ES
+   </a>
+   ) single optimizer.
+  </p>
+  <p>
+   For the time being, only the bi-objective case is tested and functional.
+  </p>
+  <h2>
+   Installation
+  </h2>
+  <p>
+   Either via
+  </p>
+  <p>
+   ```
+  </p>
+  <p>
+   pip install git+
+   <a href="https://github.com/CMA-ES/pycomocma.git@master">
+    https://github.com/CMA-ES/pycomocma.git@master
+   </a>
+  </p>
+  <p>
+   ```
+  </p>
+  <p>
+   or simply via
+  </p>
+  <p>
+   ```
+  </p>
+  <p>
+   pip install comocma
+  </p>
+  <p>
+   ```
+  </p>
+  <h2>
+   Links
+  </h2>
+  <ul>
+   <li>
+    <a href="https://github.com/CMA-ES/pycomocma">
+     Code on Github
+    </a>
+   </li>
+  </ul>
+  <ul>
+   <li>
+    Documentation in
+   </li>
+  </ul>
+  <ul>
+   <li>
+    <a href="https://cma-es.github.io/pycomocma/comocma-apidocs/index.html">
+     apidocs format
+    </a>
+   </li>
+  </ul>
+  <ul>
+   <li>
+    <a href="https://cma-es.github.io/moarchiving/comocma-epydocs/index.html">
+     epydocs format
+    </a>
+   </li>
+  </ul>
+  <h2>
+   Testing of the
+   <code>
+    comocma
+   </code>
+   module
+  </h2>
+  <p>
+   The script
+  </p>
+  <p>
+   ```
+  </p>
+  <p>
+   python -m comocma
+  </p>
+  <p>
+   ```
+  </p>
+  <p>
+   runs the test written in the
+   <code>
+    __main__
+   </code>
+   file.
+  </p>
+  <h1>
+   Use cases
+  </h1>
+  <h2>
+   Instantiating a multiobjective solver
+  </h2>
+  <h3>
+   Importing necessary packages:
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   import cma, comocma
+  </p>
+  <p>
+   ```
+  </p>
+  <h3>
+   Setting parameters:
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   dimension = 10  # dimension of the search space
+  </p>
+  <p>
+   num_kernels = 5 # number of single-objective solvers (number of points on the front)
+  </p>
+  <p>
+   sigma0 = 0.2    # initial step-sizes
+  </p>
+  <p>
+   ```
+  </p>
+  <h3>
+   Instantiate a multiobjective solver
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   list_of_solvers = comocma.get_cmas(num_kernels
+   <em>
+    [dimension
+   </em>
+   [0]], sigma0) # produce
+   <code>
+    num_kernels cma instances
+   </code>
+  </p>
+  <p>
+   moes = comocma.Sofomore(list_of_solvers, reference_point=[11, 11]) # create a bi-objective como-cma-es instance
+  </p>
+  <p>
+   moes3 = comocma.Sofomore(list_of_solvers, reference_point=[11, 11, 11]) # create a multiobjective como-cma-es instance
+  </p>
+  <p>
+   ```
+  </p>
+  <h3>
+   Setting a callable multiobjective function
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
+  </p>
+  <p>
+   fitness3 = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1), lambda x: cma.ff.sphere(x+1)) # a callable multiobjective function
+  </p>
+  <p>
+   ```
+  </p>
+  <h3>
+   Single-objective options: a use case with few cma-es' options
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   list_of_solvers = comocma.get_cmas(num_kernels
+   <em>
+    [dimension
+   </em>
+   [0]], 0.2, inopts={'bounds': [0.2, 0.9], 'tolx': 10**-7,'popsize': 32})
+  </p>
+  <h1>
+   produce
+   <code>
+    num_kernels cma instances
+   </code>
+  </h1>
+  <p>
+   moes = comocma.Sofomore(list_of_solvers, [1.1, 1.1]) # create a como-cma-es instance
+  </p>
+  <p>
+   ```
+  </p>
+  <h3>
+   Use case with some Multiobjective options
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   list_of_solvers = comocma.get_cmas(num_kernels
+   <em>
+    [dimension
+   </em>
+   [0]], 0.2)
+  </p>
+  <p>
+   moes = comocma.Sofomore(list_of_solvers, [1.1, 1.1], opts={'archive': True, 'restart': None, 'update_order': None}) # create a como-cma-es instance
+  </p>
+  <p>
+   ```
+  </p>
+  <h2>
+   The
+   <code>
+    Optimize
+   </code>
+   interface
+  </h2>
+  <h3>
+   Initialization
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   import cma, comocma
+  </p>
+  <p>
+   dimension = 10  # dimension of the search space
+  </p>
+  <p>
+   num_kernels = 5 # number of single-objective solvers (number of points on the front)
+  </p>
+  <p>
+   sigma0 = 0.2    # initial step-sizes
+  </p>
+  <p>
+   list_of_solvers = comocma.get_cmas(num_kernels
+   <em>
+    [dimension
+   </em>
+   [0]], sigma0) # produce
+   <code>
+    num_kernels cma instances
+   </code>
+  </p>
+  <p>
+   moes = comocma.Sofomore(list_of_solvers, [11,11]) # create a como-cma-es instance
+  </p>
+  <p>
+   fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
+  </p>
+  <p>
+   ```
+  </p>
+  <h3>
+   Optimizing
+   <code>
+    fitness
+   </code>
+   until default stopping criteria
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   moes.optimize(fitness)
+  </p>
+  <p>
+   ```
+  </p>
+  <pre><code>Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&amp;max stds
+</code></pre>
+  <pre><code>                                  (median)  (median)    (median)
+</code></pre>
+  <pre><code>    1     10 1.210000000000000e+00 1.0e+00 2.00e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>    2     20 1.210000000000000e+00 1.0e+00 2.00e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>    3     30 1.210000000000000e+00 1.0e+00 1.85e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>  100   1000 1.207601015381810e+00 1.6e+00 3.40e-02  3e-02  3e-02
+</code></pre>
+  <pre><code>  200   2000 1.209903687756354e+00 1.7e+00 7.74e-03  5e-03  6e-03
+</code></pre>
+  <pre><code>  300   3000 1.209997694077156e+00 1.8e+00 2.03e-03  1e-03  1e-03
+</code></pre>
+  <pre><code>  400   4000 1.209999800600613e+00 1.8e+00 4.90e-04  2e-04  3e-04
+</code></pre>
+  <pre><code>  480   4800 1.209999979594839e+00 1.9e+00 2.02e-04  7e-05  9e-05
+</code></pre>
+  <h3>
+   Optimizing
+   <code>
+    fitness
+   </code>
+   with a limited number of iterations
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   moes.optimize(fitness, iterations=300)
+  </p>
+  <p>
+   ```
+  </p>
+  <pre><code>Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&amp;max stds
+</code></pre>
+  <pre><code>                                (median)  (median)    (median)
+</code></pre>
+  <pre><code>  1     10 1.100000000000000e+01 1.0e+00 2.00e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>  2     20 2.158412269365152e+01 1.0e+00 2.00e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>  3     30 2.896035267829712e+01 1.0e+00 1.98e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>100   1000 9.512982413314423e+01 1.7e+00 1.01e-01  8e-02  9e-02
+</code></pre>
+  <pre><code>200   2000 9.703624875547615e+01 1.9e+00 4.27e-02  3e-02  4e-02
+</code></pre>
+  <pre><code>300   3000 9.722958234416403e+01 1.9e+00 1.63e-02  9e-03  1e-02
+</code></pre>
+  <h3>
+   Optimizing
+   <code>
+    fitness
+   </code>
+   with a maximum number of evaluations
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   moes.optimize(fitness, maxfun=3000)
+  </p>
+  <p>
+   ```
+  </p>
+  <pre><code>Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&amp;max stds
+</code></pre>
+  <pre><code>                                (median)  (median)    (median)
+</code></pre>
+  <pre><code>  1     10 1.100000000000000e+01 1.0e+00 2.00e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>  2     20 2.158412269365152e+01 1.0e+00 2.00e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>  3     30 2.896035267829712e+01 1.0e+00 1.98e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>100   1000 9.512982413314423e+01 1.7e+00 1.01e-01  8e-02  9e-02
+</code></pre>
+  <pre><code>200   2000 9.703624875547615e+01 1.9e+00 4.27e-02  3e-02  4e-02
+</code></pre>
+  <pre><code>300   3000 9.722958234416403e+01 1.9e+00 1.63e-02  9e-03  1e-02
+</code></pre>
+  <h2>
+   The
+   <code>
+    ask-and-tell
+   </code>
+   interface
+  </h2>
+  <p>
+   ```python
+  </p>
+  <p>
+   while not moes.stop():
+  </p>
+  <pre><code>solutions = moes.ask("all")
+</code></pre>
+  <pre><code>objective_values = [fitness(x) for x in solutions]
+</code></pre>
+  <pre><code>moes.tell(solutions, objective_values)
+</code></pre>
+  <pre><code>moes.disp()          # display datas during the optimization
+</code></pre>
+  <pre><code>moes.logger.add()    # logging data after each `ask` and `tell` call
+</code></pre>
+  <p>
+   ```
+  </p>
+  <pre><code>Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&amp;max stds
+</code></pre>
+  <pre><code>                                  (median)  (median)    (median)
+</code></pre>
+  <pre><code>    1    180 1.990425600000000e-01 1.0e+00 1.88e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>    2    360 2.279075246432772e-01 1.1e+00 1.87e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>    3    540 2.436105134581627e-01 1.2e+00 1.90e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>  100  18000 3.607157703968831e-01 2.1e+00 1.80e-02  1e-02  2e-02
+</code></pre>
+  <pre><code>  200  35172 3.635275131024869e-01 2.1e+00 5.95e-03  4e-03  5e-03
+</code></pre>
+  <pre><code>  300  49788 3.637412031970786e-01 2.2e+00 1.29e-03  8e-04  1e-03
+</code></pre>
+  <pre><code>  320  50784 3.637421277015990e-01 2.2e+00 1.26e-03  7e-04  9e-04
+</code></pre>
+  <h3>
+   Argument of
+   <code>
+    moes.ask
+   </code>
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   solutions = moes.ask() # we generate offspring for only one kernel (sequential)
+  </p>
+  <p>
+   solutions = moes.ask(“all”) # we generate offspring simultaneously for all kernels (parallel)
+  </p>
+  <p>
+   solutions = moes.ask(number_asks) # we generate offspring for
+   <code>
+    number_asks
+   </code>
+   kernels
+  </p>
+  <p>
+   ```
+  </p>
+  <h2>
+   Picklable object: saving and resuming a MO optimization with the
+   <code>
+    ask-and-tell
+   </code>
+   interface
+  </h2>
+  <h3>
+   Initialization
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   import cma, como, pickle
+  </p>
+  <p>
+   dimension = 10  # dimension of the search space
+  </p>
+  <p>
+   num_kernels = 5 # number of single-objective solvers (number of points on the front)
+  </p>
+  <p>
+   sigma0 = 0.2    # initial step-sizes
+  </p>
+  <p>
+   list_of_solvers = como.get_cmas(num_kernels
+   <em>
+    [dimension
+   </em>
+   [0]], sigma0) # produce
+   <code>
+    num_kernels cma instances
+   </code>
+  </p>
+  <p>
+   moes = como.Sofomore(list_of_solvers, reference_point = [11,11]) # create a como-cma-es instance
+  </p>
+  <p>
+   fitness = como.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
+  </p>
+  <p>
+   ```
+  </p>
+  <h3>
+   Saving an optimization
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   for i in range(100):
+  </p>
+  <pre><code>solutions = moes.ask()
+</code></pre>
+  <pre><code>objective_values = [fitness(x) for x in solutions]
+</code></pre>
+  <pre><code>moes.tell(solutions, objective_values)
+</code></pre>
+  <pre><code>moes.disp()
+</code></pre>
+  <p>
+   pickle.dump(moes, open('saved-mocma-object.pkl', 'wb')) # we save the instance
+  </p>
+  <p>
+   print('saved')
+  </p>
+  <p>
+   del moes  # deleting completely the Sofomore instance
+  </p>
+  <p>
+   ```
+  </p>
+  <h3>
+   Output
+  </h3>
+  <pre><code>Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&amp;max stds
+</code></pre>
+  <pre><code>                                  (median)  (median)    (median)
+</code></pre>
+  <pre><code>    1     10 1.100000000000000e+01 1.0e+00 2.00e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>    2     20 2.845200549045931e+01 1.0e+00 2.00e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>    3     30 3.440089785096067e+01 1.0e+00 2.00e-01  2e-01  2e-01
+</code></pre>
+  <pre><code>  100   1000 9.562953505152342e+01 1.9e+00 1.13e-01  9e-02  1e-01
+</code></pre>
+  <pre><code>saved
+</code></pre>
+  <h3>
+   Resuming an optimization
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   moes = pickle.load(open('saved-mocma-object.pkl', 'rb')) # we load the saved file here
+  </p>
+  <p>
+   moes.optimize(fitness, iterations=400)
+  </p>
+  <p>
+   ```
+  </p>
+  <h3>
+   Output
+  </h3>
+  <pre><code>200   2000 9.716644477685412e+01 1.9e+00 3.33e-02  2e-02  3e-02
+</code></pre>
+  <pre><code>300   3000 9.723550009906029e+01 2.0e+00 1.13e-02  6e-03  8e-03
+</code></pre>
+  <pre><code>400   4000 9.724067117112808e+01 1.9e+00 2.95e-03  1e-03  2e-03
+</code></pre>
+  <pre><code>500   5000 9.724107479961819e+01 2.0e+00 9.38e-04  4e-04  5e-04
+</code></pre>
+  <h2>
+   Example of plots
+  </h2>
+  <h3>
+   COMO-CMA-ES data plottings
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   moes.logger.plot_front()
+  </p>
+  <p>
+   ```
+  </p>
+  <p>
+   <img alt="image info" src="./readme_images/front.png"/>
+  </p>
+  <p>
+   ```python
+  </p>
+  <p>
+   moes.logger.plot_divers()
+  </p>
+  <p>
+   ```
+  </p>
+  <p>
+   <img alt="image info" src="./readme_images/divers.png"/>
+  </p>
+  <h3>
+   CMA-ES plots of written data
+  </h3>
+  <p>
+   ```python
+  </p>
+  <p>
+   cma.plot("cma_kernels/0")
+  </p>
+  <p>
+   ```
+  </p>
+  <p>
+   <img alt="image info" src="./readme_images/cma-example.png"/>
+  </p>
+ </body>
+</html>
