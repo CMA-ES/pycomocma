@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 # from distutils.core import setup
 
 from setuptools import setup
@@ -36,8 +33,8 @@ else:
 setup(name='comocma',
       long_description=long_description,  # __doc__
       version=__version__.split()[0],
-      description= "Multiobjective framework Sofomore, instantiated with"
-                    "the single-objective solver CMA-ES to obtain"
+      description= "Multiobjective framework Sofomore, instantiated with "
+                    "the single-objective solver CMA-ES to obtain "
                     "the Multiobjective evolutionary algorithm COMO-CMA-ES.",
       long_description_content_type = 'text/markdown',
       author="Cheikh Toure and Nikolaus Hansen",
