@@ -13,7 +13,7 @@ Only the bi-objective framework is functional and has been thoroughly tested.
 from __future__ import division, print_function, unicode_literals
 __author__ = "Cheikh Toure and Nikolaus Hansen"
 __license__ = "BSD 3-clause"
-__version__ = "0.5.0"
+__version__ = "0.5.2"
 del division, print_function, unicode_literals
 
 import ast
