@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 # from distutils.core import setup
 
 from setuptools import setup
