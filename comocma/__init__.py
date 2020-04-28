@@ -19,7 +19,9 @@ from . import como, sofomore_logger, hv, nondominatedarchive
 
 from .como import (Sofomore, IndicatorFront, get_cmas, CmaKernel, FitFun, 
                    sort_random, sort_decreasing, sort_even_odds, sort_increasing,
-                   sort_odds_even)
+                   sort_odds_even,
+                   RampUpSelector, get_kernel_best_chv_restart, get_kernel_random_restart
+                   )
 
 from .como import __author__, __license__, __version__
 

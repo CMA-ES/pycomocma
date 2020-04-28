@@ -821,6 +821,323 @@ class IndicatorFront:
                                   moes.reference_point)
         self.kernel = kernel
 
+
+def cma_kernel_default_options_dynamic_tolx(moes, factor=0.1):
+    """
+    return `factor` times minimum `tolx` from non-dominated kernels.
+
+    Fallback to default `tolx` if the `pareto_front_cut` is empty.
+"""
+    if moes.pareto_front_cut:
+        return factor * min(k.stop(get_value='tolx') for k in moes
+                            if k.objective_values in moes.pareto_front_cut)
+    if 'tolx' in cma_kernel_default_options_replacements:
+        return cma_kernel_default_options_replacements['tolx']
+    return cma.CMAOptions().eval('tolx')
+
+def get_kernel_random_restart(moes, x0_fct=None, opts=(), tolx_factor=0.05,
+        dynamic_tolx=cma_kernel_default_options_dynamic_tolx, **kwargs):
+    """
+    return a `list` with one element of type `CmaKernel`.
+    
+    Parameters
+    ----------
+    moes: `Sofomore`, the instance for which this method is used as
+    `restart` option.
+
+    x0_fct: `callable`, that returns an initial solution passed to
+    `CmaKernel`. By default uniform in [-5, 5].
+
+    opts: `dict`, options passed (possibly with modifications) to
+    the `CmaKernel(cma.CMAEvolutionStrategy)` instantiation call.
+
+    dynamic_tolx: ``Callable[[Sofomore, [factor]] -> tolx: float``,
+    initialize the `tolx` option of `CmaKernel` depending on the
+    kernels of a `Sofomore` instance.
+
+    kwargs: `dict`, unused keyword arguments to allow for a generic call of
+    `Sofomore.restart`.
+
+    Details: this function mimics `random_restart_kernel` but uses
+    additionally `cma_kernel_default_options_dynamic_tolx` to control the
+    `tolx` option of `CmaKernel`.
+"""
+    def x0(moes):
+        """x0 uniform in [-5, 5]"""
+        return 10 * np.random.rand(moes.dimension) - 5
+    def sigma0(moes):
+        """sigma0 from first kernel"""
+        return moes[0].sigma0
+    def get_opts(moes):
+        """inopts from last stopped kernel (for backwards "compatiblity")"""
+        if moes._last_stopped_kernel_id is not None:
+            opts_ = dict(moes[moes._last_stopped_kernel_id].inopts or ())
+        else:  # fall back to inopts of first kernel
+            opts_ = dict(moes[0].inopts or ())
+        opts_['tolx'] = dynamic_tolx(moes, factor=tolx_factor)
+        opts_.update(opts or ())  # catch None
+        return opts_
+    res = get_cmas((x0_fct or x0)(moes), sigma0(moes),
+                         get_opts(moes), len(moes))
+    res[0]._rampup_method = get_kernel_random_restart
+    return res
+
+def get_kernel_best_chv_restart(moes, opts=(),
+        dynamic_tolx=cma_kernel_default_options_dynamic_tolx,
+        sigma_factor=1,
+        **kwargs):
+    """
+    return a `list` with one element of type `CmaKernel`.
+    
+    Parameters
+    ----------
+    moes: `Sofomore`, the instance for which this method is used as
+    `restart` option.
+
+    opts: `dict`, options passed (possibly with modifications) to
+    `CmaKernel(cma.CMAEvolutionStrategy)`.
+
+    dynamic_tolx: ``Callable[[Sofomore, [factor]] -> tolx: float``,
+    initialize the `tolx` option of `CmaKernel` depending on the
+    kernels of a `Sofomore` instance.
+
+    kwargs: `dict`, unused keyword arguments to allow for a generic call of
+    `Sofomore.restart`.
+
+    Details: this function picks best boundary kernels only with
+    probability of about 2 / number_of_kernels and uses
+    `cma_kernel_default_options_dynamic_tolx` to control the `tolx` option
+    of `CmaKernel`.
+
+    TODO: it may be better to pick best boundary kernels with at least,
+    say, 5%. However from a practical perspective, boundary kernels are
+    usually of lesser interest and pushing the boundary leads to more gaps
+    at extremer (less interesting) regions(?) that will also be filled in
+    the sequel.
+"""
+    def pick_kernel(moes):
+        pareto_front = moes.pareto_front_cut  # or moes.pareto_front_uncut
+        # TODO: if the pareto_front is empty we will pick and try to improve
+        # always the same location because the distance to the reference
+        # value is independent of crowding in the local space. Using the
+        # extended pareto front doesn't really help to address this problem.
+        if len(pareto_front) < 1:  # len(front) <= nb non-dominated <= nb of known objective_values <= len(moes)
+            return moes[np.random.randint(len(moes))]  # should rarely happen anyway
+        for k in moes.sorted():
+            if k.objective_values in [pareto_front[i] for i in [0, -1]]:
+                if len(pareto_front) < 3 or np.random.randint(len(moes)) < 2:
+                    return k  # don't skip boundary points in favor of reference-non-dominating solutions
+            else:
+                break
+        return k
+    def get_opts(moes):
+        opts_ = {'tolx': dynamic_tolx(moes, factor=0.05)}
+        opts_.update(opts or ())  # or () catches opts == None
+        opts_.update([['verb_filenameprefix', # currently unavoidable code duplication from line ~1600 of get_cmas
+                      os.path.join('cma_kernels', str(len(moes)))]])
+        return opts_
+    kernel = pick_kernel(moes)
+    res = kernel._copy_light(sigma=sigma_factor * kernel.sigma, inopts=get_opts(moes))
+    res._rampup_method = get_kernel_best_chv_restart
+    return [res]
+
+def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts=None, **kwargs):
+    
+    """create a kernel (solver) of TYPE CmaKernel with a random initial mean, or 
+    an initial mean given by the factory function `x0_funct`, and initial step-size
+    `sigma0`.
+    
+    Parameters
+    ----------
+    moes : TYPE Sofomore
+        A multiobjective solver instance with cma-es (of TYPE CmaKernel) solvers.
+    x0_fct : TYPE function, optional
+        A factory function that creates an initial mean. The default is None.
+    sigma0 : TYPE float, optional
+        Initial step-size of the returned kernel. The default is None.
+    opts : TYPE dict, optional
+        The returned kernel's options. The default is `None`.
+    **kwargs : 
+        Other keyword arguments.
+
+    Returns
+    -------
+    A kernel (solver) of TYPE CmaKernel.
+
+    """
+
+    if x0_fct is not None:
+        x0 = x0_fct(moes.dimension)  # or however we can access the current search space dimension
+    else:
+        x0 = 10 * np.random.rand(moes.dimension) - 5  # TODO: or whatever we want as default
+    if sigma0 is None: 
+        sigma0 = moes[0].sigma0 / 1.  # decrease the initial  step-size ?
+    
+    my_opts = {}  # we use inopts to avoid copying the initialized random seed
+    for op in (moes[moes._last_stopped_kernel_id].inopts, opts):
+        if op is not None:
+            my_opts.update(op)
+                
+    return  get_cmas(x0, sigma0, my_opts, len(moes))
+    
+def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
+    """create a kernel (solver) of TYPE CmaKernel by duplicating the kernel with 
+    best uncrowded hypervolume improvement.
+    
+    Parameters
+    ----------
+    moes : TYPE Sofomore
+        A multiobjective solver instance with cma-es (of TYPE CmaKernel) solvers.
+    sigma_factor : TYPE int or float, optional
+        A step size factor used in the initial step-size of the kernel returned.
+        The default is 1.
+    **kwargs : 
+        Other keyword arguments.
+
+    Returns
+    -------
+    A kernel (solver) of TYPE CmaKernel derived from the kernel with largest contributing HV.
+
+    """
+
+    hvc = []
+    for idx in range(len(moes)):
+        front = moes.NDA([moes.kernels[i].objective_values for i in range(len(moes)) if i != idx],
+                            moes.reference_point)
+        f_pair = moes.kernels[idx].objective_values
+        hvc += [front.hypervolume_improvement(f_pair)]
+    sorted_indices = sorted(range(len(moes)), key=lambda i: - hvc[i])
+    my_front = moes.pareto_front_cut
+    idx_best = sorted_indices[0]
+    if len(my_front) > 1:
+        for i in sorted_indices:
+            kernel = moes.kernels[i]
+            if kernel.stop() or kernel.objective_values not in [my_front[0], my_front[-1]]:
+                idx_best = i
+                break
+    ker = moes.kernels[idx_best]
+    new_sigma0 = sigma_factor * ker.sigma
+
+    newkernel = ker._copy_light(sigma=new_sigma0, inopts={'verb_filenameprefix': 'cma_kernels' + os.sep +
+                                                          str(len(moes))})
+    return [newkernel]
+
+class _CounterDict(dict):
+    """A dictionary with two additional features.
+    
+    1) it can be initialized by keywords only, setting all values to 0.
+    
+    2) the `argmin` method gives the key associated to the smallest value,
+    breaking ties at random.
+
+    `_CounterDict` is somewhat a misnomer, as any type than can be
+    sorted can be used as values.
+
+    >>> from comocma.como import _CounterDict
+    >>> keys = [1, 2]
+    >>> bs = _CounterDict(keys)
+    >>> assert bs == _CounterDict(zip(keys, len(keys) * [0]))
+    >>> assert bs[bs.argmin()] == min(bs.values())
+    >>> bs[2] = -3
+    >>> assert bs.argmin() == 2
+
+    """
+    def __init__(self, *args, **kwargs):
+        try:
+            super(_CounterDict, self).__init__(*args, **kwargs)
+        except TypeError:  # make values to be zero
+            super(_CounterDict, self).__init__(zip(args[0], len(args[0]) * [0]))
+        self.argmin()  # assign `last` attribute
+        self.last = self.last  # declare `last` attribute
+        """  all minimal keys on last call of `argmin`"""
+    def argmin(self):
+        m = min(self.values())
+        self.last = [k for k in self if self[k] == m]
+        return self.last[np.random.randint(len(self.last))]
+
+class RampUpSelector:
+    """Takes a list of ramp-up methods and a selection "criterion",
+    
+    on inialization. When called, calls the ramp-up method with the
+    smallest cumulative criterion value and returns the result.
+    
+    The default selection criterion is number of ramp-up calls. Otherwise,
+    `criterion` can be an attribute name or a `callable`. A string
+    signifies an attribute name of the returned result of the ramp-up
+    methods. A `callable` is called with the result as argument.
+
+    For example, ``criterion='countevals'`` or ``lambda k: k.countevals``
+    uses the sum of ``result.countevals`` (evaluated only right before the
+    next ramp up) as criterion which method to use next.
+
+    The `costs` attribute stores the sum of selection criterion values
+    for each method in a dictionary.
+    
+    Usage:
+
+    >>> import comocma
+    >>> restart_methods = (comocma.get_kernel_random_restart,
+    ...                    comocma.get_kernel_best_chv_restart)
+    >>> selected_restarts = comocma.RampUpSelector(restart_methods)
+
+    or:
+
+    >>> selected_restarts = comocma.RampUpSelector(restart_methods,
+    ...                                         criterion='countevals')
+
+    thereby assuming that the return value of the restart methods has the
+    attribute `countevals` to be used to sum up the costs. Now calling
+    `selected_restarts` has the same interface as either of the
+    `restart_methods`, that is, the same calling arguments and the same
+    return value(s), and it can be used just like the original single
+    methods::
+    
+    >>> list_of_solvers = comocma.get_cmas(21 * [10 * [0]], 0.3)
+    >>> reference_point = [11, 11]
+    >>> moes = comocma.Sofomore(list_of_solvers, reference_point, 
+    ...                      {'restart': selected_restarts})
+
+    as restart option.
+"""
+    def __init__(self, rampup_methods, criterion=None):
+        self.rampup_methods = rampup_methods
+        self.criterion = criterion
+        """  a callable or an attribute name, may be changed any time"""
+        self.costs = _CounterDict(self.rampup_methods)
+        self.counts = _CounterDict(self.rampup_methods)
+        self.method = None
+        """ last used rampup method"""
+        self.result = None
+        """ last rampup result, this may or may not be a list"""
+
+    def _update_costs(self):
+        """add cost value of finished (last ramped) method"""
+        if not self.method:
+            return  # do nothing before to know which method was called
+        if self.criterion is None:
+            val = 1
+        else:
+            try:  # a string leads to attribute access
+                # this is a hack and should not be necessary:
+                if isinstance(self.result, (list, tuple)): 
+                    val = sum(getattr(k, self.criterion) for k in self.result)
+                else:  # should not happen anymore within `como`
+                    val = getattr(self.result, self.criterion)
+            except TypeError:  # an attribute must be a string
+                val = self.criterion(self.result)
+        self.costs[self.method] += val
+        self.counts[self.method] += 1
+
+    def __call__(self, *args, **kwargs):
+        """update, select, and ramp up"""
+        self._update_costs()  # depends on the final state of the previously returned result
+        self.method = self.costs.argmin()
+        self.result = self.method(*args, **kwargs)
+        # if need be we could hack here to tweak result further before to deliver
+        return self.result
+
+
+
 cma_kernel_default_options_replacements = {
         'conditioncov_alleviate': [np.inf, np.inf],
         'verbose': -1,
