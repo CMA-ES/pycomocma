@@ -772,21 +772,22 @@ class IndicatorFront:
     `list_attribute` of `moes` (like `archive`) as given on
     initialization.
     
-    Usage::
-        >>> import comocma, cma
-        >>> list_of_solvers_instances = comocma.get_cmas(13 * [5 * [0.4]], 0.7, {'verbose':-9})
-        >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
-        >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
-        >>> moes.front_observed = IndicatorFront()
-        >>> moes.optimize(fitness, iterations=47) # doctest:+ELLIPSIS
-        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
-        >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
-        >>> moes.front_observed = IndicatorFront(list_attribute='archive')
-        >>> moes.optimize(fitness, iterations=37) # doctest:+ELLIPSIS
-        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
-        >>> moes.front_observed.set_kernel(moes[3], moes)
-        >>> f_points = [moes.front_observed.hypervolume_improvement(point)
-        ...             for point in moes[3]._last_offspring_f_values] 
+    Usage:
+
+    >>> import comocma, cma
+    >>> list_of_solvers_instances = comocma.get_cmas(13 * [5 * [0.4]], 0.7, {'verbose':-9})
+    >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
+    >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
+    >>> moes.front_observed = IndicatorFront()
+    >>> moes.optimize(fitness, iterations=47) # doctest:+ELLIPSIS
+    Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+    >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
+    >>> moes.front_observed = IndicatorFront(list_attribute='archive')
+    >>> moes.optimize(fitness, iterations=37) # doctest:+ELLIPSIS
+    Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+    >>> moes.front_observed.set_kernel(moes[3], moes)
+    >>> f_points = [moes.front_observed.hypervolume_improvement(point)
+    ...             for point in moes[3]._last_offspring_f_values] 
 
     """
     def __init__(self, list_attribute=None, NDA=None):
@@ -808,12 +809,15 @@ class IndicatorFront:
         
         By default, make changes only when kernel has changed.
         
-        Details: ``moes.reference_point`` and, in case, its attribute
-        with name `self.list_attribute: str` is used.
+        Details: `kernel` may also be the index of the kernel in `moes`.
+        ``moes.reference_point`` and, in case, its attribute with name
+        `self.list_attribute: str` is used.
         """
+        try: kernel = moes[kernel]  # kernel is an index in moes
+        except TypeError: pass  # kernel is already a kernel, not an index
         if lazy and kernel == self.kernel:
             return
-        if self.list_attribute:
+        if self.list_attribute:  # we could use getattr(moes, 'archive') as indicator front
             self.front = self.NDA(getattr(moes, self.list_attribute),
                                   moes.reference_point)
         else:
