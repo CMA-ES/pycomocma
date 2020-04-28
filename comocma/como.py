@@ -840,7 +840,8 @@ def cma_kernel_default_options_dynamic_tolx(moes, factor=0.1):
     return cma.CMAOptions().eval('tolx')
 
 def get_kernel_random_restart(moes, x0_fct=None, opts=(), tolx_factor=0.05,
-        dynamic_tolx=cma_kernel_default_options_dynamic_tolx, **kwargs):
+        dynamic_tolx=cma_kernel_default_options_dynamic_tolx,
+        **kwargs):
     """
     return a `list` with one element of type `CmaKernel`.
     
@@ -1087,7 +1088,7 @@ class RampUpSelector:
     or:
 
     >>> selected_restarts = comocma.RampUpSelector(restart_methods,
-    ...                                         criterion='countevals')
+    ...                                            criterion='countevals')
 
     thereby assuming that the return value of the restart methods has the
     attribute `countevals` to be used to sum up the costs. Now calling
@@ -1140,6 +1141,81 @@ class RampUpSelector:
         # if need be we could hack here to tweak result further before to deliver
         return self.result
 
+class GetKernelPopsizeIncrementer:
+    """
+    a `callable` that returns the result of a call of `get_kernel`.
+
+    The gist of this class is to pass a dynamic popsize to `get_kernel`.
+
+    Most of the class code is boilerplate, interfacing, and bookkeeping.
+    `adapt_popsize` is the core method that is not just that and may be
+    overwritten in a derived `class` to change the algorithm.
+
+    Parameters
+    ----------
+    get_kernel: ``Callable[Sofomore, [opts={'popsize': int}]]
+    -> List[CmaKernel]`` where the returned `list` is of length 1.
+
+    opts: `dict`, options passed (possibly with modifications) to
+    the `CmaKernel(cma.CMAEvolutionStrategy)` instantiation call.
+
+    popsize_increment: float, factor to increment popsize when the last
+    kernel ended up dominated.
+
+    Usage::
+
+        from comocma import como
+        selected_restarts = como.RampUpSelector([
+            como.GetKernelPopsizeIncrementer(
+                como.get_kernel_best_chv_restart,
+                popsize_increment=1),  # use always default popsize here
+            como.GetKernelPopsizeIncrementer(
+                como.get_kernel_random_restart,
+                popsize_increment=2),  # standard popsize increment
+            ],
+            'countevals')
+        moes = como.Sofomore(list_of_solvers, 
+                             opts={'restart': selected_restarts},
+                             reference_point=...)
+
+    Details: `adapt_popsize` here increments the popsize for the
+    next `CmaKernel` when the last kernel ended up dominated.
+"""
+    def __init__(self, get_kernel, opts=(), popsize_increment=2):
+        self.get_kernel = get_kernel
+        self.popsize_increment = popsize_increment or 1
+        self.opts = opts
+        self.popsize = None
+        """a float or None, used as popsize parameter for `CmaKernel`"""
+        self.kernels = []
+        """history of launched kernels, only the last is used"""
+
+    def adapt_popsize(self, moes):
+        """this could be changed in an inherited class"""
+        kernel = self.kernels[-1] if self.kernels else moes[-1]
+        if kernel.objective_values in moes.pareto_front_cut:
+            return  # do nothing if last kernel was nondominated
+        if not self.popsize:
+            self.popsize = kernel.popsize
+        if self.popsize <= kernel.popsize:
+            self.popsize *= self.popsize_increment
+
+    def __call__(self, moes, opts=(), **kwargs):
+        """
+        return a `list` with one element of type `CmaKernel`.
+
+        moes: `Sofomore`, the instance for which this method is used as
+        `restart` option.
+
+        kwargs: `dict`, unused keyword arguments to allow for a generic call of
+        `Sofomore.restart`.
+    """
+        self.adapt_popsize(moes)
+        opts_ = {'popsize': self.popsize}  # None is eligible and used
+        opts_.update(self.opts or ())  # we may want always default popsize
+        opts_.update(opts or ())
+        self.kernels += self.get_kernel(moes, opts=opts_, **kwargs)
+        return self.kernels[-1]
 
 
 cma_kernel_default_options_replacements = {
