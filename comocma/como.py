@@ -815,6 +815,8 @@ class IndicatorFront:
         """
         try: kernel = moes[kernel]  # kernel is an index in moes
         except TypeError: pass  # kernel is already a kernel, not an index
+        
+        self.NDA = moes.NDA #Cheikh
         if lazy and kernel == self.kernel:
             return
         if self.list_attribute:  # we could use getattr(moes, 'archive') as indicator front
