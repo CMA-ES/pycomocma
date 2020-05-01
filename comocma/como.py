@@ -122,6 +122,15 @@ class Sofomore(interfaces.OOOptimizer):
     >>> moes.optimize(fitness, iterations=23) # doctest:+ELLIPSIS
     Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
         
+    >>> list_of_solvers_instances = comocma.get_cmas(num_kernels * [x0], sigma0, {'verbose':-9})
+    >>> reference_point = [11, 11, 11]
+    >>> moes = comocma.Sofomore(list_of_solvers_instances,
+    ...                      reference_point) #instantiation of our MO optimizer
+    >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1),
+    ...                       lambda x: cma.ff.sphere(x+1)) # a callable 3-objective function
+    >>> moes.optimize(fitness, iterations=4) # doctest:+ELLIPSIS
+    Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+    
     More verbosely, the optimization of the callable multiobjective function 
     `fitness` is done via the `ask-and-tell` interface:
 
