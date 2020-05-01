@@ -17,6 +17,7 @@ __version__ = "0.5.2"
 del division, print_function, unicode_literals
 
 import ast
+import collections
 import numpy as np
 import cma
 from cma import interfaces
@@ -1192,7 +1193,7 @@ class GetKernelPopsizeIncrementer:
         self.opts = opts
         self.popsize = None
         """a float or None, used as popsize parameter for `CmaKernel`"""
-        self.kernels = []
+        self.kernels = collections.deque(maxlen=20)
         """history of launched kernels, only the last is used"""
 
     def adapt_popsize(self, moes):
@@ -1200,9 +1201,9 @@ class GetKernelPopsizeIncrementer:
         kernel = self.kernels[-1] if self.kernels else moes[-1]
         if kernel.objective_values in moes.pareto_front_cut:
             return  # do nothing if last kernel was nondominated
-        if not self.popsize:
+        if not self.popsize:  # initialize self.popsize
             self.popsize = kernel.popsize
-        if self.popsize <= kernel.popsize:
+        if self.popsize <= kernel.popsize:  # try larger popsize
             self.popsize *= self.popsize_increment
 
     def __call__(self, moes, opts=(), **kwargs):
@@ -1216,8 +1217,8 @@ class GetKernelPopsizeIncrementer:
         `Sofomore.restart`.
     """
         self.adapt_popsize(moes)
-        opts_ = {'popsize': self.popsize}  # None is eligible and used
-        opts_.update(self.opts or ())  # we may want always default popsize
+        opts_ = {'popsize': self.popsize}  # None must be eligible and invoke default
+        opts_.update(self.opts or ())  # overwrite opts, we may want default popsize
         opts_.update(opts or ())
         self.kernels += self.get_kernel(moes, opts=opts_, **kwargs)
         return self.kernels[-1]
