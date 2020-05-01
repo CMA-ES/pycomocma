@@ -815,15 +815,18 @@ class IndicatorFront:
         """
         try: kernel = moes[kernel]  # kernel is an index in moes
         except TypeError: pass  # kernel is already a kernel, not an index
-        
-        self.NDA = moes.NDA #Cheikh
+        try:  # take class of current moes, if available
+            NDA = moes.NDA or self.NDA  # capture case when moes.NDA is None
+        except AttributeError:
+            # we could also first use type(self.front) if self.front
+            NDA = self.NDA  # moes has not attribute NDA
         if lazy and kernel == self.kernel:
             return
         if self.list_attribute:  # we could use getattr(moes, 'archive') as indicator front
-            self.front = self.NDA(getattr(moes, self.list_attribute),
+            self.front = NDA(getattr(moes, self.list_attribute),
                                   moes.reference_point)
         else:
-            self.front = self.NDA([k.objective_values for k in moes if k != kernel],
+            self.front = NDA([k.objective_values for k in moes if k != kernel],
                                   moes.reference_point)
         self.kernel = kernel
 
