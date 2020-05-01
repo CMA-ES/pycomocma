@@ -103,35 +103,38 @@ class Sofomore(interfaces.OOOptimizer):
     ======================
     The interface is inherited from the generic `OOOptimizer`
     class, which is the same interface used by the `pycma` module. An object 
-    instance is generated as following::
+    instance is generated as following:
         
-        >>> import cma, comocma
-        >>> import numpy as np
-        >>> reference_point = [11, 11]
-        >>> num_kernels = 11 # the number of points we seek to have on the Pareto front
-        >>> dimension = 10 # the dimension of the search space
-        >>> x0 = dimension * [0] # an initial mean for cma
-        >>> sigma0 = 0.2 # initial step-size for cma
-        >>> list_of_solvers_instances = comocma.get_cmas(num_kernels * [x0], sigma0, {'verbose':-9})
-        >>> # `comocma.get_cmas` is a factory function that returns `num_kernels` cma-es instances
-        >>> moes = comocma.Sofomore(list_of_solvers_instances,
-        ...                      reference_point) #instantiation of our MO optimizer
+    >>> import cma, comocma
+    >>> import numpy as np
+    >>> reference_point = [11, 11]
+    >>> num_kernels = 11 # the number of points we seek to have on the Pareto front
+    >>> dimension = 5 # the dimension of the search space
+    >>> x0 = dimension * [0] # an initial mean for cma
+    >>> sigma0 = 0.2 # initial step-size for cma
+    >>> list_of_solvers_instances = comocma.get_cmas(num_kernels * [x0], sigma0, {'verbose':-9})
+    >>> # `comocma.get_cmas` is a factory function that returns `num_kernels` cma-es instances
+    >>> moes = comocma.Sofomore(list_of_solvers_instances,
+    ...                      reference_point) #instantiation of our MO optimizer
 
-    The least verbose interface is via the optimize method::
-        >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
-        >>> moes.optimize(fitness) # doctest:+ELLIPSIS
-        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+    The least verbose interface is via the optimize method:
+
+    >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
+    >>> # TODO: rather optimize a few iterations only 
+    >>> moes.optimize(fitness) # doctest:+ELLIPSIS
+    Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
         
     More verbosely, the optimization of the callable multiobjective function 
-    `fitness` is done via the `ask-and-tell` interface::
+    `fitness` is done via the `ask-and-tell` interface:
      
-        >>> moes = comocma.Sofomore(list_of_solvers_instances, reference_point)
-        >>> while not moes.stop() and moes.countiter < 30:
-        ...     solutions = moes.ask() # `ask` delivers new candidate solutions
-        ...     objective_values = [fitness(x) for x in solutions]
-        ...     moes.tell(solutions, objective_values)
-        ...  # `tell` updates the MO instance by passing the respective function values.
-        ...     moes.disp() # display data on the evolution of the optimization 
+    >>> moes = comocma.Sofomore(list_of_solvers_instances, reference_point)
+    >>> while not moes.stop() and moes.countiter < 30:
+    ...     assert 1 < 0  # TODO: this loop does nothing (list_of_solvers_instances is already optimized)
+    ...     solutions = moes.ask() # `ask` delivers new candidate solutions
+    ...     objective_values = [fitness(x) for x in solutions]
+    ...     moes.tell(solutions, objective_values)
+    ...  # `tell` updates the MO instance by passing the respective function values.
+    ...     moes.disp() # display data on the evolution of the optimization 
     
     One iteration of the `optimize` interface is equivalent to one step in the 
     loop of the `ask-and-tell` interface. But for the latter, the prototyper has
@@ -298,22 +301,22 @@ class Sofomore(interfaces.OOOptimizer):
     def _UHVI_indicator(self, kernel):
         """return indicator function(!) for uncrowded hypervolume improvement for `kernel`.
     
-            >>> import comocma, cma
-            >>> list_of_solvers_instances = comocma.get_cmas(13 * [5 * [1]], 0.7, {'verbose':-9})
-            >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
-            >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
-            >>> moes.optimize(fitness, iterations=37) # doctest:+ELLIPSIS
-            Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
-            >>> moes._UHVI_indicator(moes[1])(moes[2].objective_values) # doctest:+ELLIPSIS
-            ***
-            >>> moes._UHVI_indicator(1)(moes[2].objective_values) # doctest:+ELLIPSIS
-            ***
+        >>> import comocma, cma
+        >>> list_of_solvers_instances = comocma.get_cmas(13 * [5 * [1]], 0.7, {'verbose':-9})
+        >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
+        >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
+        >>> moes.optimize(fitness, iterations=37) # doctest:+ELLIPSIS
+        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+        >>> moes._UHVI_indicator(moes[1])(moes[2].objective_values) # doctest:+ELLIPSIS
+        ***
+        >>> moes._UHVI_indicator(1)(moes[2].objective_values) # doctest:+ELLIPSIS
+        ***
 
         both return the UHVI indicator function for kernel 1 and evaluate
-        kernel 2 on it::
+        kernel 2 on it:
 
-           >>> [[moes._UHVI_indicator(k)(k.objective_values)] for k in moes] # doctest:+ELLIPSIS
-           ***
+        >>> [[moes._UHVI_indicator(k)(k.objective_values)] for k in moes] # doctest:+ELLIPSIS
+        ***
 
         is the list of UHVI values for all kernels where kernels occupying the
         very same objective value have indicator value zero.
@@ -327,15 +330,15 @@ class Sofomore(interfaces.OOOptimizer):
         (which we aim to maximize) in the set of kernels. Exact copies have
         zero or negative UHVI value.
     
-            >>> import comocma, cma
-            >>> list_of_solvers_instances = comocma.get_cmas(13 * [5 * [1]], 0.7, {'verbose':-9})
-            >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
-            >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
-            >>> moes.optimize(fitness, iterations=31) # doctest:+ELLIPSIS
-            Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
-            >>> moes.sorted(key = lambda k: moes.archive.contributing_hypervolume(
-            ...                          k.objective_values)) # doctest:+ELLIPSIS
-            [<comocma.como.CmaKernel object at***
+        >>> import comocma, cma
+        >>> list_of_solvers_instances = comocma.get_cmas(13 * [5 * [1]], 0.7, {'verbose':-9})
+        >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
+        >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
+        >>> moes.optimize(fitness, iterations=31) # doctest:+ELLIPSIS
+        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+        >>> moes.sorted(key = lambda k: moes.archive.contributing_hypervolume(
+        ...                          k.objective_values)) # doctest:+ELLIPSIS
+        [<comocma.como.CmaKernel object at***
             
         sorts w.r.t. archive contribution (clones may get positive contribution).
 
@@ -1255,13 +1258,14 @@ def get_cmas(x_starts, sigma_starts, inopts=None, number_created_kernels=0):
     -------
     A list of `CmaKernel` instances.
     
-    Example::
-        >>> import comocma
-        >>> dimension = 10
-        >>> sigma0 = 0.5
-        >>> num_kernels = 11
-        >>> cma_opts = {'tolx': 10**-4, 'popsize': 32}
-        >>> list_of_solvers = comocma.get_cmas(num_kernels * [dimension * [0]], sigma0, cma_opts) 
+    Example:
+
+    >>> import comocma
+    >>> dimension = 10
+    >>> sigma0 = 0.5
+    >>> num_kernels = 11
+    >>> cma_opts = {'tolx': 10**-4, 'popsize': 32}
+    >>> list_of_solvers = comocma.get_cmas(num_kernels * [dimension * [0]], sigma0, cma_opts) 
         
         produce `num_kernels` cma instances.
     """
