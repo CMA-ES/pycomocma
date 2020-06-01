@@ -1238,6 +1238,26 @@ class GetKernelPopsizeIncrementer:
         self.kernels += self.get_kernel(moes, opts=opts_, **kwargs)
         return self.kernels[-1]
 
+class GetKernelIPOP(GetKernelPopsizeIncrementer):
+    """non-adaptive IPOP incrementing scheme.
+
+    Example:
+
+    >>> from comocma import como
+    >>> selected_restarts = como.RampUpSelector(
+    ...     [como.get_kernel_best_chv_restart,
+    ...      como.GetKernelIPOP(como.get_kernel_random_restart, popsize_increment=2**0.5)
+    ...     ], criterion='countevals')
+
+    can be used as ``'restart'`` option to `como.Sofomore` when using `como.get_cmas` kernels.
+
+"""
+    def adapt_popsize(self, moes):
+        if not self.popsize:
+            kernel = self.kernels[-1] if self.kernels else moes[-1]
+            self.popsize = kernel.popsize
+        else:
+            self.popsize *= self.popsize_increment
 
 cma_kernel_default_options_replacements = {
         'conditioncov_alleviate': [np.inf, np.inf],
