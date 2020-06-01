@@ -14,6 +14,10 @@ Only the bi-objective framework is functional and has been thoroughly tested.
 :License: BSD 3-Clause, see LICENSE file.
 
 """
+if 11 < 3:  # turn off infinite precision (which can be very slow in long runs)
+    import moarchiving
+    moarchiving.moarchiving.BiobjectiveNondominatedSortedList.hypervolume_final_float_type = float
+    moarchiving.moarchiving.BiobjectiveNondominatedSortedList.hypervolume_computation_float_type = float
 
 from . import como, sofomore_logger, hv, nondominatedarchive
 
