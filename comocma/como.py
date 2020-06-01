@@ -120,21 +120,31 @@ class Sofomore(interfaces.OOOptimizer):
     The least verbose interface is via the optimize method:
 
     >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
-    >>> # TODO: rather optimize a few iterations only 
-    >>> moes.optimize(fitness) # doctest:+ELLIPSIS
+    >>> moes.optimize(fitness, iterations=23) # doctest:+ELLIPSIS
     Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
         
+    >>> list_of_solvers_instances = comocma.get_cmas(num_kernels * [x0], sigma0, {'verbose':-9})
+    >>> reference_point = [11, 11, 11]
+    >>> moes = comocma.Sofomore(list_of_solvers_instances,
+    ...                      reference_point) #instantiation of our MO optimizer
+    >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1),
+    ...                       lambda x: cma.ff.sphere(x+1)) # a callable 3-objective function
+    >>> moes.optimize(fitness, iterations=4) # doctest:+ELLIPSIS
+    Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+    
     More verbosely, the optimization of the callable multiobjective function 
     `fitness` is done via the `ask-and-tell` interface:
-     
+
+    >>> list_of_solvers_instances = comocma.get_cmas(num_kernels * [x0], sigma0, {'verbose':-9})
     >>> moes = comocma.Sofomore(list_of_solvers_instances, reference_point)
     >>> while not moes.stop() and moes.countiter < 30:
-    ...     assert 1 < 0  # TODO: this loop does nothing (list_of_solvers_instances is already optimized)
     ...     solutions = moes.ask() # `ask` delivers new candidate solutions
     ...     objective_values = [fitness(x) for x in solutions]
     ...     moes.tell(solutions, objective_values)
     ...  # `tell` updates the MO instance by passing the respective function values.
-    ...     moes.disp() # display data on the evolution of the optimization 
+    ...     # moes.logger.add()
+    ...     moes.disp() # doctest:+ELLIPSIS
+    ***
     
     One iteration of the `optimize` interface is equivalent to one step in the 
     loop of the `ask-and-tell` interface. But for the latter, the prototyper has
