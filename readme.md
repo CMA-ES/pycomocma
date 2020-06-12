@@ -166,7 +166,7 @@ while not moes.stop():
 
 ```python
 solutions = moes.ask() # we generate offspring for only one kernel (sequential)
-solutions = moes.ask(“all”) # we generate offspring simultaneously for all kernels (parallel)
+solutions = moes.ask("all") # we generate offspring simultaneously for all kernels (parallel)
 solutions = moes.ask(number_asks) # we generate offspring for `number_asks` kernels
 ```
 
