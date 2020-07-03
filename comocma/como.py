@@ -854,8 +854,11 @@ def cma_kernel_default_options_dynamic_tolx(moes, factor=0.1):
     Fallback to default `tolx` if the `pareto_front_cut` is empty.
 """
     if moes.pareto_front_cut:
-        return factor * min(k.stop(get_value='tolx') for k in moes
-                            if k.objective_values in moes.pareto_front_cut)
+        vals = [k.stop(get_value='tolx') for k in moes
+                if k.countiter > 0 and k.objective_values in moes.pareto_front_cut]
+        vals = [v for v in vals if v is not None]
+        if vals:
+            return factor * min(vals)
     if 'tolx' in cma_kernel_default_options_replacements:
         return cma_kernel_default_options_replacements['tolx']
     return cma.CMAOptions().eval('tolx')
