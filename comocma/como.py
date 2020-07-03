@@ -226,7 +226,9 @@ class Sofomore(interfaces.OOOptimizer):
         assert len(list_of_solvers_instances) > 0
         self.kernels = list_of_solvers_instances
         self.dimension = self.kernels[0].N
-        self._active_indices = list(range(len(self)))
+        self._active_indices = [i for i in range(len(self)) if not self[i].stop()]
+        if len(self._active_indices) < 1:
+            raise ValueError("the solver must be instantiated with at least one active kernel")
 
         for kernel in self.kernels:
             if not hasattr(kernel, 'objective_values'):
