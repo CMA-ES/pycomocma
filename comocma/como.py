@@ -1220,10 +1220,10 @@ class GetKernelPopsizeIncrementer:
     def adapt_popsize(self, moes):
         """this could be changed in an inherited class"""
         kernel = self.kernels[-1] if self.kernels else moes[-1]
-        if kernel.objective_values in moes.pareto_front_cut:
-            return  # do nothing if last kernel was nondominated
         if not self.popsize:  # initialize self.popsize
             self.popsize = kernel.popsize
+        if kernel.objective_values in moes.pareto_front_cut:
+            return  # do nothing if last kernel is nondominated
         if self.popsize <= kernel.popsize:  # try larger popsize
             self.popsize *= self.popsize_increment
 
@@ -1237,8 +1237,8 @@ class GetKernelPopsizeIncrementer:
         kwargs: `dict`, unused keyword arguments to allow for a generic call of
         `Sofomore.restart`.
     """
-        self.adapt_popsize(moes)
-        opts_ = {'popsize': self.popsize}  # None must be eligible and invoke default
+        self.adapt_popsize(moes)  # now self.popsize is not None anymore
+        opts_ = {'popsize': self.popsize}
         opts_.update(self.opts or ())  # overwrite opts, we may want default popsize
         opts_.update(opts or ())
         self.kernels += self.get_kernel(moes, opts=opts_, **kwargs)
