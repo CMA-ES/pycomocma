@@ -472,20 +472,23 @@ class Sofomore(interfaces.OOOptimizer):
         start = len(self._told_indices) # position of the first offspring
         self._told_indices = []
         for ikernel, offspring in self.offspring:
-            self.indicator_front.set_kernel(self[ikernel], self)  # use reference_point and list_attribute
-            hypervolume_improvements = [self.indicator_front.hypervolume_improvement(point)
-                                            for point in objective_values[start:start+len(offspring)]]
             kernel = self.kernels[ikernel]
+            self.indicator_front.set_kernel(kernel, self)  # use reference_point and list_attribute
+            kernel._last_offspring_f_values = objective_values[start:start+len(offspring)]
+            kernel._last_offspring_neg_UHVI_values = [-float(self.indicator_front.hypervolume_improvement(point))
+                                                      for point in kernel._last_offspring_f_values]
+            assert kernel == self.kernels[ikernel] == self[ikernel] == self.indicator_front.kernel
             if kernel.fit.median0 is not None and kernel.fit.median0 > 0:
                 # make sure the median reference comes from the right side of the empirical front
-                # was: ikernel in self._active_indices and kernel.objective_values not in self.pareto_front_cut:
+                # was: ikernel in self._active_indices and
+                #        kernel.objective_values not in self.pareto_front_cut:
                 # a hack to prevent early termination of dominated kernels
                 # from the `tolfunrel` condition.
                 # TODO: clean implementation, proposal:
                 #   if self.indicator_front.hypervolume_improvement(kernel.objective_values) < 0:  # kernel.fit.median0 > 0 is the same
                 #       kernel.stop(reset='tolfunrel')  # to be implemented
                 kernel.fit.median0 = None
-            kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
+            kernel.tell(offspring, kernel._last_offspring_neg_UHVI_values)
             
             # investigate whether `kernel` hits its stopping criteria
             if kernel.stop():
@@ -501,7 +504,6 @@ class Sofomore(interfaces.OOOptimizer):
                 kernel.logger.add()
             except:
                 pass
-            kernel._last_offspring_f_values = objective_values[start:start+len(offspring)]
             
             start += len(offspring)
             
@@ -1392,6 +1394,7 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         # (see below for definition of incumbent)
         self._last_offspring_f_values = None # the fvalues of its offspring
         # used in the last call of `tell`.  
+        self._last_offspring_neg_UHVI_values = None  # fitness values
     
     @property
     def incumbent(self):
@@ -1414,6 +1417,7 @@ class CmaKernel(cma.CMAEvolutionStrategy):
 
         es.objective_values = self.objective_values
         es._last_offspring_f_values = self._last_offspring_f_values
+        es._last_offspring_neg_UHVI_values = self._last_offspring_neg_UHVI_values
         return es  
     
 class FitFun:
