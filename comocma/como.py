@@ -265,7 +265,8 @@ class Sofomore(interfaces.OOOptimizer):
         self.key_sort_indices = self.opts['update_order']
         self.countiter = 0
         self.countevals = 0
-        self._remaining_indices_to_ask = range(len(self)) # where we look when calling `ask`
+    #    self._remaining_indices_to_ask = range(len(self)) # where we look when calling `ask`
+        self._remaining_indices_to_ask = [i for i in range(len(self)) if not self[i].stop()]
         self.logger = SofomoreDataLogger(self.opts['verb_filename'],
                                                      modulo=self.opts['verb_log']).register(self)
         self.best_hypervolume_pareto_front = 0.0
