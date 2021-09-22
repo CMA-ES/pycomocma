@@ -476,13 +476,13 @@ class Sofomore(interfaces.OOOptimizer):
             hypervolume_improvements = [self.indicator_front.hypervolume_improvement(point)
                                             for point in objective_values[start:start+len(offspring)]]
             kernel = self.kernels[ikernel]
-            if kernel.fit.median0 is not None and kernel.fit.median0 >= 0:
+            if kernel.fit.median0 is not None and kernel.fit.median0 > 0:
                 # make sure the median reference comes from the right side of the empirical front
                 # was: ikernel in self._active_indices and kernel.objective_values not in self.pareto_front_cut:
                 # a hack to prevent early termination of dominated kernels
                 # from the `tolfunrel` condition.
                 # TODO: clean implementation, proposal:
-                #   if self.indicator_front.hypervolume_improvement(kernel.objective_values) <= 0:  # kernel.fit.median0 >= 0 is the same
+                #   if self.indicator_front.hypervolume_improvement(kernel.objective_values) < 0:  # kernel.fit.median0 > 0 is the same
                 #       kernel.stop(reset='tolfunrel')  # to be implemented
                 kernel.fit.median0 = None
             kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
