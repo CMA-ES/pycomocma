@@ -1226,6 +1226,15 @@ class GetKernelPopsizeIncrementer:
             self.popsize = kernel.popsize
         if kernel.objective_values in moes.pareto_front_cut:
             return  # do nothing if last kernel is nondominated
+        assert kernel.countiter <= 1 or kernel._last_offspring_neg_UHVI_values is not None
+        # do nothing if > 1% of the last offspring are nondominated by the empirical front
+        if kernel._last_offspring_neg_UHVI_values is None or (
+            sum(nhv < 0 for nhv in kernel._last_offspring_neg_UHVI_values)
+            > 0.01 * len(kernel._last_offspring_neg_UHVI_values)):  # 1/99 or 2/100 are enough
+            # should be almost the same as kernel.fit.fit[0] <= 0 or kernel.fit.hist[0] <= 0
+            # the 1%-ile is used to remain meaningful with lambda\to\infty
+            # print('secondary criterion')
+            return  # do nothing if the kernel was "seeing" the nondominated domain in its last iteration
         if self.popsize <= kernel.popsize:  # try larger popsize
             self.popsize *= self.popsize_increment
 
