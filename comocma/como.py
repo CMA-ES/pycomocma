@@ -464,7 +464,11 @@ class Sofomore(interfaces.OOOptimizer):
         objective_values = np.asarray(objective_values).tolist()
 
         for i in range(len(self._told_indices)):
-            self.kernels[self._told_indices[i]].objective_values = objective_values[i]
+            if 1 < 3:
+                self.kernels[self._told_indices[i]].objective_values = objective_values[i]
+            else:  # this doesn't work because .objective_values also lives as a reference in an archive
+                try: self.kernels[self._told_indices[i]].objective_values[:] = objective_values[i]
+                except TypeError: self.kernels[self._told_indices[i]].objective_values = objective_values[i]
         
         if self.reference_point is None:
             pass #write here the max among the kernel.objective_values       
