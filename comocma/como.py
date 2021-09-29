@@ -787,8 +787,8 @@ class Sofomore(interfaces.OOOptimizer):
 class IndicatorFront:
     """with `hypervolume_improvement` method based on a varying empirical front.
     
-    The front is either all kernels but one or based on the
-    `list_attribute` of `moes` (like `archive`) as given on
+    The front is either all non-dominated points from all but one kernels or
+    based on the `list_attribute` of `moes` (like `archive`) as given on
     initialization.
     
     Usage:
