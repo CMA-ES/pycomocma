@@ -1424,7 +1424,8 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         """
         es = super(CmaKernel, self)._copy_light(sigma, inopts)
 
-        es.objective_values = self.objective_values
+        try: es.objective_values = list(self.objective_values)  # make a copy
+        except TypeError: es.objective_values = self.objective_values
         es._last_offspring_f_values = self._last_offspring_f_values
         es._last_offspring_neg_UHVI_values = self._last_offspring_neg_UHVI_values
         return es  
