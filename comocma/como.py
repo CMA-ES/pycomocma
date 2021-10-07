@@ -336,6 +336,22 @@ class Sofomore(interfaces.OOOptimizer):
         """
         return self._UHVI_indicator_archive(kernel).hypervolume_improvement
 
+    def _UHVIs(self, kernel=None, none_value=-np.inf):
+        """return uncrowded HV contributions of all kernels,
+
+        more numerically efficient than `_UHVI_indicator` does.
+    """
+        nda = self.NDA([k.objective_values for k in self
+                            if k.objective_values is not None],
+                        self.reference_point)
+        if kernel:
+            return nda.contributing_hypervolume(kernel.objective_values)
+        else:
+            return [nda.contributing_hypervolume(k.objective_values)
+                        if k.objective_values is not None
+                    else none_value  # facilitate sort afterwards
+                    for k in self]
+
     def sorted(self, key=None, reverse=True, **kwargs):
         """return a reversed sorted list of kernels.
 
@@ -354,14 +370,16 @@ class Sofomore(interfaces.OOOptimizer):
         [<comocma.como.CmaKernel object at***
             
         sorts w.r.t. archive contribution (clones may get positive contribution).
-
         """
         def hv_improvement(kernel):
             if kernel.objective_values is None:
                 return float('-inf')
             return self._UHVI_indicator(kernel)(kernel.objective_values)
         if key is None:
-            key = hv_improvement
+            # was: key = hv_improvement
+            uhvs = self._UHVIs()  # this implementation should be much cheaper computationally
+            idx = sorted(range(len(uhvs)), key=uhvs.__getitem__, reverse=reverse, **kwargs)
+            return [self[i] for i in idx]
         return sorted(self, key=key, reverse=reverse, **kwargs)
 
     def ask(self, number_to_ask=1):
