@@ -198,8 +198,7 @@ class Sofomore(interfaces.OOOptimizer):
     candidate solutions during the penultimate `ask` method. 
     Note that we should call the `ask` method before any call of the `tell`
     method.
-
-    """   
+"""
     def __init__(self,
                list_of_solvers_instances, # usually come from a factory function 
                                          #  creating single solvers' instances
@@ -829,8 +828,7 @@ class IndicatorFront:
     >>> moes.front_observed.set_kernel(moes[3], moes)
     >>> f_points = [moes.front_observed.hypervolume_improvement(point)
     ...             for point in moes[3]._last_offspring_f_values] 
-
-    """
+"""
     def __init__(self, list_attribute=None, NDA=None):
         """``getattr(moes, list_attribute)`` contains the list to create the front.
         
@@ -1096,8 +1094,7 @@ class _CounterDict(dict):
     >>> assert bs[bs.argmin()] == min(bs.values())
     >>> bs[2] = -3
     >>> assert bs.argmin() == 2
-
-    """
+"""
     def __init__(self, *args, **kwargs):
         try:
             super(_CounterDict, self).__init__(*args, **kwargs)
@@ -1289,7 +1286,6 @@ class GetKernelIPOP(GetKernelPopsizeIncrementer):
     ...     ], criterion='countevals')
 
     can be used as ``'restart'`` option to `como.Sofomore` when using `como.get_cmas` kernels.
-
 """
     def adapt_popsize(self, moes):
         if not self.popsize:
