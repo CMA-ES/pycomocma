@@ -264,6 +264,7 @@ class Sofomore(interfaces.OOOptimizer):
         self.key_sort_indices = self.opts['update_order']
         self.countiter = 0
         self.countevals = 0
+        self.count_kernel_updates = 0  # same number means unchanged kernel number and positions
     #    self._remaining_indices_to_ask = range(len(self)) # where we look when calling `ask`
         self._remaining_indices_to_ask = [i for i in range(len(self)) if not self[i].stop()]
         self.logger = SofomoreDataLogger(self.opts['verb_filename'],
@@ -510,6 +511,7 @@ class Sofomore(interfaces.OOOptimizer):
                 #       kernel.stop(reset='tolfunrel')  # to be implemented
                 kernel.fit.median0 = None
             kernel.tell(offspring, kernel._last_offspring_neg_UHVI_values)
+            self.count_kernel_updates += 1
             
             # investigate whether `kernel` hits its stopping criteria
             if kernel.stop():
@@ -546,7 +548,6 @@ class Sofomore(interfaces.OOOptimizer):
         self.countiter += 1
         self.countevals += len(objective_values)
 
-        
     @property
     def pareto_front_cut(self):
         """
@@ -554,9 +555,17 @@ class Sofomore(interfaces.OOOptimizer):
         among the kernels' objective values.
         It's the image of `self.pareto_set_cut`.
         """
-        return self.NDA([kernel.objective_values for kernel in self.kernels \
-                         if kernel.objective_values is not None],
-                         self.reference_point)
+        if (not hasattr(self, '_pareto_front_cut_updates')
+            or self.count_kernel_updates != self._pareto_front_cut_updates
+            or not hasattr(self, '_pareto_front_cut')
+            or self._pareto_front_cut is None
+            or len(self) != self._pareto_front_cut_nkernels):  # should already be included in second condition
+            self._pareto_front_cut = self.NDA([kernel.objective_values for kernel in self.kernels
+                                               if kernel.objective_values is not None],
+                                              self.reference_point)
+            self._pareto_front_cut_updates = self.count_kernel_updates
+            self._pareto_front_cut_nkernels = len(self)
+        return self._pareto_front_cut
 
     @property
     def pareto_set_cut(self):
@@ -641,6 +650,7 @@ class Sofomore(interfaces.OOOptimizer):
         if not isinstance(kernels, list):
             kernels = [kernels]
         self.kernels += kernels
+        self.count_kernel_updates += len(kernels)
         # update `_active_indices` from scratch: inactive kernels might be added
         self._active_indices = [idx for idx in range(len(self)) if \
                                 not self.kernels[idx].stop()]
@@ -657,6 +667,7 @@ class Sofomore(interfaces.OOOptimizer):
         for kernel in kernels:
             if kernel in self.kernels:
                 self.kernels.remove(kernel)
+                self.count_kernel_updates += 1
 
         self._active_indices = [idx for idx in range(len(self)) if \
                                 not self.kernels[idx].stop()]
