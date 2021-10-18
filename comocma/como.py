@@ -565,8 +565,9 @@ class Sofomore(interfaces.OOOptimizer):
         reference point, among the kernels' incumbents.
         It's the pre-image of `self.pareto_front_cut`.
         """
+        front = self.pareto_front_cut  # not really necessary when/as pareto_front_cut is lazy-smart
         return [kernel.incumbent for kernel in self.kernels if \
-                kernel.objective_values in self.pareto_front_cut]
+                kernel.objective_values in front]
 
     @property
     def pareto_front_uncut(self):
