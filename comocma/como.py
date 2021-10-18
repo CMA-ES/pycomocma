@@ -879,9 +879,10 @@ def cma_kernel_default_options_dynamic_tolx(moes, factor=0.1):
 
     Fallback to default `tolx` if the `pareto_front_cut` is empty.
 """
-    if moes.pareto_front_cut:
+    front = moes.pareto_front_cut  # not really necessary when/as pareto_front_cut is lazy-smart
+    if front:
         vals = [k.stop(get_value='tolx') for k in moes
-                if k.countiter > 0 and k.objective_values in moes.pareto_front_cut]
+                if k.countiter > 0 and k.objective_values in front]
         vals = [v for v in vals if v is not None]
         if vals:
             return factor * min(vals)
