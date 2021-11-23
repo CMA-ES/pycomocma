@@ -113,7 +113,7 @@ class COMOPlot_Callback:
         for name in fun_names:
             getattr(self, name)()
 
-    def plot_proportion_dominated_final_incumbents(self, dic=None):
+    def plot_proportion_dominated_final_incumbents(self):
         '''Plot the proportion of dominated final incumbents.'''
         dic = self.load()
         n_runs = dic["num_completedruns"][-1]
