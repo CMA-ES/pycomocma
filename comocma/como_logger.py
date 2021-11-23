@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import datetime
 from time import time
+import ast
 
 class COMOPlot_Callback:
     def __init__(self, storing_funs=[]):
@@ -99,7 +100,7 @@ class COMOPlot_Callback:
                 lines = f.readlines()
                 key = file[:-4] # remove the .txt
                 try:
-                    dic[key] = [eval(l) for l in lines]
+                    dic[key] = [ast.literal_eval(l) for l in lines]
                 except:
                     dic[key] = lines
         self.data = dic
