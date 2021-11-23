@@ -78,7 +78,7 @@ class COMOPlot_Callback:
             self.store0("time", time())
         # data stored at the end of each iteration - TODO: to be completed
         # store the hypervolume of the archive
-        self.store0("hv_archive", moes.archive.hypervolume)
+        self.store0("hv_archive", float(moes.archive.hypervolume))
         self.store0("hv_incumbents", float(ND.hypervolume))
         # update the number of times this function have been called
         self.num_calls += 1
