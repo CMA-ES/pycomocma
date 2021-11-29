@@ -6,6 +6,12 @@ from time import time
 import ast
 
 class COMOPlot_Callback:
+    '''
+    TODO : 
+    - when there is no restart yet, the plotting should not raise an error. Instead, we should plot everything which can be plotted and 
+      print the message "In the absence of restart, some plotting were omitted." or something like that.
+    - Maybe we should write a warning message if we detect that the store function is modified after some storing has already been done ? 
+    '''
     def __init__(self, storing_funs=[]):
         '''
         It takes a facultative parameter:
@@ -42,7 +48,10 @@ class COMOPlot_Callback:
         self.num_data = 0
 
     def store0(self, name, v):
-        """Store the value v in the file name.txt ."""
+        '''
+        Store the value v in the file name.txt .
+        Remark : still works when v is a list. 
+        '''
         with open(self.dir + name + '.txt', 'a') as f:
             f.write("%s\n" % v)
     
@@ -80,6 +89,10 @@ class COMOPlot_Callback:
         # store the hypervolume of the archive
         self.store0("hv_archive", float(moes.archive.hypervolume))
         self.store0("hv_incumbents", float(ND.hypervolume))
+        # store the objective values of the kernel incumbents
+        self.store0("objective_values", [k.objective_values for k in moes])
+        # store the archive
+        self.store0("archive", moes.archive)
         # update the number of times this function have been called
         self.num_calls += 1
 
@@ -150,3 +163,16 @@ class COMOPlot_Callback:
         plt.xlabel("iterations")
         plt.ylabel("offset - $HV_r(S)$ ")
         plt.title("Convergence plot")
+
+    def plot_archive(self):
+        '''Plot the archive.'''
+        dic = self.load()
+        non_dominated_kernels = [v for v in dic["objective_values"][-1] if v in dic["archive"][-1]]
+        plt.title('Archive: %d(ND kernels) / %d(archive), HV archive=%.9e' % (
+                len(non_dominated_kernels), len(dic["archive"][-1]), dic["hv_archive"][-1]),
+              fontsize=7)
+        xy = np.asarray(dic["archive"][-1])
+        len(xy) and plt.plot(xy[:,0], xy[:,1], '.')
+        xy = np.asarray(non_dominated_kernels)
+        len(xy) and plt.plot(xy[:,0], xy[:,1], '.')
+
