@@ -47,13 +47,18 @@ class COMOPlot_Callback:
         # when self.num_data < self.num_calls, it means that the data in self.data is not up to date
         self.num_data = 0
 
-    def store0(self, name, v):
+    def store0(self, name, v, overwrite=False):
         '''
-        Store the value v in the file name.txt .
+        Store the value v in the file name.txt.
+        If 'erase' is True, the file is emptied before writing in it. 
         Remark : still works when v is a list. 
         '''
-        with open(self.dir + name + '.txt', 'a') as f:
-            f.write("%s\n" % v)
+        if overwrite:
+            with open(self.dir + name + '.txt', 'w') as f:
+                f.write("%s\n" % v)
+        else:
+            with open(self.dir + name + '.txt', 'a') as f:
+                f.write("%s\n" % v)
     
     def store(self, moes):
         "Store data on moes using store0."
@@ -91,8 +96,8 @@ class COMOPlot_Callback:
         self.store0("hv_incumbents", float(ND.hypervolume))
         # store the objective values of the kernel incumbents
         self.store0("objective_values", [k.objective_values for k in moes])
-        # store the archive
-        self.store0("archive", moes.archive)
+        # store only the last archive
+        self.store0("last_archive", moes.archive, overwrite=True)
         # update the number of times this function have been called
         self.num_calls += 1
 
@@ -103,7 +108,9 @@ class COMOPlot_Callback:
     def load(self):
         '''
         Load the data stored in the directory self.dir if it has not been done yet and store it in self.data as a dictionary.
-        Return this dictionary. 
+        Return this dictionary.
+
+        If a file name begins by "last_" and the file contains only one value, it is assumed that the intent is not to store all the history but only the last value. 
         '''
         if self.num_data == self.num_calls: # the stored data has already been read entirely and stored in self.data
             return self.data
@@ -116,6 +123,8 @@ class COMOPlot_Callback:
                     dic[key] = [ast.literal_eval(l) for l in lines]
                 except:
                     dic[key] = lines
+                if file[:5] == "last_" and len(lines) == 1: # if we store only the last value
+                    dic[key] = dic[key][0] # dic[key] is not a list containing this one value but the value itself
         self.data = dic
         self.num_data = self.num_calls
         return dic
@@ -167,11 +176,11 @@ class COMOPlot_Callback:
     def plot_archive(self):
         '''Plot the archive.'''
         dic = self.load()
-        non_dominated_kernels = [v for v in dic["objective_values"][-1] if v in dic["archive"][-1]]
+        non_dominated_kernels = [v for v in dic["objective_values"][-1] if v in dic["last_archive"]]
         plt.title('Archive: %d(ND kernels) / %d(archive), HV archive=%.9e' % (
-                len(non_dominated_kernels), len(dic["archive"][-1]), dic["hv_archive"][-1]),
+                len(non_dominated_kernels), len(dic["last_archive"]), dic["hv_archive"][-1]),
               fontsize=7)
-        xy = np.asarray(dic["archive"][-1])
+        xy = np.asarray(dic["last_archive"])
         len(xy) and plt.plot(xy[:,0], xy[:,1], '.')
         xy = np.asarray(non_dominated_kernels)
         len(xy) and plt.plot(xy[:,0], xy[:,1], '.')
