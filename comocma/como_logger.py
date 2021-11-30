@@ -161,25 +161,30 @@ class COMOPlot_Callback:
         '''Plot the convergence speed.'''
         dic = self.load()
         if self.offset is None:
-            self.offset = dic["hv_archive"][-1]
+            offset = dic["hv_archive"][-1]
+        else:
+            offset = self.offset
         n_iters = len(dic["hv_incumbents"])
         plt.figure()
-        plt.semilogy(range(1, n_iters + 1),[self.offset - dic["hv_incumbents"][i] for i in range(n_iters)], 'g')
-        plt.semilogy(range(1, n_iters + 1),[self.offset - dic["hv_archive"][i] for i in range(n_iters)], 'b')
-        plt.semilogy(dic["iter_newrun"], [self.offset - dic["hv_incumbents"][i] for i in range(n_iters) if i in dic["iter_newrun"]], '.g')
-        plt.semilogy(dic["iter_newrun"], [self.offset - dic["hv_archive"][i] for i in range(n_iters) if i in dic["iter_newrun"]], '.b')
+        plt.semilogy(range(1, n_iters + 1),[offset - dic["hv_incumbents"][i] for i in range(n_iters)], 'g')
+        plt.semilogy(range(1, n_iters + 1),[offset - dic["hv_archive"][i] for i in range(n_iters)], 'b')
+        plt.semilogy(dic["iter_newrun"], [offset - dic["hv_incumbents"][i] for i in range(n_iters) if i in dic["iter_newrun"]], '.g')
+        plt.semilogy(dic["iter_newrun"], [offset - dic["hv_archive"][i] for i in range(n_iters) if i in dic["iter_newrun"]], '.b')
         plt.legend(["$S=$final incumbents only", "$S=$archive"])
         plt.xlabel("iterations")
         plt.ylabel("offset - $HV_r(S)$ ")
-        plt.title("Convergence plot")
+        plt.title("Convergence plot (offset=%.9e)" %offset)
 
     def plot_archive(self):
         '''Plot the archive.'''
         dic = self.load()
         non_dominated_kernels = [v for v in dic["objective_values"][-1] if v in dic["last_archive"]]
-        plt.title('Archive: %d(ND kernels) / %d(archive), HV archive=%.9e' % (
-                len(non_dominated_kernels), len(dic["last_archive"]), dic["hv_archive"][-1]),
-              fontsize=7)
+        plt.suptitle('Archive represented in the objective space')
+        plt.title('%d(ND kernels) / %d(archive), HV archive=%.9e' % (
+                len(non_dominated_kernels), len(dic["last_archive"]), 
+                dic["hv_archive"][-1]), fontsize=10)
+        plt.xlabel("first objective function")
+        plt.ylabel("second objective function")
         xy = np.asarray(dic["last_archive"])
         len(xy) and plt.plot(xy[:,0], xy[:,1], '.')
         xy = np.asarray(non_dominated_kernels)
