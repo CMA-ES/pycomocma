@@ -4,12 +4,13 @@ import os
 import datetime
 from time import time
 import ast
+import warnings
 
 class COMOPlot_Callback:
     '''
     TODO : 
     - when there is no restart yet, the plotting should not raise an error. Instead, we should plot everything which can be plotted and 
-      print the message "In the absence of restart, some plotting were omitted." or something like that.
+      warn the message "In the absence of restart, some plotting were omitted." or something like that.
     - Maybe we should write a warning message if we detect that the store function is modified after some storing has already been done ? 
     '''
     def __init__(self, storing_funs=[]):
@@ -138,7 +139,11 @@ class COMOPlot_Callback:
     def plot_proportion_dominated_final_incumbents(self):
         '''Plot the proportion of dominated final incumbents.'''
         dic = self.load()
-        n_runs = dic["num_completedruns"][-1]
+        try:
+            n_runs = dic["num_completedruns"][-1]
+        except:
+            warnings.warn("Since no CMA-ES run has been completed yet, the proportion of dominated final incumbents was not plotted.")
+            return
         plt.figure()
         plt.plot(dic["num_completedruns"], [dic["num_dominatedfinalincumbents"][i] / (i+1) for i in range(n_runs)], '.')
         plt.xlabel("number of runs completed")
@@ -148,7 +153,11 @@ class COMOPlot_Callback:
     def plot_iterations_per_restart(self):
         '''Plot the number of iterations per restart.'''
         dic = self.load()
-        n_runs = dic["num_completedruns"][-1]
+        try:
+            n_runs = dic["num_completedruns"][-1]
+        except:
+            warnings.warn("Since no CMA-ES run has been completed yet, the number of iterations per restart was not plotted.")
+            return
         plt.figure()
         plt.plot([dic["num_completedruns"][i+1] for i in range(n_runs-1) if dic["kindrestart"][i]=="best_chv\n"],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs - 1) if dic["kindrestart"][i]=="best_chv\n"], '.')
         plt.plot([dic["num_completedruns"][i+1] for i in range(n_runs-1) if dic["kindrestart"][i]=="random\n"],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs - 1) if dic["kindrestart"][i]=="random\n"], '.')
@@ -168,8 +177,6 @@ class COMOPlot_Callback:
         plt.figure()
         plt.semilogy(range(1, n_iters + 1),[offset - dic["hv_incumbents"][i] for i in range(n_iters)], 'g')
         plt.semilogy(range(1, n_iters + 1),[offset - dic["hv_archive"][i] for i in range(n_iters)], 'b')
-        plt.semilogy(dic["iter_newrun"], [offset - dic["hv_incumbents"][i] for i in range(n_iters) if i in dic["iter_newrun"]], '.g')
-        plt.semilogy(dic["iter_newrun"], [offset - dic["hv_archive"][i] for i in range(n_iters) if i in dic["iter_newrun"]], '.b')
         plt.legend(["$S=$final incumbents only", "$S=$archive"])
         plt.xlabel("iterations")
         plt.ylabel("offset - $HV_r(S)$ ")
