@@ -46,10 +46,11 @@ class COMOPlot_Callback:
         # when self.num_data < self.num_calls, it means that the data in self.data is not up to date
         self.num_data = 0
 
-    def store0(self, name, v, overwrite=False):
+    def store0(self, name, v, overwrite=False, init=None):
         '''
         Store the value v in the file name.txt.
         If 'erase' is True, the file is emptied before writing in it. 
+        It adds the 'init' value at the beginning of the file, when the file is empty (incompatible with overwrite='True'). 
         Remark : still works when v is a list. 
         '''
         if overwrite:
@@ -57,6 +58,8 @@ class COMOPlot_Callback:
                 f.write("%s\n" % v)
         else:
             with open(self.dir + name + '.txt', 'a') as f:
+                if os.stat(self.dir + name + '.txt').st_size == 0: # if the file is empty
+                    f.write("%s\n" % init)
                 f.write("%s\n" % v)
     
     def store(self, moes):
@@ -67,10 +70,10 @@ class COMOPlot_Callback:
         if moes.kernels[-1].countevals == 0 and len(moes.kernels) > 1:
             # store the kind of restart used for the new kernel
             if moes.kernels[-1].objective_values is None:
-                kind_restart = "random"
+                kind_start = "random"
             else:
-                kind_restart = "best_chv"
-            self.store0("kindrestart", kind_restart)
+                kind_start = "best_chv"
+            self.store0("kindstart", kind_start, init="random") # the first start is always random
             # store data relative to stopping criterion at the end of the last run
             # store the stopping criterion of the last completed run
             self.store0("stopcrit", moes.kernels[-2].stop())
@@ -79,14 +82,14 @@ class COMOPlot_Callback:
             # store the tolfunrel criterion constant of the last completed run
             self.store0("tolfunrel_const", moes.kernels[-2].fit.median0 - moes.kernels[-2].fit.median_min)
             # store the number of runs which have been completed
-            self.store0("num_completedruns", len(moes.kernels) - 1)
+            self.store0("last_completedrun", len(moes.kernels) - 1, overwrite=True)
             # store the number of dominated final incumbents
             self.store0("num_dominatedfinalincumbents", len(moes.kernels) - 1 - len(ND))
             # store the condition number
             self.store0("conditionnumber", moes.kernels[-2].sm.condition_number)
 
             # store the number of iterations done so far
-            self.store0("iter_newrun", moes.countiter)
+            self.store0("iter_newrun", moes.countiter, init=0)
             # store the time index
             self.store0("time", time())
         # data stored at the end of each iteration - TODO: to be completed
@@ -138,12 +141,12 @@ class COMOPlot_Callback:
         '''Plot the proportion of dominated final incumbents.'''
         dic = self.load()
         try:
-            n_runs = dic["num_completedruns"][-1]
+            n_runs = dic["last_completedrun"]
         except:
             warnings.warn("Since no CMA-ES run has been completed yet, the proportion of dominated final incumbents was not plotted.")
             return
         plt.figure()
-        plt.plot(dic["num_completedruns"], [dic["num_dominatedfinalincumbents"][i] / (i+1) for i in range(n_runs)], '.')
+        plt.plot(range(1,n_runs+1), [dic["num_dominatedfinalincumbents"][i] / (i+1) for i in range(n_runs)], '.')
         plt.xlabel("number of runs completed")
         plt.ylabel("proportion of dominated final incumbents")
         plt.title("proportion of final incumbents which are now dominated")
@@ -153,13 +156,13 @@ class COMOPlot_Callback:
         '''Plot the number of iterations per restart.'''
         dic = self.load()
         try:
-            n_runs = dic["num_completedruns"][-1]
+            n_runs = dic["last_completedrun"]
         except:
             warnings.warn("Since no CMA-ES run has been completed yet, the number of iterations per restart was not plotted.")
             return
         plt.figure()
-        plt.plot([dic["num_completedruns"][i+1] for i in range(n_runs-1) if dic["kindrestart"][i]=="best_chv\n"],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs - 1) if dic["kindrestart"][i]=="best_chv\n"], '.')
-        plt.plot([dic["num_completedruns"][i+1] for i in range(n_runs-1) if dic["kindrestart"][i]=="random\n"],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs - 1) if dic["kindrestart"][i]=="random\n"], '.')
+        plt.plot([i+1 for i in range(n_runs) if dic["kindstart"][i]=="best_chv\n"],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs) if dic["kindstart"][i]=="best_chv\n"], '.')
+        plt.plot([i+1 for i in range(n_runs) if dic["kindstart"][i]=="random\n"],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs) if dic["kindstart"][i]=="random\n"], '.')
         plt.legend(["best_chv restart", "random restart"])
         plt.xlabel("number of runs completed")
         plt.ylabel("number of iterations of the last run")
@@ -203,13 +206,13 @@ class COMOPlot_Callback:
         '''Plot information regarding hypervolume improvement.'''
         dic = self.load()
         try:
-            n_runs = dic["num_completedruns"][-1]
+            n_runs = dic["last_completedrun"]
         except:
             warnings.warn("Since no CMA-ES run has been completed yet, the number of iterations per restart was not plotted.")
             return
         # list of iters for each restart
-        run_best_chv = [dic["num_completedruns"][i] for i in range(n_runs-1) if dic["kindrestart"][i]=="best_chv\n"]
-        run_random = [dic["num_completedruns"][i] for i in range(n_runs-1) if dic["kindrestart"][i]=="random\n"]
+        run_best_chv = [dic["last_completedrun"][i] for i in range(n_runs-1) if dic["kindstart"][i]=="best_chv\n"]
+        run_random = [dic["last_completedrun"][i] for i in range(n_runs-1) if dic["kindstart"][i]=="random\n"]
         # hvi of the archive
         hvi_archive_best_chv = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in run_best_chv]
         hvi_archive_random = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in run_random]
