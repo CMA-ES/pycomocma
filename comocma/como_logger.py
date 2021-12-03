@@ -8,9 +8,7 @@ import warnings
 
 class COMOPlot_Callback:
     '''
-    TODO : 
-    - when there is no restart yet, the plotting should not raise an error. Instead, we should plot everything which can be plotted and 
-      warn the message "In the absence of restart, some plotting were omitted." or something like that.
+    TODO :
     - Maybe we should write a warning message if we detect that the store function is modified after some storing has already been done ? 
     '''
     def __init__(self, storing_funs=[]):
