@@ -185,13 +185,15 @@ class COMOPlot_Callback:
         dic = self.load()
         non_dominated_kernels = [v for v in dic["objective_values"][-1] if v in dic["last_archive"]]
         plt.suptitle('Archive represented in the objective space')
-        plt.title('%d(ND kernels) / %d(archive), HV archive=%.9e' % (
-                len(non_dominated_kernels), len(dic["last_archive"]), 
-                dic["hv_archive"][-1]), fontsize=10)
+        plt.title('HV archive=%.9e' % (dic["hv_archive"][-1]), fontsize=10)
         plt.xlabel("first objective function")
         plt.ylabel("second objective function")
         xy = np.asarray(dic["last_archive"])
         len(xy) and plt.plot(xy[:,0], xy[:,1], '.')
         xy = np.asarray(non_dominated_kernels)
         len(xy) and plt.plot(xy[:,0], xy[:,1], '.')
+        plt.legend(["archive (" + str(len(dic["last_archive"])) + ")", 
+                    "final incumbents of CMA-ES runs \n not dominated by the archive (" + str(len(non_dominated_kernels)) + ")"])
+    
+
 
