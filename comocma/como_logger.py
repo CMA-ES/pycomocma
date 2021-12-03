@@ -147,6 +147,7 @@ class COMOPlot_Callback:
         plt.xlabel("number of runs completed")
         plt.ylabel("proportion of dominated final incumbents")
         plt.title("proportion of final incumbents which are now dominated")
+        plt.grid()
 
     def plot_iterations_per_restart(self):
         '''Plot the number of iterations per restart.'''
@@ -163,6 +164,7 @@ class COMOPlot_Callback:
         plt.xlabel("number of runs completed")
         plt.ylabel("number of iterations of the last run")
         plt.title("Number of iterations per run")
+        plt.grid()
 
     def plot_convergence_speed(self):
         '''Plot the convergence speed.'''
@@ -179,6 +181,7 @@ class COMOPlot_Callback:
         plt.xlabel("iterations")
         plt.ylabel("offset - $HV_r(S)$ ")
         plt.title("Convergence plot (offset=%.9e)" %offset)
+        plt.grid(which="both")
 
     def plot_archive(self):
         '''Plot the archive.'''
@@ -194,6 +197,7 @@ class COMOPlot_Callback:
         len(xy) and plt.plot(xy[:,0], xy[:,1], '.')
         plt.legend(["archive (" + str(len(dic["last_archive"])) + ")", 
                     "final incumbents of CMA-ES runs \n not dominated by the archive (" + str(len(non_dominated_kernels)) + ")"])
+        plt.grid()
     
 
 
