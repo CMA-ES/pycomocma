@@ -199,5 +199,33 @@ class COMOPlot_Callback:
                     "final incumbents of CMA-ES runs \n not dominated by the archive (" + str(len(non_dominated_kernels)) + ")"])
         plt.grid()
     
+    def plot_hvi(self):
+        '''Plot information regarding hypervolume improvement.'''
+        dic = self.load()
+        try:
+            n_runs = dic["num_completedruns"][-1]
+        except:
+            warnings.warn("Since no CMA-ES run has been completed yet, the number of iterations per restart was not plotted.")
+            return
+        # list of iters for each restart
+        run_best_chv = [dic["num_completedruns"][i] for i in range(n_runs-1) if dic["kindrestart"][i]=="best_chv\n"]
+        run_random = [dic["num_completedruns"][i] for i in range(n_runs-1) if dic["kindrestart"][i]=="random\n"]
+        # hvi of the archive
+        hvi_archive_best_chv = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in run_best_chv]
+        hvi_archive_random = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in run_random]
+        # hvi of the final incumbents
+        hvi_incumbents_best_chv = [dic["hv_incumbents"][dic["iter_newrun"][i+1]] - dic["hv_incumbents"][dic["iter_newrun"][i]] for i in run_best_chv]
+        hvi_incumbents_random = [dic["hv_incumbents"][dic["iter_newrun"][i+1]] - dic["hv_incumbents"][dic["iter_newrun"][i]] for i in run_random]
+        # plotting
+        plt.figure()
+        plt.semilogy(run_best_chv, hvi_archive_best_chv, '.')
+        plt.semilogy(run_random, hvi_archive_random, '.')
+        plt.semilogy(run_best_chv, hvi_incumbents_best_chv, '.')
+        plt.semilogy(run_random, hvi_incumbents_random, '.')
+        plt.xlabel("runs")
+        plt.ylabel("hvi")
+        plt.legend(["hvi archive best chv", "hvi archive random", "hvi final incumbents best chv", "hvi archive best chv"])
+        
+        
 
 
