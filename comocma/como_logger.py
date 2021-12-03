@@ -58,7 +58,7 @@ class COMOPlot_Callback:
                 f.write("%s\n" % v)
         else:
             with open(self.dir + name + '.txt', 'a') as f:
-                if os.stat(self.dir + name + '.txt').st_size == 0: # if the file is empty
+                if os.stat(self.dir + name + '.txt').st_size == 0 and init is not None: # if the file is empty
                     f.write("%s\n" % init)
                 f.write("%s\n" % v)
     
@@ -210,24 +210,32 @@ class COMOPlot_Callback:
         except:
             warnings.warn("Since no CMA-ES run has been completed yet, the number of iterations per restart was not plotted.")
             return
-        # list of iters for each restart
-        run_best_chv = [dic["last_completedrun"][i] for i in range(n_runs-1) if dic["kindstart"][i]=="best_chv\n"]
-        run_random = [dic["last_completedrun"][i] for i in range(n_runs-1) if dic["kindstart"][i]=="random\n"]
+        # list of runs which corresponds to each kind of restart
+        idx_best_chv_runs = [i for i in range(n_runs) if dic["kindstart"][i]=="best_chv\n"]
+        idx_random_runs = [i for i in range(n_runs) if dic["kindstart"][i]=="random\n"]
         # hvi of the archive
-        hvi_archive_best_chv = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in run_best_chv]
-        hvi_archive_random = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in run_random]
-        # hvi of the final incumbents
-        hvi_incumbents_best_chv = [dic["hv_incumbents"][dic["iter_newrun"][i+1]] - dic["hv_incumbents"][dic["iter_newrun"][i]] for i in run_best_chv]
-        hvi_incumbents_random = [dic["hv_incumbents"][dic["iter_newrun"][i+1]] - dic["hv_incumbents"][dic["iter_newrun"][i]] for i in run_random]
+        hvi_archive_best_chv = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in idx_best_chv_runs]
+        hvi_archive_random = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in idx_random_runs]
+        hvi_archive_all = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in range(n_runs)]
+        # hvi of the incumbents
+        hvi_incumbents_best_chv = [dic["hv_incumbents"][dic["iter_newrun"][i+1]] - dic["hv_incumbents"][dic["iter_newrun"][i]] for i in idx_best_chv_runs]
+        hvi_incumbents_random = [dic["hv_incumbents"][dic["iter_newrun"][i+1]] - dic["hv_incumbents"][dic["iter_newrun"][i]] for i in idx_random_runs]
+        hvi_incumbents_all = [dic["hv_incumbents"][dic["iter_newrun"][i+1]] - dic["hv_incumbents"][dic["iter_newrun"][i]] for i in range(n_runs)]
         # plotting
         plt.figure()
-        plt.semilogy(run_best_chv, hvi_archive_best_chv, '.')
-        plt.semilogy(run_random, hvi_archive_random, '.')
-        plt.semilogy(run_best_chv, hvi_incumbents_best_chv, '.')
-        plt.semilogy(run_random, hvi_incumbents_random, '.')
+        # lines for all kind of start
+        plt.semilogy(range(1,n_runs+1), hvi_archive_all, 'lightblue', linestyle='--')
+        plt.semilogy(range(1,n_runs+1), hvi_incumbents_all, 'lightgreen', linestyle='--')
+        # best chv restart
+        x_bestchv = [i+1 for i in idx_best_chv_runs]
+        plt.semilogy(x_bestchv + x_bestchv, hvi_archive_best_chv + hvi_incumbents_best_chv, '.')
+        # random restart
+        x_random = [i+1 for i in idx_random_runs]
+        plt.semilogy(x_random + x_random, hvi_archive_random + hvi_incumbents_random, '.')
         plt.xlabel("runs")
         plt.ylabel("hvi")
-        plt.legend(["hvi archive best chv", "hvi archive random", "hvi final incumbents best chv", "hvi archive best chv"])
+        plt.grid(which="both")
+        plt.legend(["hvi archive", "hvi final incumbents", "best chv starts", "random starts"])
         
         
 
