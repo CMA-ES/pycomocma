@@ -34,5 +34,5 @@ from .sofomore_logger import SofomoreDataLogger
 
 from .nondominatedarchive import NonDominatedList
 
-from .como_logger import COMOPlot_Callback
+from .como_logger import COMOPlot
 

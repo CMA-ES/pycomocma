@@ -6,7 +6,7 @@ from time import time
 import ast
 import warnings
 
-class COMOPlot_Callback:
+class COMOPlot:
     '''
     TODO :
     - Maybe we should write a warning message if we detect that the store function is modified after some storing has already been done ? 
