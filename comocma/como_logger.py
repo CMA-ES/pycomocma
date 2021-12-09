@@ -10,6 +10,14 @@ class COMOPlot_Callback:
     '''
     TODO :
     - Maybe we should write a warning message if we detect that the store function is modified after some storing has already been done ? 
+    - When reading kindstart files, we do not want to have \n at the end. 
+    - Automate the plotting and storing so that it works with more kind of restarts.
+    - Correct bugs in plot_hvi function
+    - Add the equivalent of the 4th Niko's plot
+    - Add dominated kernels in plot_archive. 
+    - Add sigmas (first, maximum and last) on a plot. 
+    - Add condition number on iterations plot.
+    - Add convergence speed plot ?
     '''
     def __init__(self, storing_funs=[]):
         '''
