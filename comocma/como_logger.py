@@ -10,7 +10,6 @@ class COMOPlot:
     '''
     TODO :
     - Maybe we should write a warning message if we detect that the store function is modified after some storing has already been done ? 
-    - When reading kindstart files, we do not want to have \n at the end. 
     - Automate the plotting and storing so that it works with more kind of restarts.
     - Correct bugs in plot_hvi function
     - Add the equivalent of the 4th Niko's plot
@@ -127,7 +126,7 @@ class COMOPlot:
         dic = dict()
         for file in os.listdir(self.dir):
             with open(self.dir + file) as f:
-                lines = f.readlines()
+                lines = f.read().split("\n")[:-1] # the list of lines content, without the \n symbols and the last empty line
                 key = file[:-4] # remove the .txt
                 try:
                     dic[key] = [ast.literal_eval(l) for l in lines]
@@ -169,8 +168,8 @@ class COMOPlot:
             warnings.warn("Since no CMA-ES run has been completed yet, the number of iterations per restart was not plotted.")
             return
         plt.figure()
-        plt.plot([i+1 for i in range(n_runs) if dic["kindstart"][i]=="best_chv\n"],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs) if dic["kindstart"][i]=="best_chv\n"], '.')
-        plt.plot([i+1 for i in range(n_runs) if dic["kindstart"][i]=="random\n"],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs) if dic["kindstart"][i]=="random\n"], '.')
+        plt.plot([i+1 for i in range(n_runs) if dic["kindstart"][i]=="best_chv"],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs) if dic["kindstart"][i]=="best_chv"], '.')
+        plt.plot([i+1 for i in range(n_runs) if dic["kindstart"][i]=="random"],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs) if dic["kindstart"][i]=="random"], '.')
         plt.legend(["best_chv restart", "random restart"])
         plt.xlabel("number of runs completed")
         plt.ylabel("number of iterations of the last run")
@@ -219,8 +218,8 @@ class COMOPlot:
             warnings.warn("Since no CMA-ES run has been completed yet, the number of iterations per restart was not plotted.")
             return
         # list of runs which corresponds to each kind of restart
-        idx_best_chv_runs = [i for i in range(n_runs) if dic["kindstart"][i]=="best_chv\n"]
-        idx_random_runs = [i for i in range(n_runs) if dic["kindstart"][i]=="random\n"]
+        idx_best_chv_runs = [i for i in range(n_runs) if dic["kindstart"][i]=="best_chv"]
+        idx_random_runs = [i for i in range(n_runs) if dic["kindstart"][i]=="random"]
         # hvi of the archive
         hvi_archive_best_chv = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in idx_best_chv_runs]
         hvi_archive_random = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in idx_random_runs]
