@@ -72,15 +72,12 @@ class COMOPlot:
     def store(self, moes):
         "Store data on moes using store0."
         # list of non-dominated final incumbents
-        ND = moes.NDA([kernel.objective_values for kernel in moes.kernels[:-1]], moes.reference_point)
+        ND_finalincumbents = moes.NDA([kernel.objective_values for kernel in moes.kernels[:-1]], moes.reference_point)
+        ND_allincumbents = moes.NDA([kernel.objective_values for kernel in moes.kernels if kernel.objective_values is not None], moes.reference_point)
         # data stored at the beginning of new run - except the first one
         if moes.kernels[-1].countevals == 0 and len(moes.kernels) > 1:
             # store the kind of restart used for the new kernel
-            if moes.kernels[-1].objective_values is None:
-                kind_start = "random"
-            else:
-                kind_start = "best_chv"
-            self.store0("kindstart", kind_start, init="random") # the first start is always random
+            self.store0("kindstart", moes.kernels[-1]._rampup_method.__name__, init="initial start")
             # store data relative to stopping criterion at the end of the last run
             # store the stopping criterion of the last completed run
             self.store0("stopcrit", moes.kernels[-2].stop())
@@ -91,7 +88,7 @@ class COMOPlot:
             # store the number of runs which have been completed
             self.store0("last_completedrun", len(moes.kernels) - 1, overwrite=True)
             # store the number of dominated final incumbents
-            self.store0("num_dominatedfinalincumbents", len(moes.kernels) - 1 - len(ND))
+            self.store0("num_dominatedfinalincumbents", len(moes.kernels) - 1 - len(ND_finalincumbents))
             # store the condition number
             self.store0("conditionnumber", moes.kernels[-2].sm.condition_number)
 
@@ -102,7 +99,7 @@ class COMOPlot:
         # data stored at the end of each iteration - TODO: to be completed
         # store the hypervolume of the archive
         self.store0("hv_archive", float(moes.archive.hypervolume))
-        self.store0("hv_incumbents", float(ND.hypervolume))
+        self.store0("hv_incumbents", float(ND_allincumbents.hypervolume))
         # store the objective values of the kernel incumbents
         self.store0("objective_values", [k.objective_values for k in moes])
         # store only the last archive
@@ -168,9 +165,11 @@ class COMOPlot:
             warnings.warn("Since no CMA-ES run has been completed yet, the number of iterations per restart was not plotted.")
             return
         plt.figure()
-        plt.plot([i+1 for i in range(n_runs) if dic["kindstart"][i]=="best_chv"],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs) if dic["kindstart"][i]=="best_chv"], '.')
-        plt.plot([i+1 for i in range(n_runs) if dic["kindstart"][i]=="random"],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs) if dic["kindstart"][i]=="random"], '.')
-        plt.legend(["best_chv restart", "random restart"])
+        legend = []
+        for kindstart in set(dic["kindstart"]):
+            plt.plot([i+1 for i in range(n_runs) if dic["kindstart"][i]==kindstart],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs) if dic["kindstart"][i]==kindstart], '.')
+            legend.append(kindstart)
+        plt.legend(legend)
         plt.xlabel("number of runs completed")
         plt.ylabel("number of iterations of the last run")
         plt.title("Number of iterations per run")
@@ -217,32 +216,26 @@ class COMOPlot:
         except:
             warnings.warn("Since no CMA-ES run has been completed yet, the number of iterations per restart was not plotted.")
             return
-        # list of runs which corresponds to each kind of restart
-        idx_best_chv_runs = [i for i in range(n_runs) if dic["kindstart"][i]=="best_chv"]
-        idx_random_runs = [i for i in range(n_runs) if dic["kindstart"][i]=="random"]
-        # hvi of the archive
-        hvi_archive_best_chv = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in idx_best_chv_runs]
-        hvi_archive_random = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in idx_random_runs]
-        hvi_archive_all = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in range(n_runs)]
-        # hvi of the incumbents
-        hvi_incumbents_best_chv = [dic["hv_incumbents"][dic["iter_newrun"][i+1]] - dic["hv_incumbents"][dic["iter_newrun"][i]] for i in idx_best_chv_runs]
-        hvi_incumbents_random = [dic["hv_incumbents"][dic["iter_newrun"][i+1]] - dic["hv_incumbents"][dic["iter_newrun"][i]] for i in idx_random_runs]
-        hvi_incumbents_all = [dic["hv_incumbents"][dic["iter_newrun"][i+1]] - dic["hv_incumbents"][dic["iter_newrun"][i]] for i in range(n_runs)]
-        # plotting
+
+        # plot the hvi lines for archive and incumbents
         plt.figure()
-        # lines for all kind of start
-        plt.semilogy(range(1,n_runs+1), hvi_archive_all, 'lightblue', linestyle='--')
-        plt.semilogy(range(1,n_runs+1), hvi_incumbents_all, 'lightgreen', linestyle='--')
-        # best chv restart
-        x_bestchv = [i+1 for i in idx_best_chv_runs]
-        plt.semilogy(x_bestchv + x_bestchv, hvi_archive_best_chv + hvi_incumbents_best_chv, '.')
-        # random restart
-        x_random = [i+1 for i in idx_random_runs]
-        plt.semilogy(x_random + x_random, hvi_archive_random + hvi_incumbents_random, '.')
+        plt.semilogy(range(1,n_runs+1), [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in range(n_runs)], 'lightblue', linestyle='--')
+        plt.semilogy(range(1,n_runs+1), [dic["hv_incumbents"][dic["iter_newrun"][i+1]] - dic["hv_incumbents"][dic["iter_newrun"][i]] for i in range(n_runs)], 'lightgreen', linestyle='--')
+
+        # plot the dots which correspond to each kind of restart in a different color
+        legend = ['hvi archive', 'hvi final incumbents']
+        for kindstart in set(dic["kindstart"]):
+            if kindstart != "initial start":
+                idx = [i for i in range(n_runs) if dic["kindstart"][i]==kindstart]
+                hvi_archive = [dic["hv_archive"][dic["iter_newrun"][i+1]] - dic["hv_archive"][dic["iter_newrun"][i]] for i in idx]
+                hvi_incumbents = [dic["hv_incumbents"][dic["iter_newrun"][i+1]] - dic["hv_incumbents"][dic["iter_newrun"][i]] for i in idx]
+                idxx = [i+1 for i in idx] # when counting the starts, we start at 1
+                plt.semilogy(idxx + idxx, hvi_archive + hvi_incumbents, '.')
+                legend.append(kindstart)
         plt.xlabel("runs")
         plt.ylabel("hvi")
         plt.grid(which="both")
-        plt.legend(["hvi archive", "hvi final incumbents", "best chv starts", "random starts"])
+        plt.legend(legend)
         
         
 
