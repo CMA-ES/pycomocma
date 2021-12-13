@@ -12,7 +12,6 @@ class COMOPlot:
     - Maybe we should write a warning message if we detect that the store function is modified after some storing has already been done ? 
     - Correct bugs in plot_hvi function -- check if the error message still appear
     - Add the equivalent of the 4th Niko's plot
-    - Add dominated kernels in plot_archive. 
     - Add sigmas (first, maximum and last) on a plot. 
     - Add condition number on iterations plot.
     - Add convergence speed plot ?
@@ -156,7 +155,13 @@ class COMOPlot:
         plt.grid()
 
     def plot_iterations_per_restart(self):
-        '''Plot the number of iterations per restart.'''
+        '''Plot the number of iterations per restart.
+        
+        TODO
+        ---- 
+        * check if it is possible for the conditon number to take very high value which would make the rest unreadable
+        * plot the initial start first so it appears first in the legend
+        '''
         dic = self.load()
         try:
             n_runs = dic["last_completedrun"]
@@ -166,8 +171,14 @@ class COMOPlot:
         plt.figure()
         legend = []
         for kindstart in set(dic["kindstart"]):
-            plt.plot([i+1 for i in range(n_runs) if dic["kindstart"][i]==kindstart],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs) if dic["kindstart"][i]==kindstart], '.')
+            if kindstart == "initial start":
+                linestyle = ''
+            else:
+                linestyle = '--'
+            plt.plot([i+1 for i in range(n_runs) if dic["kindstart"][i]==kindstart],[dic["iter_newrun"][i+1] - dic["iter_newrun"][i]  for i in range(n_runs) if dic["kindstart"][i]==kindstart], '.', linestyle=linestyle)
             legend.append(kindstart)
+        plt.plot(range(1,n_runs + 1), dic["conditionnumber"], '.')
+        legend.append("condition number")
         plt.legend(legend)
         plt.xlabel("number of runs completed")
         plt.ylabel("number of iterations of the last run")
@@ -195,16 +206,23 @@ class COMOPlot:
         '''Plot the archive.'''
         dic = self.load()
         non_dominated_kernels = [v for v in dic["objective_values"][-1] if v in dic["last_archive"]]
+        dominated_kernels = [v for v in dic["objective_values"][-1] if v not in dic["last_archive"]]
         plt.suptitle('Archive represented in the objective space')
         plt.title('HV archive=%.9e' % (dic["hv_archive"][-1]), fontsize=10)
         plt.xlabel("first objective function")
         plt.ylabel("second objective function")
+        # plot the archive
         xy = np.asarray(dic["last_archive"])
         len(xy) and plt.plot(xy[:,0], xy[:,1], '.')
+        # plot the dominated kernels
         xy = np.asarray(non_dominated_kernels)
         len(xy) and plt.plot(xy[:,0], xy[:,1], '.')
+        # plot the non dominated kernels
+        xy = np.asarray(dominated_kernels)
+        len(xy) and plt.plot(xy[:,0], xy[:,1], '.')
         plt.legend(["archive (" + str(len(dic["last_archive"])) + ")", 
-                    "final incumbents of CMA-ES runs \n not dominated by the archive (" + str(len(non_dominated_kernels)) + ")"])
+                    "final incumbents of CMA-ES runs \n not dominated by the archive (" + str(len(non_dominated_kernels)) + ")",
+                    "final incumbents of CMA-ES runs \n dominated by the archive ("+ str(len(dominated_kernels)) + ")"])
         plt.grid()
     
     def plot_hvi(self):
