@@ -12,9 +12,9 @@ class COMOPlot:
     - Maybe we should write a warning message if we detect that the store function is modified after some storing has already been done ? 
     - Correct bugs in plot_hvi function -- check if the error message still appear
     - Add the equivalent of the 4th Niko's plot
-    - Add sigmas (first, maximum and last) on a plot. 
-    - Add condition number on iterations plot.
+    - Add sigmas (first, maximum and last) on a plot.
     - Add convergence speed plot ?
+    - Add an example
     '''
     def __init__(self, storing_funs=[]):
         '''
