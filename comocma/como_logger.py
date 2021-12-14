@@ -7,20 +7,31 @@ import ast
 import warnings
 
 class COMOPlot:
-    '''
-    TODO :
+    """
+    A class designed to store, load and plot data relative to a Sofomore object.
+
+    Example:
+    --------
+
+
+    TODO:
+    ------
     - Maybe we should write a warning message if we detect that the store function is modified after some storing has already been done ? 
     - Correct bugs in plot_hvi function -- check if the error message still appear
     - Add the equivalent of the 4th Niko's plot
     - Add sigmas (first, maximum and last) on a plot.
     - Add convergence speed plot ?
     - Add an example
-    '''
+    """
+
     def __init__(self, storing_funs=[]):
-        '''
-        It takes a facultative parameter:
-        - 'storing_funs': a list of functions which will be called at the end of any self.store call
-        '''
+        """
+        Create a COMOPlot object.
+
+        Arguments:
+        ----------
+        * storing_funs: list of functions which will be called at the end of any self.store call
+        """
         # create the directory where the data will be stored
         path = os.getcwd()
         name_save = datetime.datetime.now().strftime("%y%m%d_%Hh%Mm%Ss")
@@ -52,12 +63,20 @@ class COMOPlot:
         self.num_data = 0
 
     def store0(self, name, v, overwrite=False, init=None):
-        '''
+        """
         Store the value v in the file name.txt.
-        If 'erase' is True, the file is emptied before writing in it. 
-        It adds the 'init' value at the beginning of the file, when the file is empty (incompatible with overwrite='True'). 
-        Remark : still works when v is a list. 
-        '''
+
+        Arguments:
+        ----------
+        * name: the name of the file (without the extension) to write in
+        * v: a value (float, boolean, integer, list, ...) to be written in 'self.dir'/'name'.txt
+        * overwrite: if True, the file is emptied before writing in it (default False)
+        * init: value added at the beginning of the file, when the file is empty (default None)
+
+        Remarks:
+        --------
+        * initializing the file with a value is incompatible with overwriting.
+        """
         if overwrite:
             with open(self.dir + name + '.txt', 'w') as f:
                 f.write("%s\n" % v)
@@ -68,7 +87,17 @@ class COMOPlot:
                 f.write("%s\n" % v)
     
     def store(self, moes):
-        "Store data on moes using store0."
+        """
+        Store data relative to moes in the 'self.dir' directory.
+        
+        Argument:
+        ---------
+        * moes: a Sofomore object
+
+        Remarks:
+        --------
+        * relies on the class method store0
+        """
         # list of non-dominated final incumbents
         ND_finalincumbents = moes.NDA([kernel.objective_values for kernel in moes.kernels[:-1]], moes.reference_point)
         ND_allincumbents = moes.NDA([kernel.objective_values for kernel in moes.kernels if kernel.objective_values is not None], moes.reference_point)
@@ -110,12 +139,14 @@ class COMOPlot:
             fun(self, moes)
     
     def load(self):
-        '''
-        Load the data stored in the directory self.dir if it has not been done yet and store it in self.data as a dictionary.
-        Return this dictionary.
-
-        If a file name begins by "last_" and the file contains only one value, it is assumed that the intent is not to store all the history but only the last value. 
-        '''
+        """
+        Load the data in 'self.dir' as a dictionary, store it in 'self.data' and return it.
+        
+        Remarks:
+        --------
+        * The data is only loaded from 'self.dir' when needed, i.e. if it is not yet stored in 'self.data'.
+        * If a file name begins by "last_" and the file contains only one value, it is assumed that the intent is not to store all the history but only the last value. 
+        """
         if self.num_data == self.num_calls: # the stored data has already been read entirely and stored in self.data
             return self.data
         dic = dict()
@@ -134,13 +165,19 @@ class COMOPlot:
         return dic
     
     def plot_everything(self):
-        """Call every method of the class whose name begins by 'plot_' and which is not 'plot_everything' itself."""
+        """
+        Call all plotting methods of the class.
+
+        Remark:
+        -------
+        * plotting method names starts with 'plot_'
+        """
         fun_names = [name for name in dir(self) if name[:5]=='plot_' and name!= 'plot_everything']
         for name in fun_names:
             getattr(self, name)()
 
     def plot_proportion_dominated_final_incumbents(self):
-        '''Plot the proportion of dominated final incumbents.'''
+        """Plot the proportion of dominated final incumbents."""
         dic = self.load()
         try:
             n_runs = dic["last_completedrun"]
@@ -155,13 +192,14 @@ class COMOPlot:
         plt.grid()
 
     def plot_iterations_per_restart(self):
-        '''Plot the number of iterations per restart.
+        """
+        Plot the number of iterations per restart and the condition number.
         
         TODO
         ---- 
         * check if it is possible for the conditon number to take very high value which would make the rest unreadable
         * plot the initial start first so it appears first in the legend
-        '''
+        """
         dic = self.load()
         try:
             n_runs = dic["last_completedrun"]
@@ -186,7 +224,7 @@ class COMOPlot:
         plt.grid()
 
     def plot_convergence_speed(self):
-        '''Plot the convergence speed.'''
+        """Plot the convergence speed."""
         dic = self.load()
         if self.offset is None:
             offset = dic["hv_archive"][-1]
@@ -203,7 +241,7 @@ class COMOPlot:
         plt.grid(which="both")
 
     def plot_archive(self):
-        '''Plot the archive.'''
+        """Plot the archive."""
         dic = self.load()
         non_dominated_kernels = [v for v in dic["objective_values"][-1] if v in dic["last_archive"]]
         dominated_kernels = [v for v in dic["objective_values"][-1] if v not in dic["last_archive"]]
@@ -226,7 +264,7 @@ class COMOPlot:
         plt.grid()
     
     def plot_hvi(self):
-        '''Plot information regarding hypervolume improvement.'''
+        """Plot information regarding hypervolume improvement."""
         dic = self.load()
         try:
             n_runs = dic["last_completedrun"]
@@ -253,7 +291,3 @@ class COMOPlot:
         plt.ylabel("hvi")
         plt.grid(which="both")
         plt.legend(legend)
-        
-        
-
-
