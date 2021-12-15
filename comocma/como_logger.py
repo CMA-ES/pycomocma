@@ -118,7 +118,10 @@ class COMOPlot:
         # data stored at the beginning of new run - except the first one
         if moes.kernels[-1].countevals == 0 and len(moes.kernels) > 1:
             # store the kind of restart used for the new kernel
-            self.store0("kindstart", moes.kernels[-1]._rampup_method.__name__, init="initial start")
+            self.store0("kindstart",
+                        moes.kernels[-1]._rampup_method.__name__ if
+                            hasattr(moes.kernels[-1], '_rampup_method') else 'unknown',
+                        init="initial start")
             # store data relative to stopping criterion at the end of the last run
             # store the stopping criterion of the last completed run
             self.store0("stopcrit", moes.kernels[-2].stop())
