@@ -10,10 +10,6 @@ class COMOPlot:
     """
     A class designed to store, load and plot data relative to a Sofomore object.
 
-    Example:
-    --------
-
-
     TODO:
     ------
     - Maybe we should write a warning message if we detect that the store function is modified after some storing has already been done ? 
@@ -22,15 +18,24 @@ class COMOPlot:
     - Add sigmas (first, maximum and last) on a plot.
     - Add convergence speed plot ?
     - Add an example
+    - Distinguish between the two cases : with or without restart
     """
 
     def __init__(self, storing_funs=[]):
         """
         Create a COMOPlot object.
 
+        Example:
+        --------
+        >>> from time import time
+        >>> plotter = COMOPlot() # initialize a standard plotter
+        >>> myplotter = COMOPlot([lambda self,moes: self.store0("alltimes", time())]) # initialize a plotter with an additional 
+        ...                                                                           # storing function
+
         Arguments:
         ----------
-        * storing_funs: list of functions which will be called at the end of any self.store call
+        * storing_funs: list of functions which will be called at the end of any self.store call. They should take as first
+        argument a COMOPlot object and as second argument a Sofomore object. 
         """
         # create the directory where the data will be stored
         path = os.getcwd()
@@ -42,10 +47,10 @@ class COMOPlot:
         if not os.path.exists(path2):
             os.mkdir(path2)
         else:
-            i = 1
-            while not os.path.exists(path1 + name_save + str(i) + "/"):
+            i = 2
+            while os.path.exists(path1 + name_save + "_v" + str(i) + "/"):
                 i += 1
-            path2 = path1 + name_save + str(i) + "/"
+            path2 = path1 + name_save + "_v" + str(i) + "/"
             os.mkdir(path2)
         # remember in which directory the data is stored
         self.dir = path2
@@ -72,6 +77,15 @@ class COMOPlot:
         * v: a value (float, boolean, integer, list, ...) to be written in 'self.dir'/'name'.txt
         * overwrite: if True, the file is emptied before writing in it (default False)
         * init: value added at the beginning of the file, when the file is empty (default None)
+
+        Examples:
+        --------
+        >>> plotter = COMOPlot()
+        >>> plotter.store0("foo", 1) # store the value 1 in foo.txt
+        >>> plotter.store0("foo", 2) # additionally, store the value 2 in the same file
+
+        >>> plotter.store0("last_foo", 1) # store the value 1 in last_foo.txt
+        >>> plotter.store0("last_foo", 2, overwrite=True) # store the value 2 in last_foo.txt, overwriting its content
 
         Remarks:
         --------
@@ -291,3 +305,7 @@ class COMOPlot:
         plt.ylabel("hvi")
         plt.grid(which="both")
         plt.legend(legend)
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
