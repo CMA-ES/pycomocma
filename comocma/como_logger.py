@@ -17,7 +17,6 @@ class COMOPlot:
     - Add the equivalent of the 4th Niko's plot
     - Add sigmas (first, maximum and last) on a plot.
     - Add convergence speed plot ?
-    - Add an example
     - Distinguish between the two cases : with or without restart
     """
 
@@ -90,6 +89,7 @@ class COMOPlot:
         Remarks:
         --------
         * initializing the file with a value is incompatible with overwriting.
+        * for other examples, see the documentation of the load method
         """
         if overwrite:
             with open(self.dir + name + '.txt', 'w') as f:
@@ -155,16 +155,34 @@ class COMOPlot:
         for fun in self.storing_funs:
             fun(self, moes)
     
-    def load(self):
+    def load(self, force_reading=False):
         """
         Load the data in 'self.dir' as a dictionary, store it in 'self.data' and return it.
+
+        Arguments:
+        ----------
+        * force_reading: if True, the data is loaded from self.dir files and not from self.data even when every data 
+        stored by using the store method has already been stored in self.data. 
+        Useful when using the store0 method outside the store method.
+
+        Examples:
+        ---------
+        >>> plotter = COMOPlot()
+        >>> for i in range(10):
+        ...     plotter.store0("ex1", i)
+        >>> plotter.store0("ex2", 'example', init='init')
+        >>> for i in range(10):
+        ...     plotter.store0("last_ex3", i, overwrite=True)
+        >>> plotter.load(force_reading=True)
+        {'ex1': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 'last_ex3': 9, 'ex2': ['init', 'example']}
         
         Remarks:
         --------
         * The data is only loaded from 'self.dir' when needed, i.e. if it is not yet stored in 'self.data'.
         * If a file name begins by "last_" and the file contains only one value, it is assumed that the intent is not to store all the history but only the last value. 
         """
-        if self.num_data == self.num_calls: # the stored data has already been read entirely and stored in self.data
+        if self.num_data == self.num_calls and not force_reading: # the data stored by using self.store is already 
+                                                                  # stored in self.data
             return self.data
         dic = dict()
         for file in os.listdir(self.dir):
