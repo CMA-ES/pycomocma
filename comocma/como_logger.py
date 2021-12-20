@@ -132,7 +132,29 @@ class COMOPlot:
                                     if kernel.objective_values is not None],
                                     moes.reference_point)
 
-        # data stored at the beginning of new run - except the first one
+        # data stored at the end of each iteration
+        # store the hypervolume of the archive
+        self.store0("hv_archive", float(moes.archive.hypervolume))
+        self.store0("hv_incumbents", float(ND_allincumbents.hypervolume))
+        # store the objective values of the kernel incumbents
+        self.store0("objective_values", [k.objective_values for k in moes])
+        # store only the last archive
+        self.store0("last_archive", moes.archive, overwrite=True)
+        # update the number of times this function have been called
+        self.num_calls += 1
+        # update the maximum and minimum stepsize of the current run
+        if not "max_stepsize" in self._data:
+            self._data["max_stepsize"] = - float('inf')
+        if not "min_stepsize" in self._data:
+            self._data["min_stepsize"] = float('inf')
+        if moes.kernels[-1].countevals > 0 or len(moes.kernels) < 1:
+            self._data["max_stepsize"] = max(self._data["max_stepsize"], moes.kernels[-1].sigma)
+            self._data["min_stepsize"] = min(self._data["min_stepsize"], moes.kernels[-1].sigma)
+        # call the storing functions
+        for fun in self.storing_funs:
+            fun(self, moes)
+
+        # data stored at the beginning of a new run - except the first one
         if moes.kernels[-1].countevals == 0 and len(moes.kernels) > 1:
             # store the kind of restart used for the new kernel
             self.store0("kindstart",
@@ -163,32 +185,13 @@ class COMOPlot:
             # store the final stepsize of the previous run
             self.store0("final_stepsize", moes.kernels[-2].sigma)
             # store the maximum stepsize of the previous run, and reinitialize self._data["max_stepsize"]
+            self._data["max_stepsize"] = max(self._data["max_stepsize"], moes.kernels[-2].sigma)
             self.store0("max_stepsize", self._data["max_stepsize"])
-            self._data["max_stepsize"] = - float('inf')
+            self._data["max_stepsize"] = moes.kernels[-1].sigma0
             # store the minimum stepsize of the previous run, and reinitialize self._data["min_stepsize"]
+            self._data["min_stepsize"] = min(self._data["min_stepsize"], moes.kernels[-2].sigma)
             self.store0("min_stepsize", self._data["min_stepsize"])
-            self._data["min_stepsize"] = float('inf')
-        # data stored at the end of each iteration - TODO: to be completed
-        # store the hypervolume of the archive
-        self.store0("hv_archive", float(moes.archive.hypervolume))
-        self.store0("hv_incumbents", float(ND_allincumbents.hypervolume))
-        # store the objective values of the kernel incumbents
-        self.store0("objective_values", [k.objective_values for k in moes])
-        # store only the last archive
-        self.store0("last_archive", moes.archive, overwrite=True)
-        # update the number of times this function have been called
-        self.num_calls += 1
-        # update the maximum stepsize of the current run
-        if not "max_stepsize" in self._data:
-            self._data["max_stepsize"] = - float('inf')
-        self._data["max_stepsize"] = max(self._data["max_stepsize"], moes.kernels[-1].sigma)
-        # update the minimum stepsize of the current run
-        if not "min_stepsize" in self._data:
-            self._data["min_stepsize"] = float('inf')
-        self._data["min_stepsize"] = min(self._data["min_stepsize"], moes.kernels[-1].sigma)
-        # call the storing functions
-        for fun in self.storing_funs:
-            fun(self, moes)
+            self._data["min_stepsize"] = moes.kernels[-1].sigma0
 
     def load(self, force_reading=False):
         """
@@ -275,8 +278,6 @@ class COMOPlot:
 
         TODO
         ----
-        * check if it is possible for the conditon number to take very high value
-        which would make the rest unreadable
         * plot the initial start first so it appears first in the legend
         """
         dic = self.load()
@@ -293,11 +294,11 @@ class COMOPlot:
                 linestyle = ''
             else:
                 linestyle = '--'
-            plt.plot([i+1 for i in range(n_runs) if dic["kindstart"][i] == kindstart],
+            plt.semilogy([i+1 for i in range(n_runs) if dic["kindstart"][i] == kindstart],
                      [dic["iter_newrun"][i+1] - dic["iter_newrun"][i] for i in range(n_runs)
                       if dic["kindstart"][i] == kindstart], '.', linestyle=linestyle)
             legend.append(kindstart)
-        plt.plot(range(1, n_runs + 1), dic["conditionnumber"], '.')
+        plt.semilogy(range(1, n_runs + 1), dic["conditionnumber"], '.')
         legend.append("condition number")
         plt.legend(legend)
         plt.xlabel("number of runs completed")
@@ -407,8 +408,8 @@ class COMOPlot:
         # plot
         plt.figure()
         plt.semilogy(range(1, n_runs + 2), dic["initial_stepsize"], '.')
-        plt.semilogy(range(1, n_runs + 1), dic["min_stepsize"], '.')
-        plt.semilogy(range(1, n_runs + 1), dic["max_stepsize"], '.')
+        plt.semilogy(range(1, n_runs + 1), dic["min_stepsize"], 'k+')
+        plt.semilogy(range(1, n_runs + 1), dic["max_stepsize"], 'k+')
         plt.semilogy(range(1, n_runs + 1), dic["final_stepsize"], '.')
         legend = ["initial", "minimum", "maximum", "final"]
         plt.legend(legend)
