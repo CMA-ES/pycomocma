@@ -175,8 +175,8 @@ class COMOPlot:
             self.store0("num_dominatedfinalincumbents", num_dominatedfinalincumbents)
             # store the condition number
             self.store0("conditionnumber", moes.kernels[-2].sm.condition_number)
-            # store the number of iterations done so far
-            self.store0("iter_newrun", moes.countiter, init=0)
+            # store the number of iterations at the beginning of the runs
+            self.store0("numiter_beginning", moes.countiter, init=0)
             # store the time index
             self.store0("time", time())
             # store the initial stepsize of the new run
@@ -294,7 +294,7 @@ class COMOPlot:
             else:
                 linestyle = '--'
             plt.semilogy([i+1 for i in range(n_runs) if dic["kindstart"][i] == kindstart],
-                     [dic["iter_newrun"][i+1] - dic["iter_newrun"][i] for i in range(n_runs)
+                     [dic["numiter_beginning"][i+1] - dic["numiter_beginning"][i] for i in range(n_runs)
                       if dic["kindstart"][i] == kindstart], '.', linestyle=linestyle)
             legend.append(kindstart)
         plt.semilogy(range(1, n_runs + 1), dic["conditionnumber"], '.')
@@ -363,11 +363,11 @@ class COMOPlot:
 
         # plot the hvi lines for archive and incumbents
         plt.figure()
-        plt.semilogy(range(1, n_runs+1), [dic["hv_archive"][dic["iter_newrun"][i+1]] -
-                                          dic["hv_archive"][dic["iter_newrun"][i]] for i in
+        plt.semilogy(range(1, n_runs+1), [dic["hv_archive"][dic["numiter_beginning"][i+1]] -
+                                          dic["hv_archive"][dic["numiter_beginning"][i]] for i in
                                           range(n_runs)], 'lightblue', linestyle='--')
-        plt.semilogy(range(1, n_runs+1), [dic["hv_incumbents"][dic["iter_newrun"][i+1]] -
-                                          dic["hv_incumbents"][dic["iter_newrun"][i]] for i in
+        plt.semilogy(range(1, n_runs+1), [dic["hv_incumbents"][dic["numiter_beginning"][i+1]] -
+                                          dic["hv_incumbents"][dic["numiter_beginning"][i]] for i in
                                           range(n_runs)], 'lightgreen', linestyle='--')
 
         # plot the dots which correspond to each kind of restart in a different color
@@ -375,10 +375,10 @@ class COMOPlot:
         for kindstart in set(dic["kindstart"]):
             if kindstart != "initial start":
                 idx = [i for i in range(n_runs) if dic["kindstart"][i] == kindstart]
-                hvi_archive = [dic["hv_archive"][dic["iter_newrun"][i+1]] -
-                               dic["hv_archive"][dic["iter_newrun"][i]] for i in idx]
-                hvi_incumbents = [dic["hv_incumbents"][dic["iter_newrun"][i+1]] -
-                                  dic["hv_incumbents"][dic["iter_newrun"][i]] for i in idx]
+                hvi_archive = [dic["hv_archive"][dic["numiter_beginning"][i+1]] -
+                               dic["hv_archive"][dic["numiter_beginning"][i]] for i in idx]
+                hvi_incumbents = [dic["hv_incumbents"][dic["numiter_beginning"][i+1]] -
+                                  dic["hv_incumbents"][dic["numiter_beginning"][i]] for i in idx]
                 idxx = [i+1 for i in idx]  # when counting the starts, we start at 1
                 plt.semilogy(idxx + idxx, hvi_archive + hvi_incumbents, '.')
                 legend.append(kindstart)
