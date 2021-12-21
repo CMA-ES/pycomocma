@@ -15,7 +15,6 @@ class COMOPlot:
     ------
     - Maybe we should write a warning message if we detect that the store
     function is modified after some storing has already been done ?
-    - Correct bugs in plot_hvi function -- check if the error message still appear
     - Add the equivalent of the 4th Niko's plot
     - Add convergence speed plot ?
     - Distinguish between the two cases : with or without restart
@@ -132,9 +131,10 @@ class COMOPlot:
                                     moes.reference_point)
 
         # data stored at the end of each iteration
-        # store the hypervolume of the archive
-        self.store0("hv_archive", float(moes.archive.hypervolume))
-        self.store0("hv_incumbents", float(ND_allincumbents.hypervolume))
+        # store the hypervolume of the archive and of the incumbents (the first
+        # element corresponds to iteration 0)
+        self.store0("hv_archive", float(moes.archive.hypervolume), init=0)
+        self.store0("hv_incumbents", float(ND_allincumbents.hypervolume), init=0)
         # store the objective values of the kernel incumbents
         self.store0("objective_values", [k.objective_values for k in moes])
         # store only the last archive
