@@ -17,7 +17,6 @@ class COMOPlot:
     function is modified after some storing has already been done ?
     - Correct bugs in plot_hvi function -- check if the error message still appear
     - Add the equivalent of the 4th Niko's plot
-    - Add sigmas (first, maximum and last) on a plot.
     - Add convergence speed plot ?
     - Distinguish between the two cases : with or without restart
     """
@@ -331,7 +330,7 @@ class COMOPlot:
         non_dominated_kernels = [v for v in dic["objective_values"][-1]
                                  if v in dic["last_archive"]]
         dominated_kernels = [v for v in dic["objective_values"][-1]
-                             if v not in dic["last_archive"]]
+                             if v not in dic["last_archive"] and v is not None]
         plt.suptitle('Archive represented in the objective space')
         plt.title('HV archive=%.9e' % (dic["hv_archive"][-1]), fontsize=10)
         plt.xlabel("first objective function")
