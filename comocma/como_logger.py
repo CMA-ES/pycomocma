@@ -298,12 +298,12 @@ class COMOPlot:
                       if dic["kindstart"][i] == kindstart], '.', linestyle=linestyle)
             legend.append(kindstart)
         plt.semilogy(range(1, n_runs + 1), dic["conditionnumber"], '.')
+        plt.grid(which="both")
         legend.append("condition number")
         plt.legend(legend)
         plt.xlabel("number of runs completed")
         plt.ylabel("number of iterations of the last run")
         plt.title("Number of iterations per run")
-        plt.grid()
 
     def plot_convergence_speed(self):
         """Plot the convergence speed."""
@@ -382,10 +382,11 @@ class COMOPlot:
                 idxx = [i+1 for i in idx]  # when counting the starts, we start at 1
                 plt.semilogy(idxx + idxx, hvi_archive + hvi_incumbents, '.')
                 legend.append(kindstart)
-        plt.xlabel("runs")
-        plt.ylabel("hvi")
+        plt.xlabel("run index")
+        plt.ylabel("hypervolume improvement (hvi)")
         plt.grid(which="both")
         plt.legend(legend)
+        plt.title("Improvement at each single objective optimization run")
     
     def plot_stepsizes(self):
         """
@@ -406,11 +407,11 @@ class COMOPlot:
 
         # plot
         plt.figure()
-        plt.semilogy(range(1, n_runs + 2), dic["initial_stepsize"], '.')
+        plt.semilogy(range(1, n_runs + 2), dic["initial_stepsize"], '.', linestyle='--')
+        plt.semilogy(range(1, n_runs + 1), dic["final_stepsize"], '.', linestyle='--')
         plt.semilogy(range(1, n_runs + 1), dic["min_stepsize"], 'k+')
         plt.semilogy(range(1, n_runs + 1), dic["max_stepsize"], 'k+')
-        plt.semilogy(range(1, n_runs + 1), dic["final_stepsize"], '.')
-        legend = ["initial", "minimum", "maximum", "final"]
+        legend = ["initial", "final", "minimum", "maximum"]
         plt.legend(legend)
         plt.xlabel("number of the CMA-ES run")
         plt.ylabel("stepsize")
