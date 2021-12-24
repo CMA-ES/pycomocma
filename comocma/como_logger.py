@@ -467,6 +467,41 @@ class COMOPlot:
         plt.ylabel("stepsize")
         plt.grid(which="both")
         plt.title("Various interesting stepsizes for each CMA-ES run")
+    
+    def plot_uhvi(self):
+        """
+        Plot the ECDF of uncrowded hypervolume improvements.
+        
+        TODO:
+        -----
+        * add other uhvi plots
+        * correct the bug where there is only one tick if the span is too little, making the plot
+        unreadable 
+        """
+        dic = self.load()
+
+        try:
+            n_runs = dic["last_completedrun"]
+        except:
+            warnings.warn("Since no CMA-ES run has been completed yet, the stepsizes were not plotted")
+            return
+
+        # plot the ECDF of uhvi of (final) incumbents w.r.t all (final) incumbents
+        final_incumbents = dic["objective_values"][-1][:n_runs]
+        ND_final_incumbents = self.NDA(final_incumbents, self.reference_point)
+        uhvi_inc_inc = [float(v) for v in ND_final_incumbents.contributing_hypervolumes] + \
+                       [float(ND_final_incumbents.hypervolume_improvement(v)) for v in final_incumbents 
+                       if v not in ND_final_incumbents]
+        xy = step_data(uhvi_inc_inc, smooth_corners=0)
+        plt.plot(xy[0], xy[1], label='uhvi of final incumbents')
+        
+        linthreshx = min([abs(v) for v in xy[0] if v != 0])
+        plt.xscale('symlog', linthresh=linthreshx)
+        plt.grid(which="both")
+        plt.title("Empirical cumulative distribution function (ECDF)\nfor various uncrowded hypervolume improvement")
+        plt.xlabel("uhvi values")
+        plt.ylabel(r"fraction of uhvi $\leq$ this value")
+        plt.legend()
 
 
 if __name__ == "__main__":
