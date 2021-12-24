@@ -129,7 +129,7 @@ class COMOPlot:
                 if os.stat(self.dir + name + '.txt').st_size == 0 and init is not None:
                     f.write("%s\n" % init)
                 f.write("%s\n" % v)
-
+    
     def get_information(self, moes):
         """
         Get information from a Sofomore instance and store it for later use.
@@ -324,10 +324,6 @@ class COMOPlot:
     def plot_iterations_per_restart(self):
         """
         Plot the number of iterations per restart and the condition number.
-
-        TODO
-        ----
-        * plot the initial start first so it appears first in the legend
         """
         dic = self.load()
         try:
