@@ -5,6 +5,10 @@ import datetime
 from time import time
 import ast
 import warnings
+from .nondominatedarchive import NonDominatedList
+from moarchiving import BiobjectiveNondominatedSortedList
+from .como import Sofomore
+from cma.optimization_tools import step_data
 
 
 class COMOPlot:
@@ -20,7 +24,7 @@ class COMOPlot:
     - Distinguish between the two cases : with or without restart
     """
 
-    def __init__(self, storing_funs=[]):
+    def __init__(self, storing_funs=[], num_objs=None):
         """
         Create a COMOPlot object.
 
@@ -36,7 +40,13 @@ class COMOPlot:
         * storing_funs: list of functions which will be called at the end of any
         self.store call. They should take as first argument a COMOPlot object and
         as second argument a Sofomore object.
+        * num_obj ('int'): the number of objectives of the optimization problem at hand.
+        If not specified, it will be computed when using the store function.
         """
+        # check that the type of arguments is correct
+        assert isinstance(storing_funs, list), "'storing_funs' should be a list of functions."
+        assert isinstance(num_objs, int) or num_objs is None, "'num_objs' should be an integer or None."
+
         # create the directory where the data will be stored
         path = os.getcwd()
         name_save = datetime.datetime.now().strftime("%y%m%d_%Hh%Mm%Ss")
@@ -71,6 +81,11 @@ class COMOPlot:
         # a dictionary to internally store temporary data which should
         # not be written in a file 
         self._data = {}
+        if num_objs is not None:
+            # the number of objectives of the optimization problem
+            self.num_objs = num_objs
+            # method for computing a non dominated subset
+            self.NDA = BiobjectiveNondominatedSortedList if num_objs == 2 else NonDominatedList
 
     def store0(self, name, v, overwrite=False, init=None):
         """
@@ -101,6 +116,10 @@ class COMOPlot:
         * initializing the file with a value is incompatible with overwriting.
         * for other examples, see the documentation of the load method
         """
+        # check that the type of the arguments is correct
+        assert isinstance(name, str), "'name' should be a string."
+        assert isinstance(overwrite, bool), "'overwrite' should be a boolean."
+
         if overwrite:
             with open(self.dir + name + '.txt', 'w') as f:
                 f.write("%s\n" % v)
@@ -110,6 +129,28 @@ class COMOPlot:
                 if os.stat(self.dir + name + '.txt').st_size == 0 and init is not None:
                     f.write("%s\n" % init)
                 f.write("%s\n" % v)
+
+    def get_information(self, moes):
+        """
+        Get information from a Sofomore instance and store it for later use.
+
+        Attributes defined here:
+        ------------------------
+        * num_objs: the number of objectives of the optimization problem
+        * NDA: a method for computing the non dominated subset of a set of objective values
+        * reference_point: the reference point
+        
+        Remark:
+        -------
+        It is useful because the logger does not have access to the Sofomore instance when doing the plotting.
+        """
+        if not hasattr(self, 'num_objs'):
+            # the number of objectives
+            self.num_objs = len(moes.kernels[0].objective_values)
+            # the method for computing a non dominated archive
+            self.NDA = BiobjectiveNondominatedSortedList if self.num_objs == 2 else NonDominatedList
+        if not hasattr(self, 'reference_point'):
+            self.reference_point = moes.reference_point
 
     def store(self, moes):
         """
@@ -123,6 +164,12 @@ class COMOPlot:
         --------
         * relies on the class method store0
         """
+        # check that moes is a Sofomore class
+        assert isinstance(moes, Sofomore), "'moes' should be a Sofomore object, from the como module."
+
+        # get information from moes
+        self.get_information(moes)
+
         # list of non-dominated final incumbents
         ND_finalincumbents = moes.NDA([kernel.objective_values for kernel in
                                        moes.kernels[:-1]], moes.reference_point)
@@ -221,6 +268,9 @@ class COMOPlot:
         * If a file name begins by "last_" and the file contains only one value,
         it is assumed that the intent is not to store all the history but only the last value.
         """
+        # check argument type
+        assert isinstance(force_reading, bool), "'force_reading' should be a boolean."
+
         # Case where the data written by self.store is already stored in self.data
         if self.num_data == self.num_calls and not force_reading:
             return self.data
