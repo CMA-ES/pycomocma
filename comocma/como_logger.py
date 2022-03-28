@@ -216,7 +216,7 @@ class COMOPlot:
             tolfunrel_const = moes.kernels[-2].fit.median0 - moes.kernels[-2].fit.median_min
             self.store0("tolfunrel_const", tolfunrel_const)
             # store the number of runs which have been completed
-            self.store0("last_completedrun", len(moes.kernels) - 1, overwrite=True)
+            self.store0("completed_runs", len(moes.kernels) - 1)
             # store the number of dominated final incumbents
             num_dominatedfinalincumbents = len(moes.kernels) - 1 - len(ND_finalincumbents)
             self.store0("num_dominatedfinalincumbents", num_dominatedfinalincumbents)
@@ -308,7 +308,7 @@ class COMOPlot:
         """Plot the proportion of dominated final incumbents."""
         dic = self.load()
         try:
-            n_runs = dic["last_completedrun"]
+            n_runs = len(dic["completed_runs"])
         except:
             warnings.warn("Since no CMA-ES run has been completed yet, the proportion of " +
                           "dominated final incumbents was not plotted.")
@@ -327,7 +327,7 @@ class COMOPlot:
         """
         dic = self.load()
         try:
-            n_runs = dic["last_completedrun"]
+            n_runs = len(dic["completed_runs"])
         except:
             warnings.warn("Since no CMA-ES run has been completed yet, the number of " +
                           "iterations per restart was not plotted.")
@@ -401,7 +401,7 @@ class COMOPlot:
         """Plot information regarding hypervolume improvement."""
         dic = self.load()
         try:
-            n_runs = dic["last_completedrun"]
+            n_runs = len(dic["completed_runs"])
         except:
             warnings.warn("Since no CMA-ES run has been completed yet, the number of iterations"
                           + "per restart was not plotted.")
@@ -446,7 +446,7 @@ class COMOPlot:
         dic = self.load()
 
         try:
-            n_runs = dic["last_completedrun"]
+            n_runs = len(dic["completed_runs"])
         except:
             warnings.warn("Since no CMA-ES run has been completed yet, the stepsizes were not plotted")
             return
@@ -477,7 +477,7 @@ class COMOPlot:
         dic = self.load()
 
         try:
-            n_runs = dic["last_completedrun"]
+            n_runs = len(dic["completed_runs"])
         except:
             warnings.warn("Since no CMA-ES run has been completed yet, the stepsizes were not plotted")
             return
