@@ -24,7 +24,7 @@ class COMOPlot:
     - Distinguish between the two cases : with or without restart
     """
 
-    def __init__(self, storing_funs=[], num_objs=None):
+    def __init__(self, storing_funs=[], num_objs=None, name_save=None):
         """
         Create a COMOPlot object.
 
@@ -42,14 +42,18 @@ class COMOPlot:
         as second argument a Sofomore object.
         * num_obj ('int'): the number of objectives of the optimization problem at hand.
         If not specified, it will be computed when using the store function.
+        * name_save ('int'): the name of the directory in which the files will be stored. By
+        default, it is a combination of the date and hour.
         """
         # check that the type of arguments is correct
         assert isinstance(storing_funs, list), "'storing_funs' should be a list of functions."
         assert isinstance(num_objs, int) or num_objs is None, "'num_objs' should be an integer or None."
+        assert isinstance(name_save, str) or name_save is None, "'name_save' should be a float or None."
 
         # create the directory where the data will be stored
         path = os.getcwd()
-        name_save = datetime.datetime.now().strftime("%y%m%d_%Hh%Mm%Ss")
+        if name_save is None:
+            name_save = datetime.datetime.now().strftime("%y%m%d_%Hh%Mm%Ss")
         path1 = path + "/OutputCOMO/"
         path2 = path1 + name_save + "/"
         if not os.path.exists(path1):
