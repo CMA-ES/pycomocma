@@ -5,6 +5,7 @@ import datetime
 from time import time
 import ast
 import warnings
+import json
 from .nondominatedarchive import NonDominatedList
 from moarchiving import BiobjectiveNondominatedSortedList
 from .como import Sofomore
@@ -131,8 +132,8 @@ class COMOPlot:
             with open(self.dir + name + '.txt', 'a') as f:
                 # case where the file is empty
                 if os.stat(self.dir + name + '.txt').st_size == 0 and init is not None:
-                    f.write("%s\n" % init)
-                f.write("%s\n" % v)
+                    f.write("%s\n" % json.dumps(init))
+                f.write("%s\n" % json.dumps(v))
     
     def get_information(self, moes):
         """
@@ -243,7 +244,7 @@ class COMOPlot:
             self.store0("min_stepsize", self._data["min_stepsize"])
             self._data["min_stepsize"] = moes.kernels[-1].sigma0
 
-    def load(self, force_reading=False):
+    def load(self, force_reading=False, directory=None):
         """
         Load the data in 'self.dir' as a dictionary, store it in 'self.data' and return it.
 
@@ -253,6 +254,8 @@ class COMOPlot:
         and not from self.data even when every data written by the store method
         has already been stored in self.data.
         Useful when using the store0 method outside the store method.
+        * directory (default:None): the directory in which the data is stored, if no directory is specified,
+        it is self.dir
 
         Examples:
         ---------
@@ -279,21 +282,44 @@ class COMOPlot:
         if self.num_data == self.num_calls and not force_reading:
             return self.data
         dic = dict()
-        for file in os.listdir(self.dir):
-            with open(self.dir + file) as f:
+        # define the dir variable if not specified
+        if directory is None:
+            directory = self.dir
+        for file in os.listdir(directory):
+            with open(directory + file) as f:
                 # Read the file (removing the last empty line)
                 lines = f.read().split("\n")[:-1]
                 key = file[:-4]  # remove the .txt
-                try:
-                    dic[key] = [ast.literal_eval(line) for line in lines]
-                except:
-                    dic[key] = lines
+                dic[key] = [json.loads(line) for line in lines]
                 # Special case: when only the last value is stored
                 if file[:5] == "last_" and len(lines) == 1:
                     dic[key] = dic[key][0]
         self.data = dic
         self.num_data = self.num_calls
         return dic
+    
+    def _storing_from_str_to_json(self, directory):
+        '''
+        In a previous version, data was stored using the str() function.
+        Now, we use the json format for faster loading.
+        This function transforms old data stored using the str() function into json data, which
+        can be read with current load function.
+
+        Argument:
+        ---------
+        * directory : the directory where the data is stored
+        '''
+        for file in os.listdir(directory):
+            with open(directory + file, 'r') as f:
+                # Read the file (removing the last empty line)
+                lines = f.read().split("\n")[:-1]
+                try:
+                    content = [ast.literal_eval(line) for line in lines]
+                except:
+                    content = lines
+            with open(directory + file, 'w') as f:
+                for v in content:
+                    f.write("%s\n" % json.dumps(v))
 
     def plot_everything(self):
         """
