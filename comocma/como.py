@@ -879,7 +879,8 @@ class IndicatorFront:
             self.front = NDA(getattr(moes, self.list_attribute),
                                   moes.reference_point)
         else:
-            self.front = NDA([k.objective_values for k in moes if k != kernel],
+            self.front = NDA([k.objective_values for k in moes
+                              if k != kernel and k.objective_values is not None],
                                   moes.reference_point)
         self.kernel = kernel
 
