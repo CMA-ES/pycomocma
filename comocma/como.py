@@ -13,10 +13,11 @@ Only the bi-objective framework is functional and has been thoroughly tested.
 from __future__ import division, print_function, unicode_literals
 __author__ = "Cheikh Toure and Nikolaus Hansen"
 __license__ = "BSD 3-clause"
-__version__ = "0.5.0"
+__version__ = "0.5.2"
 del division, print_function, unicode_literals
 
 import ast
+import collections
 import numpy as np
 import cma
 from cma import interfaces
@@ -102,35 +103,48 @@ class Sofomore(interfaces.OOOptimizer):
     ======================
     The interface is inherited from the generic `OOOptimizer`
     class, which is the same interface used by the `pycma` module. An object 
-    instance is generated as following::
+    instance is generated as following:
         
-        >>> import cma, comocma
-        >>> import numpy as np
-        >>> reference_point = [11, 11]
-        >>> num_kernels = 11 # the number of points we seek to have on the Pareto front
-        >>> dimension = 10 # the dimension of the search space
-        >>> x0 = dimension * [0] # an initial mean for cma
-        >>> sigma0 = 0.2 # initial step-size for cma
-        >>> list_of_solvers_instances = comocma.get_cmas(num_kernels * [x0], sigma0, {'verbose':-9})
-        >>> # `comocma.get_cmas` is a factory function that returns `num_kernels` cma-es instances
-        >>> moes = comocma.Sofomore(list_of_solvers_instances,
-        ...                      reference_point) #instantiation of our MO optimizer
+    >>> import cma, comocma
+    >>> import numpy as np
+    >>> reference_point = [11, 11]
+    >>> num_kernels = 11 # the number of points we seek to have on the Pareto front
+    >>> dimension = 5 # the dimension of the search space
+    >>> x0 = dimension * [0] # an initial mean for cma
+    >>> sigma0 = 0.2 # initial step-size for cma
+    >>> list_of_solvers_instances = comocma.get_cmas(num_kernels * [x0], sigma0, {'verbose':-9})
+    >>> # `comocma.get_cmas` is a factory function that returns `num_kernels` cma-es instances
+    >>> moes = comocma.Sofomore(list_of_solvers_instances,
+    ...                      reference_point) #instantiation of our MO optimizer
 
-    The least verbose interface is via the optimize method::
-        >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
-        >>> moes.optimize(fitness) # doctest:+ELLIPSIS
-        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+    The least verbose interface is via the optimize method:
+
+    >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
+    >>> moes.optimize(fitness, iterations=23) # doctest:+ELLIPSIS
+    Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
         
+    >>> list_of_solvers_instances = comocma.get_cmas(num_kernels * [x0], sigma0, {'verbose':-9})
+    >>> reference_point = [11, 11, 11]
+    >>> moes = comocma.Sofomore(list_of_solvers_instances,
+    ...                      reference_point) #instantiation of our MO optimizer
+    >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1),
+    ...                       lambda x: cma.ff.sphere(x+1)) # a callable 3-objective function
+    >>> moes.optimize(fitness, iterations=4) # doctest:+ELLIPSIS
+    Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+    
     More verbosely, the optimization of the callable multiobjective function 
-    `fitness` is done via the `ask-and-tell` interface::
-     
-        >>> moes = comocma.Sofomore(list_of_solvers_instances, reference_point)
-        >>> while not moes.stop() and moes.countiter < 30:
-        ...     solutions = moes.ask() # `ask` delivers new candidate solutions
-        ...     objective_values = [fitness(x) for x in solutions]
-        ...     moes.tell(solutions, objective_values)
-        ...  # `tell` updates the MO instance by passing the respective function values.
-        ...     moes.disp() # display data on the evolution of the optimization 
+    `fitness` is done via the `ask-and-tell` interface:
+
+    >>> list_of_solvers_instances = comocma.get_cmas(num_kernels * [x0], sigma0, {'verbose':-9})
+    >>> moes = comocma.Sofomore(list_of_solvers_instances, reference_point)
+    >>> while not moes.stop() and moes.countiter < 30:
+    ...     solutions = moes.ask() # `ask` delivers new candidate solutions
+    ...     objective_values = [fitness(x) for x in solutions]
+    ...     moes.tell(solutions, objective_values)
+    ...  # `tell` updates the MO instance by passing the respective function values.
+    ...     # moes.logger.add()
+    ...     moes.disp() # doctest:+ELLIPSIS
+    ***
     
     One iteration of the `optimize` interface is equivalent to one step in the 
     loop of the `ask-and-tell` interface. But for the latter, the prototyper has
@@ -184,8 +198,7 @@ class Sofomore(interfaces.OOOptimizer):
     candidate solutions during the penultimate `ask` method. 
     Note that we should call the `ask` method before any call of the `tell`
     method.
-
-    """   
+"""
     def __init__(self,
                list_of_solvers_instances, # usually come from a factory function 
                                          #  creating single solvers' instances
@@ -212,7 +225,9 @@ class Sofomore(interfaces.OOOptimizer):
         assert len(list_of_solvers_instances) > 0
         self.kernels = list_of_solvers_instances
         self.dimension = self.kernels[0].N
-        self._active_indices = list(range(len(self)))
+        self._active_indices = [i for i in range(len(self)) if not self[i].stop()]
+        if len(self._active_indices) < 1:
+            raise ValueError("the solver must be instantiated with at least one active kernel")
 
         for kernel in self.kernels:
             if not hasattr(kernel, 'objective_values'):
@@ -249,7 +264,9 @@ class Sofomore(interfaces.OOOptimizer):
         self.key_sort_indices = self.opts['update_order']
         self.countiter = 0
         self.countevals = 0
-        self._remaining_indices_to_ask = range(len(self)) # where we look when calling `ask`
+        self.count_kernel_updates = 0  # same number means unchanged kernel number and positions
+    #    self._remaining_indices_to_ask = range(len(self)) # where we look when calling `ask`
+        self._remaining_indices_to_ask = [i for i in range(len(self)) if not self[i].stop()]
         self.logger = SofomoreDataLogger(self.opts['verb_filename'],
                                                      modulo=self.opts['verb_log']).register(self)
         self.best_hypervolume_pareto_front = 0.0
@@ -297,27 +314,43 @@ class Sofomore(interfaces.OOOptimizer):
     def _UHVI_indicator(self, kernel):
         """return indicator function(!) for uncrowded hypervolume improvement for `kernel`.
     
-            >>> import comocma, cma
-            >>> list_of_solvers_instances = comocma.get_cmas(13 * [5 * [1]], 0.7, {'verbose':-9})
-            >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
-            >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
-            >>> moes.optimize(fitness, iterations=37) # doctest:+ELLIPSIS
-            Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
-            >>> moes._UHVI_indicator(moes[1])(moes[2].objective_values) # doctest:+ELLIPSIS
-            ***
-            >>> moes._UHVI_indicator(1)(moes[2].objective_values) # doctest:+ELLIPSIS
-            ***
+        >>> import comocma, cma
+        >>> list_of_solvers_instances = comocma.get_cmas(13 * [5 * [1]], 0.7, {'verbose':-9})
+        >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
+        >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
+        >>> moes.optimize(fitness, iterations=37) # doctest:+ELLIPSIS
+        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+        >>> moes._UHVI_indicator(moes[1])(moes[2].objective_values) # doctest:+ELLIPSIS
+        ***
+        >>> moes._UHVI_indicator(1)(moes[2].objective_values) # doctest:+ELLIPSIS
+        ***
 
         both return the UHVI indicator function for kernel 1 and evaluate
-        kernel 2 on it::
+        kernel 2 on it:
 
-           >>> [[moes._UHVI_indicator(k)(k.objective_values)] for k in moes] # doctest:+ELLIPSIS
-           ***
+        >>> [[moes._UHVI_indicator(k)(k.objective_values)] for k in moes] # doctest:+ELLIPSIS
+        ***
 
         is the list of UHVI values for all kernels where kernels occupying the
         very same objective value have indicator value zero.
         """
         return self._UHVI_indicator_archive(kernel).hypervolume_improvement
+
+    def _UHVIs(self, kernel=None, none_value=-np.inf):
+        """return uncrowded HV contributions of all kernels,
+
+        more numerically efficient than `_UHVI_indicator` does.
+    """
+        nda = self.NDA([k.objective_values for k in self
+                            if k.objective_values is not None],
+                        self.reference_point)
+        if kernel:
+            return nda.contributing_hypervolume(kernel.objective_values)
+        else:
+            return [nda.contributing_hypervolume(k.objective_values)
+                        if k.objective_values is not None
+                    else none_value  # facilitate sort afterwards
+                    for k in self]
 
     def sorted(self, key=None, reverse=True, **kwargs):
         """return a reversed sorted list of kernels.
@@ -326,25 +359,27 @@ class Sofomore(interfaces.OOOptimizer):
         (which we aim to maximize) in the set of kernels. Exact copies have
         zero or negative UHVI value.
     
-            >>> import comocma, cma
-            >>> list_of_solvers_instances = comocma.get_cmas(13 * [5 * [1]], 0.7, {'verbose':-9})
-            >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
-            >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
-            >>> moes.optimize(fitness, iterations=31) # doctest:+ELLIPSIS
-            Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
-            >>> moes.sorted(key = lambda k: moes.archive.contributing_hypervolume(
-            ...                          k.objective_values)) # doctest:+ELLIPSIS
-            [<comocma.como.CmaKernel object at***
+        >>> import comocma, cma
+        >>> list_of_solvers_instances = comocma.get_cmas(13 * [5 * [1]], 0.7, {'verbose':-9})
+        >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
+        >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
+        >>> moes.optimize(fitness, iterations=31) # doctest:+ELLIPSIS
+        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+        >>> moes.sorted(key = lambda k: moes.archive.contributing_hypervolume(
+        ...                          k.objective_values)) # doctest:+ELLIPSIS
+        [<comocma.como.CmaKernel object at***
             
         sorts w.r.t. archive contribution (clones may get positive contribution).
-
         """
         def hv_improvement(kernel):
             if kernel.objective_values is None:
                 return float('-inf')
             return self._UHVI_indicator(kernel)(kernel.objective_values)
         if key is None:
-            key = hv_improvement
+            # was: key = hv_improvement
+            uhvs = self._UHVIs()  # this implementation should be much cheaper computationally
+            idx = sorted(range(len(uhvs)), key=uhvs.__getitem__, reverse=reverse, **kwargs)
+            return [self[i] for i in idx]
         return sorted(self, key=key, reverse=reverse, **kwargs)
 
     def ask(self, number_to_ask=1):
@@ -447,7 +482,11 @@ class Sofomore(interfaces.OOOptimizer):
         objective_values = np.asarray(objective_values).tolist()
 
         for i in range(len(self._told_indices)):
-            self.kernels[self._told_indices[i]].objective_values = objective_values[i]
+            if 1 < 3:
+                self.kernels[self._told_indices[i]].objective_values = objective_values[i]
+            else:  # this doesn't work because .objective_values also lives as a reference in an archive
+                try: self.kernels[self._told_indices[i]].objective_values[:] = objective_values[i]
+                except TypeError: self.kernels[self._told_indices[i]].objective_values = objective_values[i]
         
         if self.reference_point is None:
             pass #write here the max among the kernel.objective_values       
@@ -455,20 +494,24 @@ class Sofomore(interfaces.OOOptimizer):
         start = len(self._told_indices) # position of the first offspring
         self._told_indices = []
         for ikernel, offspring in self.offspring:
-            self.indicator_front.set_kernel(self[ikernel], self)  # use reference_point and list_attribute
-            hypervolume_improvements = [self.indicator_front.hypervolume_improvement(point)
-                                            for point in objective_values[start:start+len(offspring)]]
             kernel = self.kernels[ikernel]
-            if kernel.fit.median0 is not None and kernel.fit.median0 >= 0:
+            self.indicator_front.set_kernel(kernel, self)  # use reference_point and list_attribute
+            kernel._last_offspring_f_values = objective_values[start:start+len(offspring)]
+            kernel._last_offspring_neg_UHVI_values = [-float(self.indicator_front.hypervolume_improvement(point))
+                                                      for point in kernel._last_offspring_f_values]
+            assert kernel == self.kernels[ikernel] == self[ikernel] == self.indicator_front.kernel
+            if kernel.fit.median0 is not None and kernel.fit.median0 > 0:
                 # make sure the median reference comes from the right side of the empirical front
-                # was: ikernel in self._active_indices and kernel.objective_values not in self.pareto_front_cut:
+                # was: ikernel in self._active_indices and
+                #        kernel.objective_values not in self.pareto_front_cut:
                 # a hack to prevent early termination of dominated kernels
                 # from the `tolfunrel` condition.
                 # TODO: clean implementation, proposal:
-                #   if self.indicator_front.hypervolume_improvement(kernel.objective_values) <= 0:  # kernel.fit.median0 >= 0 is the same
+                #   if self.indicator_front.hypervolume_improvement(kernel.objective_values) < 0:  # kernel.fit.median0 > 0 is the same
                 #       kernel.stop(reset='tolfunrel')  # to be implemented
                 kernel.fit.median0 = None
-            kernel.tell(offspring, [-float(u) for u in hypervolume_improvements])
+            kernel.tell(offspring, kernel._last_offspring_neg_UHVI_values)
+            self.count_kernel_updates += 1
             
             # investigate whether `kernel` hits its stopping criteria
             if kernel.stop():
@@ -484,7 +527,6 @@ class Sofomore(interfaces.OOOptimizer):
                 kernel.logger.add()
             except:
                 pass
-            kernel._last_offspring_f_values = objective_values[start:start+len(offspring)]
             
             start += len(offspring)
             
@@ -506,7 +548,6 @@ class Sofomore(interfaces.OOOptimizer):
         self.countiter += 1
         self.countevals += len(objective_values)
 
-        
     @property
     def pareto_front_cut(self):
         """
@@ -514,9 +555,17 @@ class Sofomore(interfaces.OOOptimizer):
         among the kernels' objective values.
         It's the image of `self.pareto_set_cut`.
         """
-        return self.NDA([kernel.objective_values for kernel in self.kernels \
-                         if kernel.objective_values is not None],
-                         self.reference_point)
+        if (not hasattr(self, '_pareto_front_cut_updates')
+            or self.count_kernel_updates != self._pareto_front_cut_updates
+            or not hasattr(self, '_pareto_front_cut')
+            or self._pareto_front_cut is None
+            or len(self) != self._pareto_front_cut_nkernels):  # should already be included in second condition
+            self._pareto_front_cut = self.NDA([kernel.objective_values for kernel in self.kernels
+                                               if kernel.objective_values is not None],
+                                              self.reference_point)
+            self._pareto_front_cut_updates = self.count_kernel_updates
+            self._pareto_front_cut_nkernels = len(self)
+        return self._pareto_front_cut
 
     @property
     def pareto_set_cut(self):
@@ -525,8 +574,9 @@ class Sofomore(interfaces.OOOptimizer):
         reference point, among the kernels' incumbents.
         It's the pre-image of `self.pareto_front_cut`.
         """
+        front = self.pareto_front_cut  # not really necessary when/as pareto_front_cut is lazy-smart
         return [kernel.incumbent for kernel in self.kernels if \
-                kernel.objective_values in self.pareto_front_cut]
+                kernel.objective_values in front]
 
     @property
     def pareto_front_uncut(self):
@@ -600,6 +650,7 @@ class Sofomore(interfaces.OOOptimizer):
         if not isinstance(kernels, list):
             kernels = [kernels]
         self.kernels += kernels
+        self.count_kernel_updates += len(kernels)
         # update `_active_indices` from scratch: inactive kernels might be added
         self._active_indices = [idx for idx in range(len(self)) if \
                                 not self.kernels[idx].stop()]
@@ -616,6 +667,7 @@ class Sofomore(interfaces.OOOptimizer):
         for kernel in kernels:
             if kernel in self.kernels:
                 self.kernels.remove(kernel)
+                self.count_kernel_updates += 1
 
         self._active_indices = [idx for idx in range(len(self)) if \
                                 not self.kernels[idx].stop()]
@@ -768,27 +820,27 @@ class Sofomore(interfaces.OOOptimizer):
 class IndicatorFront:
     """with `hypervolume_improvement` method based on a varying empirical front.
     
-    The front is either all kernels but one or based on the
-    `list_attribute` of `moes` (like `archive`) as given on
+    The front is either all non-dominated points from all but one kernels or
+    based on the `list_attribute` of `moes` (like `archive`) as given on
     initialization.
     
-    Usage::
-        >>> import comocma, cma
-        >>> list_of_solvers_instances = comocma.get_cmas(13 * [5 * [0.4]], 0.7, {'verbose':-9})
-        >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
-        >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
-        >>> moes.front_observed = IndicatorFront()
-        >>> moes.optimize(fitness, iterations=47) # doctest:+ELLIPSIS
-        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
-        >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
-        >>> moes.front_observed = IndicatorFront(list_attribute='archive')
-        >>> moes.optimize(fitness, iterations=37) # doctest:+ELLIPSIS
-        Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
-        >>> moes.front_observed.set_kernel(moes[3], moes)
-        >>> f_points = [moes.front_observed.hypervolume_improvement(point)
-        ...             for point in moes[3]._last_offspring_f_values] 
+    Usage:
 
-    """
+    >>> import comocma, cma
+    >>> list_of_solvers_instances = comocma.get_cmas(13 * [5 * [0.4]], 0.7, {'verbose':-9})
+    >>> fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
+    >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
+    >>> moes.front_observed = IndicatorFront()
+    >>> moes.optimize(fitness, iterations=47) # doctest:+ELLIPSIS
+    Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+    >>> moes = comocma.Sofomore(list_of_solvers_instances, [11, 11])
+    >>> moes.front_observed = IndicatorFront(list_attribute='archive')
+    >>> moes.optimize(fitness, iterations=37) # doctest:+ELLIPSIS
+    Iterat #Fevals   Hypervolume   axis ratios   sigmas   min&max stds***
+    >>> moes.front_observed.set_kernel(moes[3], moes)
+    >>> f_points = [moes.front_observed.hypervolume_improvement(point)
+    ...             for point in moes[3]._last_offspring_f_values] 
+"""
     def __init__(self, list_attribute=None, NDA=None):
         """``getattr(moes, list_attribute)`` contains the list to create the front.
         
@@ -808,18 +860,453 @@ class IndicatorFront:
         
         By default, make changes only when kernel has changed.
         
-        Details: ``moes.reference_point`` and, in case, its attribute
-        with name `self.list_attribute: str` is used.
+        Details: `kernel` may also be the index of the kernel in `moes`.
+        ``moes.reference_point`` and, in case, its attribute with name
+        `self.list_attribute: str` is used.
         """
+        try: kernel = moes[kernel]  # kernel is an index in moes
+        except TypeError: pass  # kernel is already a kernel, not an index
         if lazy and kernel == self.kernel:
             return
-        if self.list_attribute:
-            self.front = self.NDA(getattr(moes, self.list_attribute),
+
+        try:  # take class of current moes, if available
+            NDA = moes.NDA or self.NDA  # capture case when moes.NDA is None
+        except AttributeError:
+            # we could also first use type(self.front) if self.front
+            NDA = self.NDA  # moes has not attribute NDA
+
+        if self.list_attribute:  # we could use getattr(moes, 'archive') as indicator front
+            self.front = NDA(getattr(moes, self.list_attribute),
                                   moes.reference_point)
         else:
-            self.front = self.NDA([k.objective_values for k in moes if k != kernel],
+            self.front = NDA([k.objective_values for k in moes
+                              if k != kernel and k.objective_values is not None],
                                   moes.reference_point)
         self.kernel = kernel
+
+
+def cma_kernel_default_options_dynamic_tolx(moes, factor=0.1):
+    """
+    return `factor` times minimum `tolx` from non-dominated kernels.
+
+    Fallback to default `tolx` if the `pareto_front_cut` is empty.
+"""
+    front = moes.pareto_front_cut  # not really necessary when/as pareto_front_cut is lazy-smart
+    if front:
+        vals = [k.stop(get_value='tolx') for k in moes
+                if k.countiter > 0 and k.objective_values in front]
+        vals = [v for v in vals if v is not None]
+        if vals:
+            return factor * min(vals)
+    if 'tolx' in cma_kernel_default_options_replacements:
+        return cma_kernel_default_options_replacements['tolx']
+    return cma.CMAOptions().eval('tolx')
+
+def get_kernel_random_restart(moes, x0_fct=None, opts=(), tolx_factor=0.05,
+        dynamic_tolx=cma_kernel_default_options_dynamic_tolx,
+        **kwargs):
+    """
+    return a `list` with one element of type `CmaKernel`.
+    
+    Parameters
+    ----------
+    moes: `Sofomore`, the instance for which this method is used as
+    `restart` option.
+
+    x0_fct: `callable`, that returns an initial solution passed to
+    `CmaKernel`. By default uniform in [-5, 5].
+
+    opts: `dict`, options passed (possibly with modifications) to
+    the `CmaKernel(cma.CMAEvolutionStrategy)` instantiation call.
+
+    dynamic_tolx: ``Callable[[Sofomore, [factor]] -> tolx: float``,
+    initialize the `tolx` option of `CmaKernel` depending on the
+    kernels of a `Sofomore` instance.
+
+    kwargs: `dict`, unused keyword arguments to allow for a generic call of
+    `Sofomore.restart`.
+
+    Details: this function mimics `random_restart_kernel` but uses
+    additionally `cma_kernel_default_options_dynamic_tolx` to control the
+    `tolx` option of `CmaKernel`.
+"""
+    def x0(moes):
+        """x0 uniform in [-5, 5]"""
+        return 10 * np.random.rand(moes.dimension) - 5
+    def sigma0(moes):
+        """sigma0 from first kernel"""
+        return moes[0].sigma0
+    def get_opts(moes):
+        """inopts from last stopped kernel (for backwards "compatiblity")"""
+        if moes._last_stopped_kernel_id is not None:
+            opts_ = dict(moes[moes._last_stopped_kernel_id].inopts or ())
+        else:  # fall back to inopts of first kernel
+            opts_ = dict(moes[0].inopts or ())
+        opts_['tolx'] = dynamic_tolx(moes, factor=tolx_factor)
+        opts_.update(opts or ())  # catch None
+        return opts_
+    res = get_cmas((x0_fct or x0)(moes), sigma0(moes),
+                         get_opts(moes), len(moes))
+    res[0]._rampup_method = get_kernel_random_restart
+    return res
+
+def get_kernel_best_chv_restart(moes, opts=(),
+        dynamic_tolx=cma_kernel_default_options_dynamic_tolx,
+        sigma_factor=1,
+        **kwargs):
+    """
+    return a `list` with one element of type `CmaKernel`.
+    
+    Parameters
+    ----------
+    moes: `Sofomore`, the instance for which this method is used as
+    `restart` option.
+
+    opts: `dict`, options passed (possibly with modifications) to
+    `CmaKernel(cma.CMAEvolutionStrategy)`.
+
+    dynamic_tolx: ``Callable[[Sofomore, [factor]] -> tolx: float``,
+    initialize the `tolx` option of `CmaKernel` depending on the
+    kernels of a `Sofomore` instance.
+
+    kwargs: `dict`, unused keyword arguments to allow for a generic call of
+    `Sofomore.restart`.
+
+    Details: this function picks best boundary kernels only with
+    probability of about 2 / number_of_kernels and uses
+    `cma_kernel_default_options_dynamic_tolx` to control the `tolx` option
+    of `CmaKernel`.
+
+    TODO: it may be better to pick best boundary kernels with at least,
+    say, 5%. However from a practical perspective, boundary kernels are
+    usually of lesser interest and pushing the boundary leads to more gaps
+    at extremer (less interesting) regions(?) that will also be filled in
+    the sequel.
+"""
+    def pick_kernel(moes):
+        pareto_front = moes.pareto_front_cut  # or moes.pareto_front_uncut
+        # TODO: if the pareto_front is empty we will pick and try to improve
+        # always the same location because the distance to the reference
+        # value is independent of crowding in the local space. Using the
+        # extended pareto front doesn't really help to address this problem.
+        if len(pareto_front) < 1:  # len(front) <= nb non-dominated <= nb of known objective_values <= len(moes)
+            return moes[np.random.randint(len(moes))]  # should rarely happen anyway
+        for k in moes.sorted():
+            if k.objective_values in [pareto_front[i] for i in [0, -1]]:
+                if len(pareto_front) < 3 or np.random.randint(len(moes)) < 2:
+                    return k  # don't skip boundary points in favor of reference-non-dominating solutions
+            else:
+                break
+        return k
+    def get_opts(moes):
+        opts_ = {'tolx': dynamic_tolx(moes, factor=0.05)}
+        opts_.update(opts or ())  # or () catches opts == None
+        opts_.update([['verb_filenameprefix', # currently unavoidable code duplication from line ~1600 of get_cmas
+                      os.path.join('cma_kernels', str(len(moes)))]])
+        return opts_
+    kernel = pick_kernel(moes)
+    res = kernel._copy_light(sigma=sigma_factor * kernel.sigma, inopts=get_opts(moes))
+    res._rampup_method = get_kernel_best_chv_restart
+    return [res]
+
+def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts=None, **kwargs):
+    
+    """create a kernel (solver) of TYPE CmaKernel with a random initial mean, or 
+    an initial mean given by the factory function `x0_funct`, and initial step-size
+    `sigma0`.
+    
+    Parameters
+    ----------
+    moes : TYPE Sofomore
+        A multiobjective solver instance with cma-es (of TYPE CmaKernel) solvers.
+    x0_fct : TYPE function, optional
+        A factory function that creates an initial mean. The default is None.
+    sigma0 : TYPE float, optional
+        Initial step-size of the returned kernel. The default is None.
+    opts : TYPE dict, optional
+        The returned kernel's options. The default is `None`.
+    **kwargs : 
+        Other keyword arguments.
+
+    Returns
+    -------
+    A kernel (solver) of TYPE CmaKernel.
+
+    """
+
+    if x0_fct is not None:
+        x0 = x0_fct(moes.dimension)  # or however we can access the current search space dimension
+    else:
+        x0 = 10 * np.random.rand(moes.dimension) - 5  # TODO: or whatever we want as default
+    if sigma0 is None: 
+        sigma0 = moes[0].sigma0 / 1.  # decrease the initial  step-size ?
+    
+    my_opts = {}  # we use inopts to avoid copying the initialized random seed
+    for op in (moes[moes._last_stopped_kernel_id].inopts, opts):
+        if op is not None:
+            my_opts.update(op)
+                
+    return  get_cmas(x0, sigma0, my_opts, len(moes))
+    
+def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
+    """create a kernel (solver) of TYPE CmaKernel by duplicating the kernel with 
+    best uncrowded hypervolume improvement.
+    
+    Parameters
+    ----------
+    moes : TYPE Sofomore
+        A multiobjective solver instance with cma-es (of TYPE CmaKernel) solvers.
+    sigma_factor : TYPE int or float, optional
+        A step size factor used in the initial step-size of the kernel returned.
+        The default is 1.
+    **kwargs : 
+        Other keyword arguments.
+
+    Returns
+    -------
+    A kernel (solver) of TYPE CmaKernel derived from the kernel with largest contributing HV.
+
+    """
+
+    hvc = []
+    for idx in range(len(moes)):
+        front = moes.NDA([moes.kernels[i].objective_values for i in range(len(moes)) if i != idx],
+                            moes.reference_point)
+        f_pair = moes.kernels[idx].objective_values
+        hvc += [front.hypervolume_improvement(f_pair)]
+    sorted_indices = sorted(range(len(moes)), key=lambda i: - hvc[i])
+    my_front = moes.pareto_front_cut
+    idx_best = sorted_indices[0]
+    if len(my_front) > 1:
+        for i in sorted_indices:
+            kernel = moes.kernels[i]
+            if kernel.stop() or kernel.objective_values not in [my_front[0], my_front[-1]]:
+                idx_best = i
+                break
+    ker = moes.kernels[idx_best]
+    new_sigma0 = sigma_factor * ker.sigma
+
+    newkernel = ker._copy_light(sigma=new_sigma0, inopts={'verb_filenameprefix': 'cma_kernels' + os.sep +
+                                                          str(len(moes))})
+    return [newkernel]
+
+class _CounterDict(dict):
+    """A dictionary with two additional features.
+    
+    1) it can be initialized by keywords only, setting all values to 0.
+    
+    2) the `argmin` method gives the key associated to the smallest value,
+    breaking ties at random.
+
+    `_CounterDict` is somewhat a misnomer, as any type than can be
+    sorted can be used as values.
+
+    >>> from comocma.como import _CounterDict
+    >>> keys = [1, 2]
+    >>> bs = _CounterDict(keys)
+    >>> assert bs == _CounterDict(zip(keys, len(keys) * [0]))
+    >>> assert bs[bs.argmin()] == min(bs.values())
+    >>> bs[2] = -3
+    >>> assert bs.argmin() == 2
+"""
+    def __init__(self, *args, **kwargs):
+        try:
+            super(_CounterDict, self).__init__(*args, **kwargs)
+        except TypeError:  # make values to be zero
+            super(_CounterDict, self).__init__(zip(args[0], len(args[0]) * [0]))
+        self.argmin()  # assign `last` attribute
+        self.last = self.last  # declare `last` attribute
+        """  all minimal keys on last call of `argmin`"""
+    def argmin(self):
+        m = min(self.values())
+        self.last = [k for k in self if self[k] == m]
+        return self.last[np.random.randint(len(self.last))]
+
+class RampUpSelector:
+    """Takes a list of ramp-up methods and a selection "criterion",
+    
+    on inialization. When called, calls the ramp-up method with the
+    smallest cumulative criterion value and returns the result.
+    
+    The default selection criterion is number of ramp-up calls. Otherwise,
+    `criterion` can be an attribute name or a `callable`. A string
+    signifies an attribute name of the returned result of the ramp-up
+    methods. A `callable` is called with the result as argument.
+
+    For example, ``criterion='countevals'`` or ``lambda k: k.countevals``
+    uses the sum of ``result.countevals`` (evaluated only right before the
+    next ramp up) as criterion which method to use next.
+
+    The `costs` attribute stores the sum of selection criterion values
+    for each method in a dictionary.
+    
+    Usage:
+
+    >>> import comocma
+    >>> restart_methods = (comocma.get_kernel_random_restart,
+    ...                    comocma.get_kernel_best_chv_restart)
+    >>> selected_restarts = comocma.RampUpSelector(restart_methods)
+
+    or:
+
+    >>> selected_restarts = comocma.RampUpSelector(restart_methods,
+    ...                                            criterion='countevals')
+
+    thereby assuming that the return value of the restart methods has the
+    attribute `countevals` to be used to sum up the costs. Now calling
+    `selected_restarts` has the same interface as either of the
+    `restart_methods`, that is, the same calling arguments and the same
+    return value(s), and it can be used just like the original single
+    methods::
+    
+    >>> list_of_solvers = comocma.get_cmas(21 * [10 * [0]], 0.3)
+    >>> reference_point = [11, 11]
+    >>> moes = comocma.Sofomore(list_of_solvers, reference_point, 
+    ...                      {'restart': selected_restarts})
+
+    as restart option.
+"""
+    def __init__(self, rampup_methods, criterion=None):
+        self.rampup_methods = rampup_methods
+        self.criterion = criterion
+        """  a callable or an attribute name, may be changed any time"""
+        self.costs = _CounterDict(self.rampup_methods)
+        self.counts = _CounterDict(self.rampup_methods)
+        self.method = None
+        """ last used rampup method"""
+        self.result = None
+        """ last rampup result, this may or may not be a list"""
+
+    def _update_costs(self):
+        """add cost value of finished (last ramped) method"""
+        if not self.method:
+            return  # do nothing before to know which method was called
+        if self.criterion is None:
+            val = 1
+        else:
+            try:  # a string leads to attribute access
+                # this is a hack and should not be necessary:
+                if isinstance(self.result, (list, tuple)): 
+                    val = sum(getattr(k, self.criterion) for k in self.result)
+                else:  # should not happen anymore within `como`
+                    val = getattr(self.result, self.criterion)
+            except TypeError:  # an attribute must be a string
+                val = self.criterion(self.result)
+        self.costs[self.method] += val
+        self.counts[self.method] += 1
+
+    def __call__(self, *args, **kwargs):
+        """update, select, and ramp up"""
+        self._update_costs()  # depends on the final state of the previously returned result
+        self.method = self.costs.argmin()
+        self.result = self.method(*args, **kwargs)
+        # if need be we could hack here to tweak result further before to deliver
+        return self.result
+
+class GetKernelPopsizeIncrementer:
+    """
+    a `callable` that returns the result of a call of `get_kernel`.
+
+    The gist of this class is to pass a dynamic popsize to `get_kernel`.
+
+    Most of the class code is boilerplate, interfacing, and bookkeeping.
+    `adapt_popsize` is the core method that is not just that and may be
+    overwritten in a derived `class` to change the algorithm.
+
+    Parameters
+    ----------
+    get_kernel: ``Callable[Sofomore, [opts={'popsize': int}]]
+    -> List[CmaKernel]`` where the returned `list` is of length 1.
+
+    opts: `dict`, options passed (possibly with modifications) to
+    the `CmaKernel(cma.CMAEvolutionStrategy)` instantiation call.
+
+    popsize_increment: float, factor to increment popsize when the last
+    kernel ended up dominated.
+
+    Usage::
+
+        from comocma import como
+        selected_restarts = como.RampUpSelector([
+            como.GetKernelPopsizeIncrementer(
+                como.get_kernel_best_chv_restart,
+                popsize_increment=1),  # use always default popsize here
+            como.GetKernelPopsizeIncrementer(
+                como.get_kernel_random_restart,
+                popsize_increment=2),  # standard popsize increment
+            ],
+            'countevals')
+        moes = como.Sofomore(list_of_solvers, 
+                             opts={'restart': selected_restarts},
+                             reference_point=...)
+
+    Details: `adapt_popsize` here increments the popsize for the
+    next `CmaKernel` when the last kernel ended up dominated.
+"""
+    def __init__(self, get_kernel, opts=(), popsize_increment=2):
+        self.get_kernel = get_kernel
+        self.popsize_increment = popsize_increment or 1
+        self.opts = opts
+        self.popsize = None
+        """a float or None, used as popsize parameter for `CmaKernel`"""
+        self.kernels = collections.deque(maxlen=20)
+        """history of launched kernels, only the last is used"""
+
+    def adapt_popsize(self, moes):
+        """this could be changed in an inherited class"""
+        kernel = self.kernels[-1] if self.kernels else moes[-1]
+        if not self.popsize:  # initialize self.popsize
+            self.popsize = kernel.popsize
+        if kernel.objective_values in moes.pareto_front_cut:
+            return  # do nothing if last kernel is nondominated
+        assert kernel.countiter <= 1 or kernel._last_offspring_neg_UHVI_values is not None
+        # do nothing if > 1% of the last offspring are nondominated by the empirical front
+        if kernel._last_offspring_neg_UHVI_values is None or (
+            sum(nhv < 0 for nhv in kernel._last_offspring_neg_UHVI_values)
+            > 0.01 * len(kernel._last_offspring_neg_UHVI_values)):  # 1/99 or 2/100 are enough
+            # should be almost the same as kernel.fit.fit[0] <= 0 or kernel.fit.hist[0] <= 0
+            # the 1%-ile is used to remain meaningful with lambda\to\infty
+            # print('secondary criterion')
+            return  # do nothing if the kernel was "seeing" the nondominated domain in its last iteration
+        if self.popsize <= kernel.popsize:  # try larger popsize
+            self.popsize *= self.popsize_increment
+
+    def __call__(self, moes, opts=(), **kwargs):
+        """
+        return a `list` with one element of type `CmaKernel`.
+
+        moes: `Sofomore`, the instance for which this method is used as
+        `restart` option.
+
+        kwargs: `dict`, unused keyword arguments to allow for a generic call of
+        `Sofomore.restart`.
+    """
+        self.adapt_popsize(moes)  # now self.popsize is not None anymore
+        opts_ = {'popsize': self.popsize}
+        opts_.update(self.opts or ())  # overwrite opts, we may want default popsize
+        opts_.update(opts or ())
+        self.kernels += self.get_kernel(moes, opts=opts_, **kwargs)
+        return self.kernels[-1]
+
+class GetKernelIPOP(GetKernelPopsizeIncrementer):
+    """non-adaptive IPOP incrementing scheme.
+
+    Example:
+
+    >>> from comocma import como
+    >>> selected_restarts = como.RampUpSelector(
+    ...     [como.get_kernel_best_chv_restart,
+    ...      como.GetKernelIPOP(como.get_kernel_random_restart, popsize_increment=2**0.5)
+    ...     ], criterion='countevals')
+
+    can be used as ``'restart'`` option to `como.Sofomore` when using `como.get_cmas` kernels.
+"""
+    def adapt_popsize(self, moes):
+        if not self.popsize:
+            kernel = self.kernels[-1] if self.kernels else moes[-1]
+            self.popsize = kernel.popsize
+        else:
+            self.popsize *= self.popsize_increment
 
 cma_kernel_default_options_replacements = {
         'conditioncov_alleviate': [np.inf, np.inf],
@@ -852,13 +1339,14 @@ def get_cmas(x_starts, sigma_starts, inopts=None, number_created_kernels=0):
     -------
     A list of `CmaKernel` instances.
     
-    Example::
-        >>> import comocma
-        >>> dimension = 10
-        >>> sigma0 = 0.5
-        >>> num_kernels = 11
-        >>> cma_opts = {'tolx': 10**-4, 'popsize': 32}
-        >>> list_of_solvers = comocma.get_cmas(num_kernels * [dimension * [0]], sigma0, cma_opts) 
+    Example:
+
+    >>> import comocma
+    >>> dimension = 10
+    >>> sigma0 = 0.5
+    >>> num_kernels = 11
+    >>> cma_opts = {'tolx': 10**-4, 'popsize': 32}
+    >>> list_of_solvers = comocma.get_cmas(num_kernels * [dimension * [0]], sigma0, cma_opts) 
         
         produce `num_kernels` cma instances.
     """
@@ -947,6 +1435,7 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         # (see below for definition of incumbent)
         self._last_offspring_f_values = None # the fvalues of its offspring
         # used in the last call of `tell`.  
+        self._last_offspring_neg_UHVI_values = None  # fitness values
     
     @property
     def incumbent(self):
@@ -967,8 +1456,10 @@ class CmaKernel(cma.CMAEvolutionStrategy):
         """
         es = super(CmaKernel, self)._copy_light(sigma, inopts)
 
-        es.objective_values = self.objective_values
+        try: es.objective_values = list(self.objective_values)  # make a copy
+        except TypeError: es.objective_values = self.objective_values
         es._last_offspring_f_values = self._last_offspring_f_values
+        es._last_offspring_neg_UHVI_values = self._last_offspring_neg_UHVI_values
         return es  
     
 class FitFun:
