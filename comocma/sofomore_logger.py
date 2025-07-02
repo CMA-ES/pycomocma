@@ -540,9 +540,14 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
      #                       '-', color=next(color), label = mylabel[i])
         # pyplot.hold(True)
         offset_convergence_gap = self.es.best_hypervolume_pareto_front
-        pyplot.semilogy(absciss_hypervolume, [offset_convergence_gap - u 
+        try:
+            pyplot.semilogy(absciss_hypervolume, [offset_convergence_gap - u 
                                           for u in res_hypervolume[0]],
                     label = mylabel[4], nonposy = 'clip')
+        except TypeError:
+            pyplot.semilogy(absciss_hypervolume, [offset_convergence_gap - u 
+                                          for u in res_hypervolume[0]],
+                    label = mylabel[4], nonpositive = 'clip')
         current_archive = res_hypervolume[1]
         try:
             offset_archive_gap = current_archive[-1]
@@ -551,6 +556,11 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                             label = mylabel[5], nonposy = 'clip')
         except IndexError:
             warnings.warn("empty archive")
+        except TypeError:
+            pyplot.semilogy(absciss_hypervolume, 
+                            [offset_archive_gap - u for u in current_archive], 
+                            label = mylabel[5], nonpositive = 'clip')
+
         pyplot.semilogy(absciss_hypervolume, [1/u for u in res_hypervolume[2]], 
                     label = mylabel[6])
         pyplot.grid(True)
