@@ -13,7 +13,7 @@ class NonDominatedList(list):
     meaning that no point strictly domminates another one in all
     objectives.
     
-    >>> from nondominatedarchive import NonDominatedList
+    >>> from comocma.nondominatedarchive import NonDominatedList
     >>> a = NonDominatedList([[1,0.9], [0,1], [0,2]], [2, 2])
     """
 
@@ -122,7 +122,7 @@ class NonDominatedList(list):
 
         Otherwise return `False`.
 
-        >>> from nondominatedarchive import NonDominatedList as NDA
+        >>> from comocma.nondominatedarchive import NonDominatedList as NDA
         >>> a = NDA([[0.39, 0.075], [0.0087, 0.14]])
         >>> a.dominates(a[0])  # is always True if `a` is not empty
         True
@@ -143,7 +143,7 @@ class NonDominatedList(list):
 
         Otherwise return `False` or `None` if `idx` is out-of-range.
 
-        >>> from nondominatedarchive import NonDominatedList as NDA
+        >>> from comocma.nondominatedarchive import NonDominatedList as NDA
         >>> NDA().dominates_with(0, [1, 2]) is None  # empty NDA
         True
         
@@ -181,7 +181,7 @@ class NonDominatedList(list):
         hence the number of dominating elements which can also be obtained
         without creating the list with ``number_only=True``.
 
-        >>> from nondominatedarchive import NonDominatedList as NDA
+        >>> from comocma.nondominatedarchive import NonDominatedList as NDA
         >>> a = NDA([[1.2, 0.1], [0.5, 1]])
         >>> len(a)
         2
@@ -213,7 +213,7 @@ class NonDominatedList(list):
         `f_tuple` may also be an index in `self` in which case
         ``self[f_tuple]`` is tested to be in-domain.
 
-        >>> from nondominatedarchive import NonDominatedList as NDA
+        >>> from comocma.nondominatedarchive import NonDominatedList as NDA
         >>> a = NDA([[2.2, 0.1], [0.5, 1]], reference_point=[2, 2])
         >>> assert len(a) == 1
         >>> a.in_domain([0, 0])
@@ -246,7 +246,7 @@ class NonDominatedList(list):
 
         Otherwise return `False`.
 
-        >>> from nondominatedarchive import NonDominatedList as NDA
+        >>> from comocma.nondominatedarchive import NonDominatedList as NDA
         >>> a = NDA([[0.39, 0.075], [0.0087, 0.14]])
         >>> a.dominates(a[0])  # is always True if `a` is not empty
         True
@@ -267,7 +267,7 @@ class NonDominatedList(list):
 
         Otherwise return `False` or `None` if `idx` is out-of-range.
 
-        >>> from nondominatedarchive import NonDominatedList as NDA
+        >>> from comocma.nondominatedarchive import NonDominatedList as NDA
         >>> NDA()._strictly_dominates_with(0, [1, 2]) is None  # empty NDA
         True
 
@@ -332,7 +332,7 @@ class NonDominatedList(list):
 
         Raise `ValueError` when no reference point was given initially.
 
-        >>> from nondominatedarchive import NonDominatedList as NDA
+        >>> from comocma.nondominatedarchive import NonDominatedList as NDA
         >>> a = NDA([[0.5, 0.4], [0.3, 0.7]], [2, 2.1])
         >>> a._asserts()
         >>> a.reference_point == [2, 2.1]
@@ -422,7 +422,7 @@ class NonDominatedList(list):
     def _asserts(self):
         """make all kind of consistency assertions.
 
-        >>> import nondominatedarchive
+        >>> from comocma import nondominatedarchive
         >>> a = nondominatedarchive.NonDominatedList(
         ...    [[-0.749, -1.188], [-0.557, 1.1076],
         ...    [0.2454, 0.4724], [-1.146, -0.110]], [10, 10])
