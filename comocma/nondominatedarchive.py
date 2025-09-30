@@ -37,7 +37,7 @@ class NonDominatedList(list):
             self.reference_point = list(reference_point)
         else:
             self.reference_point = reference_point
-        self.prune()  # remove dominated entries, uses self.dominates
+        self.prune(True)  # remove dominated entries, uses self.dominates
         self._hypervolume = None
         self._kink_points = None
 
@@ -50,7 +50,7 @@ class NonDominatedList(list):
             self.append(f_tuple)
             self._hypervolume = None
             self._kink_points = None
-        self.prune()
+        self.prune(True)
     
     def remove(self, f_tuple):
         """remove element `f_pair`.
@@ -94,15 +94,16 @@ class NonDominatedList(list):
                 self.append(f_tuple)
                 self._hypervolume = None
                 self._kink_points = None
-        self.prune()        
-        
-    def prune(self):
+        self.prune(True)
+
+    def prune(self, prune_domain=False):
         """
         remove point dominated by another one in all objectives.
         """
-        for f_tuple in self:
-            if not self.in_domain(f_tuple):
-                list.remove(self, f_tuple)
+        if prune_domain:
+            for i in range(len(self) - 1, -1, -1):
+                if not self.in_domain(self[i]):
+                    self.remove(self[i])
         i = 0
         length = len(self)
         while i < length:
