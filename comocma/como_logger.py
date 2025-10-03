@@ -1,3 +1,5 @@
+"""Defines the `COMOPlot` class which can store (via callback) and plot data.
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -15,6 +17,12 @@ from cma.optimization_tools import step_data
 class COMOPlot:
     """
     A class designed to store, load and plot data relative to a Sofomore object.
+
+    Example::
+
+        >> cp = comocma.como_logger.COMOPlot()
+        >> moes.optimize(fitness, callback=cp.store)
+        >> cp.plot()
 
     TODO:
     ------
@@ -321,16 +329,15 @@ class COMOPlot:
                 for v in content:
                     f.write("%s\n" % json.dumps(v))
 
-    def plot_everything(self):
+    def plot(self):
         """
         Call all plotting methods of the class.
 
         Remark:
         -------
-        * plotting method names starts with 'plot_'
+        * plotting method names start with 'plot_'
         """
-        fun_names = [name for name in dir(self) if name[:5] == 'plot_'
-                     and name != 'plot_everything']
+        fun_names = [name for name in dir(self) if name[:5] == 'plot_']
         for name in fun_names:
             getattr(self, name)()
 
