@@ -48,7 +48,8 @@ num_kernels = 5 # number of single-objective solvers
 sigma0 = 0.2    # initial step-sizes
 
 ### Initialize
-list_of_solvers = comocma.get_cmas(num_kernels * [dimension * [0]], sigma0) # return num_kernels cma instances
+list_of_solvers = comocma.get_cmas(
+        num_kernels * [dimension * [0]], sigma0) # return num_kernels cma instances
 moes = comocma.Sofomore(list_of_solvers, [11,11]) # create a como-cma-es instance
 
 fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
