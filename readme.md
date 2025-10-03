@@ -48,13 +48,16 @@ num_kernels = 5 # number of single-objective solvers
 sigma0 = 0.2    # initial step-sizes
 
 ### Initialize
-list_of_solvers = comocma.get_cmas(num_kernels * [dimension * [0]], sigma0) # return num_kernels cma instances
+list_of_solvers = comocma.get_cmas(
+        num_kernels * [dimension * [0]], sigma0) # return num_kernels cma instances
 moes = comocma.Sofomore(list_of_solvers, [11,11]) # create a como-cma-es instance
 
 fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)) # a callable bi-objective function
 
 ### Do the job
 moes.optimize(fitness)
+print(moes.stop())
+moes.logger.plot()
 ```
 
 ### Output:
@@ -70,8 +73,17 @@ moes.optimize(fitness)
       300   3000 1.209997694077156e+00 1.8e+00 2.03e-03  1e-03  1e-03
       400   4000 1.209999800600613e+00 1.8e+00 4.90e-04  2e-04  3e-04
       480   4800 1.209999979594839e+00 1.9e+00 2.02e-04  7e-05  9e-05
+    {0: {'tolx': 0.0001}, 1: {'tolx': 0.0001}, 2: {'tolx': 0.0001}, 3: {'tolx': 0.0001}, 4: {'tolx': 0.0001}}
+
+[plots omitted]
 ```
 Now,
+
+```python
+moes.kernels[0].plot()
+```
+
+plots the optimization from "the first" kernel (the order of kernels is arbitrary) and
 
 ```python
 moes.kernels[0].result
