@@ -893,7 +893,7 @@ def get_cmas(x_starts, sigma_starts, inopts=None, number_created_kernels=0):
             mybounds = list_of_opts[i]['bounds']
             if isinstance(mybounds, str):
                 mybounds = ast.literal_eval(mybounds)
-            bounds_transform = cma.constraints_handler.BoundTransform(mybounds)
+            bounds_transform = cma.BoundTransform(mybounds)
             x_starts[i] = bounds_transform.repair(x_starts[i])
         except KeyError:
             pass
