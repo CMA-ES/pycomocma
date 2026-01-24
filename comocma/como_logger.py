@@ -1,7 +1,6 @@
 """Defines the `COMOPlot` class which can store (via callback) and plot data.
 """
 import numpy as np
-import matplotlib.pyplot as plt
 import os
 import datetime
 from time import time
@@ -343,6 +342,7 @@ class COMOPlot:
 
     def plot_proportion_dominated_final_incumbents(self):
         """Plot the proportion of dominated final incumbents."""
+        import matplotlib.pyplot as plt
         dic = self.load()
         try:
             n_runs = len(dic["completed_runs"])
@@ -362,6 +362,7 @@ class COMOPlot:
         """
         Plot the number of iterations per restart and the condition number.
         """
+        import matplotlib.pyplot as plt
         dic = self.load()
         try:
             n_runs = len(dic["completed_runs"])
@@ -390,6 +391,7 @@ class COMOPlot:
 
     def plot_convergence_speed(self):
         """Plot the convergence speed."""
+        import matplotlib.pyplot as plt
         dic = self.load()
         if self.offset is None:
             offset = dic["hv_archive"][-1]
@@ -409,6 +411,7 @@ class COMOPlot:
 
     def plot_archive(self):
         """Plot the archive."""
+        import matplotlib.pyplot as plt
         dic = self.load()
         non_dominated_kernels = [v for v in dic["objective_values"][-1]
                                  if v in dic["last_archive"]]
@@ -436,6 +439,7 @@ class COMOPlot:
 
     def plot_hvi(self):
         """Plot information regarding hypervolume improvement."""
+        import matplotlib.pyplot as plt
         dic = self.load()
         try:
             n_runs = len(dic["completed_runs"])
@@ -480,6 +484,7 @@ class COMOPlot:
         Plot the first, the last, the minimum and the maximum stepsizes of all completed runs, plus 
         the initial stepsize of the last run.
         """
+        import matplotlib.pyplot as plt
         dic = self.load()
 
         try:
@@ -511,6 +516,7 @@ class COMOPlot:
         * correct the bug where there is only one tick if the span is too little, making the plot
         unreadable 
         """
+        import matplotlib.pyplot as plt
         dic = self.load()
 
         try:

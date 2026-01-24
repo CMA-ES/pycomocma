@@ -5,7 +5,7 @@ import numpy as np
 import cma
 from cma import interfaces
 import os
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt  # don't require matplotlib in tests
 import ast
 import warnings
 
@@ -465,6 +465,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
     def plot_front(self, aspect=None):
         """
         """
+        from matplotlib import pyplot as plt
         if aspect is not None:
             myaxes = plt.gca()
             try:
