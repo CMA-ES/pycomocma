@@ -1,0 +1,93 @@
+# see also
+#   https://packaging.python.org/en/latest/guides/modernize-setup-py-project/
+#   https://xebia.com/blog/an-updated-guide-to-setuptools-and-pyproject-toml/
+#   https://alpopkes.com/posts/python/packaging_tools/
+#   https://dev.to/adamghill/python-package-manager-comparison-1g98
+# 
+
+[build-system]
+requires = [
+    "setuptools >=79",
+    # "setuptools-scm",   # if we want to use git versions for versioning
+    "wheel",  # setuptools doesn't need wheel anymore, see https://pypi.org/project/wheel/
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comocma"
+description = "COMO-CMA-ES is the multiobjective Sofomore framework instantiated with the single-objective solver CMA-ES"
+authors = [
+    {name = "Cheikh Toure"},
+    {name = "Nikolaus Hansen"},
+    {name = "Eugenie Marescaux"},
+]
+dependencies = [
+    "numpy",
+    "cma>=3",
+    "moarchiving"
+]
+dynamic = ["version",  # see tool.setuptools.dynamic below
+           # "readme",
+          ]
+readme = "readme.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+
+keywords = [
+    "optimization",
+    "COMO-CMA-ES",
+    "Sofomore",
+    "multi-objective",
+    "CMA-ES",
+    "cmaes",
+    "evolution strategy"
+    ]
+maintainers = [
+    {name = "Nikolaus Hansen", email = "authors_firstname.lastname@inria.fr"},
+]
+classifiers = [
+    "Environment :: Console",
+    "Framework :: IPython",
+    "Framework :: Jupyter",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "Intended Audience :: Other Audience",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+]
+
+[tool.setuptools]
+# packages = ["cma", "cma.utilities"]  # fails when they are in an src/ folder
+include-package-data = false  # true is default, false doesn't change anything
+
+[tool.setuptools.packages.find]  # for where=. works only in a clean folder
+# where = ["src"]  # this doesn't work, it always takes the root too?
+include = ["comocma*"]
+exclude = ["comocma.*", "comocma-*"]
+
+# namespaces = false
+
+[project.optional-dependencies]
+plotting = ["matplotlib"]
+constrained-solution-tracking = ["moarchiving"]
+
+[project.urls]
+Homepage = "https://github.com/CMA-ES/pycma"
+# Documentation = ""  # API / notebooks / practical hints
+Repository = "https://github.com/CMA-ES/pycma.git"
+"Bug Tracker" = "https://github.com/CMA-ES/pycma/issues"
+
+[tool.setuptools.dynamic]
+version = {attr = "comocma.como.__version__"}  # any module attribute compatible with ast.literal_eval
+
+# readme = {file = ["README.txt"]}
+# In the dynamic table, the attr directive [3] will read an attribute from the given module [4], while file will read the contents of all given files and concatenate them in a single string.
+
+[tool.ruff.lint]
+ignore = ['F401', 'E402', 'E701', 'E722', ]
+# select = ["NPY201"]
