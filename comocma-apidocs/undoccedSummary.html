@@ -2,33 +2,166 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
           "DTD/xhtml1-strict.dtd">
 <html>
+  
+  
   <head>
+    
     <title>Summary of Undocumented Objects</title>
-    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
-    <link type="text/css" href="bootstrap.min.css" rel="stylesheet" />
-    <link type="text/css" href="apidocs.css" rel="stylesheet" />
-  </head>
-  <body>
-    <nav class="navbar navbar-default">
-      <div class="container">
+    <meta name="generator" content="pydoctor 23.9.1"> 
+        
+    </meta>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1 maximum-scale=1" />
+    <link rel="stylesheet" type="text/css" href="bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="apidocs.css" />
+    <link rel="stylesheet" type="text/css" href="extra.css" />
+</head>
 
-        <div class="navbar-header">
-          <a href="index.html" class="navbar-brand">
-            comocma API Documentation
-          </a>
+  <body>
+
+    
+
+    <nav class="navbar navbar-default mainnavbar">
+      
+  
+  <div class="container-fluid">
+
+
+    <div class="navbar-header">
+      
+      <div class="navlinks">
+        <span class="navbar-brand">
+          comocma <a href="index.html">API Documentation</a>
+        </span>
+
+        <a href="moduleIndex.html">
+          Modules
+        </a>
+
+        <a href="classIndex.html">
+          Classes
+        </a>
+
+        <a href="nameIndex.html">
+          Names
+        </a>
+
+        <div id="search-box-container">
+          <div class="input-group">
+            <input id="search-box" type="search" name="search-query" placeholder="Search..." aria-label="Search" minlength="2" class="form-control" autocomplete="off" />
+            
+            <span class="input-group-btn">
+              <a style="display: none;" class="btn btn-default" id="search-clear-button" title="Clear" onclick="clearSearch()"><img src="fonts/x-circle.svg" alt="Clear" /></a>
+              <a class="btn btn-default" id="search-help-button" title="Help" onclick="toggleSearchHelpText()"><img src="fonts/info.svg" alt="Help" /></a>
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      <div id="search-results-container" style="display: none;">
+        
+        <div id="search-buttons">
+          <span class="label label-default" id="search-docstrings-button">
+          <label class="checkbox-inline">
+            <input type="checkbox" id="toggle-search-in-docstrings-checkbox" value="false" onclick="toggleSearchInDocstrings()">
+              search in docstrings
+            </input>
+          </label>
+          </span>
+          
+        </div>
+        
+        <noscript>
+            <h1>Cannot search: JavaScript is not supported/enabled in your browser.</h1>
+        </noscript>
+
+        <div class="hint" id="search-help-box">
+          <p class="rst-last">
+      
+            Search bar offers the following options:
+            <ul>   
+                <li>
+                  <strong>Term presence.</strong> The below example searches for documents that 
+                    must contain “foo”, might contain “bar” and must not contain “baz”: <code>+foo bar -baz</code>
+                </li> 
+
+                <li>
+                  <strong>Wildcards.</strong> The below example searches for documents with words beginning with “foo”: <code>foo*</code>
+                </li> 
+
+                <li>
+                  <strong>Search in specific fields.</strong> The following search matches all objects 
+                  in "twisted.mail" that matches “search”: <code>+qname:twisted.mail.* +search</code>
+
+                  <p>
+                    Possible fields: 'name', 'qname' (fully qualified name), 'docstring', and 'kind'.
+                    Last two fields are only applicable if "search in docstrings" is enabled.
+                  </p>
+                </li>
+
+                <li>
+                  <strong>Fuzzy matches.</strong> The following search matches all documents 
+                  that have a word within 1 edit distance of “foo”: <code>foo~1</code>
+                </li>
+            </ul>
+
+          </p>
+        </div>
+
+        <div id="search-status"> </div>
+
+        <div class="warning" id="search-warn-box" style="display: none;">
+          <p class="rst-last"><span id="search-warn"></span></p>
+        </div>
+
+        <table id="search-results">
+          <!-- Filled dynamically by JS -->
+        </table>
+        
+        <div style="margin-top: 8px;">
+          <p>Results provided by <a href="https://lunrjs.com">Lunr.js</a></p>
         </div>
       </div>
-    </nav>
 
-    <div class="container">
+    </div>
+
+
+  </div>
+</nav>
+
+    <div class="container-fluid">
 
       <div class="page-header">
         <h1>Summary of Undocumented Objects</h1>
+        <div id="showPrivate">
+          <button class="btn btn-link" onclick="togglePrivate()">Toggle Private API</button>
+        </div>
       </div>
 
-      <ul>
-      <li>Module - <a href="comocma.__main__.html" data-type="Module" class="code">comocma.__main__</a></li><li>Method - <a href="comocma.como.FitFun.html#__call__" data-type="Method" class="code">comocma.como.FitFun.__call__</a></li><li>Method - <a href="comocma.como.FitFun.html#__init__" data-type="Method" class="code">comocma.como.FitFun.__init__</a></li><li>Method - <a href="comocma.como.IndicatorFront.html#hypervolume_improvement" data-type="Method" class="code">comocma.como.IndicatorFront.hypervolume_improvement</a></li><li>Module - <a href="comocma.hv.html" data-type="Module" class="code">comocma.hv</a></li><li>Class - <a href="comocma.hv.MultiList.Node.html" data-type="Class" class="code">comocma.hv.MultiList.Node</a></li><li>Method - <a href="comocma.hv.MultiList.Node.html#__init__" data-type="Method" class="code">comocma.hv.MultiList.Node.__init__</a></li><li>Method - <a href="comocma.hv.MultiList.Node.html#__str__" data-type="Method" class="code">comocma.hv.MultiList.Node.__str__</a></li><li>Method - <a href="comocma.hv.MultiList.html#__str__" data-type="Method" class="code">comocma.hv.MultiList.__str__</a></li><li>Method - <a href="comocma.nondominatedarchive.NonDominatedList.html#_projection" data-type="Method" class="code">comocma.nondominatedarchive.NonDominatedList._projection</a></li><li>Static Method - <a href="comocma.nondominatedarchive.NonDominatedList.html#_random_archive" data-type="Static Method" class="code">comocma.nondominatedarchive.NonDominatedList._random_archive</a></li><li>Static Method - <a href="comocma.nondominatedarchive.NonDominatedList.html#_random_archive_many" data-type="Static Method" class="code">comocma.nondominatedarchive.NonDominatedList._random_archive_many</a></li><li>Module - <a href="comocma.sofomore_logger.html" data-type="Module" class="code">comocma.sofomore_logger</a></li><li>Method - <a href="comocma.sofomore_logger.SofomoreDataLogger.html#_finalize_plotting" data-type="Method" class="code">comocma.sofomore_logger.SofomoreDataLogger._finalize_plotting</a></li><li>Method - <a href="comocma.sofomore_logger.SofomoreDataLogger.html#_xlabel" data-type="Method" class="code">comocma.sofomore_logger.SofomoreDataLogger._xlabel</a></li></ul>
+      <ul id="summaryTree">
+      <li>Module - <code><a href="comocma.__main__.html" class="internal-link">comocma.__main__</a></code></li><li>Instance Variable - <code><a href="comocma.como.CmaKernel.html#_last_offspring_f_values" class="internal-link">comocma.como.CmaKernel._last_offspring_f_values</a></code></li><li>Instance Variable - <code><a href="comocma.como.CmaKernel.html#_last_offspring_neg_UHVI_values" class="internal-link">comocma.como.CmaKernel._last_offspring_neg_UHVI_values</a></code></li><li>Instance Variable - <code><a href="comocma.como.CmaKernel.html#objective_values" class="internal-link">comocma.como.CmaKernel.objective_values</a></code></li><li>Method - <code><a href="comocma.como.FitFun.html#__call__" class="internal-link">comocma.como.FitFun.__call__</a></code></li><li>Method - <code><a href="comocma.como.FitFun.html#__init__" class="internal-link">comocma.como.FitFun.__init__</a></code></li><li>Instance Variable - <code><a href="comocma.como.FitFun.html#callables" class="internal-link">comocma.como.FitFun.callables</a></code></li><li>Method - <code><a href="comocma.como.GetKernelPopsizeIncrementer.html#__init__" class="internal-link">comocma.como.GetKernelPopsizeIncrementer.__init__</a></code></li><li>Instance Variable - <code><a href="comocma.como.GetKernelPopsizeIncrementer.html#get_kernel" class="internal-link">comocma.como.GetKernelPopsizeIncrementer.get_kernel</a></code></li><li>Instance Variable - <code><a href="comocma.como.GetKernelPopsizeIncrementer.html#opts" class="internal-link">comocma.como.GetKernelPopsizeIncrementer.opts</a></code></li><li>Instance Variable - <code><a href="comocma.como.GetKernelPopsizeIncrementer.html#popsize_increment" class="internal-link">comocma.como.GetKernelPopsizeIncrementer.popsize_increment</a></code></li><li>Instance Variable - <code><a href="comocma.como.IndicatorFront.html#NDA" class="internal-link">comocma.como.IndicatorFront.NDA</a></code></li><li>Instance Variable - <code><a href="comocma.como.IndicatorFront.html#front" class="internal-link">comocma.como.IndicatorFront.front</a></code></li><li>Method - <code><a href="comocma.como.IndicatorFront.html#hypervolume_improvement" class="internal-link">comocma.como.IndicatorFront.hypervolume_improvement</a></code></li><li>Instance Variable - <code><a href="comocma.como.IndicatorFront.html#kernel" class="internal-link">comocma.como.IndicatorFront.kernel</a></code></li><li>Instance Variable - <code><a href="comocma.como.IndicatorFront.html#list_attribute" class="internal-link">comocma.como.IndicatorFront.list_attribute</a></code></li><li>Method - <code><a href="comocma.como.RampUpSelector.html#__init__" class="internal-link">comocma.como.RampUpSelector.__init__</a></code></li><li>Instance Variable - <code><a href="comocma.como.RampUpSelector.html#costs" class="internal-link">comocma.como.RampUpSelector.costs</a></code></li><li>Instance Variable - <code><a href="comocma.como.RampUpSelector.html#counts" class="internal-link">comocma.como.RampUpSelector.counts</a></code></li><li>Instance Variable - <code><a href="comocma.como.RampUpSelector.html#rampup_methods" class="internal-link">comocma.como.RampUpSelector.rampup_methods</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#NDA" class="internal-link">comocma.como.Sofomore.NDA</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#_active_indices" class="internal-link">comocma.como.Sofomore._active_indices</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#_last_stopped_kernel_id" class="internal-link">comocma.como.Sofomore._last_stopped_kernel_id</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#_ratio_nondom_offspring_incumbent" class="internal-link">comocma.como.Sofomore._ratio_nondom_offspring_incumbent</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#_remaining_indices_to_ask" class="internal-link">comocma.como.Sofomore._remaining_indices_to_ask</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#_told_indices" class="internal-link">comocma.como.Sofomore._told_indices</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#archive" class="internal-link">comocma.como.Sofomore.archive</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#best_hypervolume_pareto_front" class="internal-link">comocma.como.Sofomore.best_hypervolume_pareto_front</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#count_kernel_updates" class="internal-link">comocma.como.Sofomore.count_kernel_updates</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#countevals" class="internal-link">comocma.como.Sofomore.countevals</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#countiter" class="internal-link">comocma.como.Sofomore.countiter</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#dimension" class="internal-link">comocma.como.Sofomore.dimension</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#epsilon_hypervolume_pareto_front" class="internal-link">comocma.como.Sofomore.epsilon_hypervolume_pareto_front</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#has_been_called" class="internal-link">comocma.como.Sofomore.has_been_called</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#indicator_front" class="internal-link">comocma.como.Sofomore.indicator_front</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#isarchive" class="internal-link">comocma.como.Sofomore.isarchive</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#kernels" class="internal-link">comocma.como.Sofomore.kernels</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#key_sort_indices" class="internal-link">comocma.como.Sofomore.key_sort_indices</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#logger" class="internal-link">comocma.como.Sofomore.logger</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#offspring" class="internal-link">comocma.como.Sofomore.offspring</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#opts" class="internal-link">comocma.como.Sofomore.opts</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#reference_point" class="internal-link">comocma.como.Sofomore.reference_point</a></code></li><li>Instance Variable - <code><a href="comocma.como.Sofomore.html#restart" class="internal-link">comocma.como.Sofomore.restart</a></code></li><li>Method - <code><a href="comocma.como._CounterDict.html#__init__" class="internal-link">comocma.como._CounterDict.__init__</a></code></li><li>Method - <code><a href="comocma.como._CounterDict.html#argmin" class="internal-link">comocma.como._CounterDict.argmin</a></code></li><li>Variable - <code><a href="comocma.como.html#__author__" class="internal-link">comocma.como.__author__</a></code></li><li>Variable - <code><a href="comocma.como.html#__license__" class="internal-link">comocma.como.__license__</a></code></li><li>Variable - <code><a href="comocma.como.html#__version__" class="internal-link">comocma.como.__version__</a></code></li><li>Variable - <code><a href="comocma.como.html#cma_kernel_default_options_replacements" class="internal-link">comocma.como.cma_kernel_default_options_replacements</a></code></li><li>Instance Variable - <code><a href="comocma.como_logger.COMOPlot.html#NDA" class="internal-link">comocma.como_logger.COMOPlot.NDA</a></code></li><li>Instance Variable - <code><a href="comocma.como_logger.COMOPlot.html#_data" class="internal-link">comocma.como_logger.COMOPlot._data</a></code></li><li>Instance Variable - <code><a href="comocma.como_logger.COMOPlot.html#data" class="internal-link">comocma.como_logger.COMOPlot.data</a></code></li><li>Instance Variable - <code><a href="comocma.como_logger.COMOPlot.html#dir" class="internal-link">comocma.como_logger.COMOPlot.dir</a></code></li><li>Instance Variable - <code><a href="comocma.como_logger.COMOPlot.html#num_calls" class="internal-link">comocma.como_logger.COMOPlot.num_calls</a></code></li><li>Instance Variable - <code><a href="comocma.como_logger.COMOPlot.html#num_data" class="internal-link">comocma.como_logger.COMOPlot.num_data</a></code></li><li>Instance Variable - <code><a href="comocma.como_logger.COMOPlot.html#num_objs" class="internal-link">comocma.como_logger.COMOPlot.num_objs</a></code></li><li>Instance Variable - <code><a href="comocma.como_logger.COMOPlot.html#offset" class="internal-link">comocma.como_logger.COMOPlot.offset</a></code></li><li>Instance Variable - <code><a href="comocma.como_logger.COMOPlot.html#reference_point" class="internal-link">comocma.como_logger.COMOPlot.reference_point</a></code></li><li>Instance Variable - <code><a href="comocma.como_logger.COMOPlot.html#storing_funs" class="internal-link">comocma.como_logger.COMOPlot.storing_funs</a></code></li><li>Module - <code><a href="comocma.hv.html" class="internal-link">comocma.hv</a></code></li><li>Instance Variable - <code><a href="comocma.hv.HyperVolume.html#list" class="internal-link">comocma.hv.HyperVolume.list</a></code></li><li>Instance Variable - <code><a href="comocma.hv.HyperVolume.html#referencePoint" class="internal-link">comocma.hv.HyperVolume.referencePoint</a></code></li><li>Class - <code><a href="comocma.hv.MultiList.Node.html" class="internal-link">comocma.hv.MultiList.Node</a></code></li><li>Method - <code><a href="comocma.hv.MultiList.Node.html#__init__" class="internal-link">comocma.hv.MultiList.Node.__init__</a></code></li><li>Method - <code><a href="comocma.hv.MultiList.Node.html#__str__" class="internal-link">comocma.hv.MultiList.Node.__str__</a></code></li><li>Instance Variable - <code><a href="comocma.hv.MultiList.Node.html#area" class="internal-link">comocma.hv.MultiList.Node.area</a></code></li><li>Instance Variable - <code><a href="comocma.hv.MultiList.Node.html#cargo" class="internal-link">comocma.hv.MultiList.Node.cargo</a></code></li><li>Instance Variable - <code><a href="comocma.hv.MultiList.Node.html#ignore" class="internal-link">comocma.hv.MultiList.Node.ignore</a></code></li><li>Instance Variable - <code><a href="comocma.hv.MultiList.Node.html#next" class="internal-link">comocma.hv.MultiList.Node.next</a></code></li><li>Instance Variable - <code><a href="comocma.hv.MultiList.Node.html#prev" class="internal-link">comocma.hv.MultiList.Node.prev</a></code></li><li>Instance Variable - <code><a href="comocma.hv.MultiList.Node.html#volume" class="internal-link">comocma.hv.MultiList.Node.volume</a></code></li><li>Method - <code><a href="comocma.hv.MultiList.html#__str__" class="internal-link">comocma.hv.MultiList.__str__</a></code></li><li>Instance Variable - <code><a href="comocma.hv.MultiList.html#numberLists" class="internal-link">comocma.hv.MultiList.numberLists</a></code></li><li>Instance Variable - <code><a href="comocma.hv.MultiList.html#sentinel" class="internal-link">comocma.hv.MultiList.sentinel</a></code></li><li>Variable - <code><a href="comocma.hv.html#__author__" class="internal-link">comocma.hv.__author__</a></code></li><li>Instance Variable - <code><a href="comocma.nondominatedarchive.NonDominatedList.html#_hypervolume" class="internal-link">comocma.nondominatedarchive.NonDominatedList._hypervolume</a></code></li><li>Instance Variable - <code><a href="comocma.nondominatedarchive.NonDominatedList.html#_kink_points" class="internal-link">comocma.nondominatedarchive.NonDominatedList._kink_points</a></code></li><li>Method - <code><a href="comocma.nondominatedarchive.NonDominatedList.html#_projection" class="internal-link">comocma.nondominatedarchive.NonDominatedList._projection</a></code></li><li>Static Method - <code><a href="comocma.nondominatedarchive.NonDominatedList.html#_random_archive" class="internal-link">comocma.nondominatedarchive.NonDominatedList._random_archive</a></code></li><li>Static Method - <code><a href="comocma.nondominatedarchive.NonDominatedList.html#_random_archive_many" class="internal-link">comocma.nondominatedarchive.NonDominatedList._random_archive_many</a></code></li><li>Instance Variable - <code><a href="comocma.nondominatedarchive.NonDominatedList.html#reference_point" class="internal-link">comocma.nondominatedarchive.NonDominatedList.reference_point</a></code></li><li>Module - <code><a href="comocma.sofomore_logger.html" class="internal-link">comocma.sofomore_logger</a></code></li><li>Method - <code><a href="comocma.sofomore_logger.SofomoreDataLogger.html#_finalize_plotting" class="internal-link">comocma.sofomore_logger.SofomoreDataLogger._finalize_plotting</a></code></li><li>Method - <code><a href="comocma.sofomore_logger.SofomoreDataLogger.html#_xlabel" class="internal-link">comocma.sofomore_logger.SofomoreDataLogger._xlabel</a></code></li><li>Class Variable - <code><a href="comocma.sofomore_logger.SofomoreDataLogger.html#default_prefix" class="internal-link">comocma.sofomore_logger.SofomoreDataLogger.default_prefix</a></code></li><li>Instance Variable - <code><a href="comocma.sofomore_logger.SofomoreDataLogger.html#es" class="internal-link">comocma.sofomore_logger.SofomoreDataLogger.es</a></code></li><li>Instance Variable - <code><a href="comocma.sofomore_logger.SofomoreDataLogger.html#file_names" class="internal-link">comocma.sofomore_logger.SofomoreDataLogger.file_names</a></code></li><li>Instance Variable - <code><a href="comocma.sofomore_logger.SofomoreDataLogger.html#last_iteration" class="internal-link">comocma.sofomore_logger.SofomoreDataLogger.last_iteration</a></code></li><li>Instance Variable - <code><a href="comocma.sofomore_logger.SofomoreDataLogger.html#name_prefix" class="internal-link">comocma.sofomore_logger.SofomoreDataLogger.name_prefix</a></code></li><li>Instance Variable - <code><a href="comocma.sofomore_logger.SofomoreDataLogger.html#original_fontsize" class="internal-link">comocma.sofomore_logger.SofomoreDataLogger.original_fontsize</a></code></li><li>Instance Variable - <code><a href="comocma.sofomore_logger.SofomoreDataLogger.html#persistent_communication_dict" class="internal-link">comocma.sofomore_logger.SofomoreDataLogger.persistent_communication_dict</a></code></li><li>Instance Variable - <code><a href="comocma.sofomore_logger.SofomoreDataLogger.html#registered" class="internal-link">comocma.sofomore_logger.SofomoreDataLogger.registered</a></code></li><li>Function - <code><a href="comocma.sofomore_logger.html#_ifloat" class="internal-link">comocma.sofomore_logger._ifloat</a></code></li><li>Function - <code><a href="comocma.test.html#main" class="internal-link">comocma.test.main</a></code></li></ul>
 
     </div>
+
+    <footer class="navbar navbar-default">
+
+  
+  <div class="container">
+    <a href="index.html">API Documentation</a> for comocma,
+  generated by <a href="https://github.com/twisted/pydoctor/">pydoctor</a>
+    23.9.1 at 2026-01-24 21:18:39.
+  </div>
+
+  <!-- Search related scripts needs to be loaded at the end of HTML 
+    parsing not to introduce overhead and display HTML data asap -->
+  <script src="ajax.js" type="text/javascript"></script>
+  <script src="searchlib.js" type="text/javascript"></script>
+  <script src="search.js" type="text/javascript"></script>
+
+</footer>
+
+    <script src="pydoctor.js" type="text/javascript"></script>
+
   </body>
 </html>

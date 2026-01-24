@@ -2,54 +2,529 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
           "DTD/xhtml1-strict.dtd">
 <html>
-  <head>
-    <title>comocma.sofomore_logger.SofomoreDataLogger : API documentation</title>
+  
 
-    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
-    <link type="text/css" href="bootstrap.min.css" rel="stylesheet" />
-    <link type="text/css" href="apidocs.css" rel="stylesheet" />
-  </head>
+  <head>
+    
+    <title>comocma.sofomore_logger.SofomoreDataLogger</title>
+    <meta name="generator" content="pydoctor 23.9.1"> 
+        
+    </meta>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1 maximum-scale=1" />
+    <link rel="stylesheet" type="text/css" href="bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="apidocs.css" />
+    <link rel="stylesheet" type="text/css" href="extra.css" />
+</head>
+
   <body>
 
-    <nav class="navbar navbar-default">
-      <div class="container">
-        <div class="navbar-header">
-          <a href="index.html" class="navbar-brand">
-            comocma API Documentation
-          </a>
+    
+
+    <nav class="navbar navbar-default mainnavbar">
+      
+  
+  <div class="container-fluid">
+
+
+    <div class="navbar-header">
+      
+      <div class="navlinks">
+        <span class="navbar-brand">
+          comocma <a href="index.html">API Documentation</a>
+        </span>
+
+        <a href="moduleIndex.html">
+          Modules
+        </a>
+
+        <a href="classIndex.html">
+          Classes
+        </a>
+
+        <a href="nameIndex.html">
+          Names
+        </a>
+
+        <div id="search-box-container">
+          <div class="input-group">
+            <input id="search-box" type="search" name="search-query" placeholder="Search..." aria-label="Search" minlength="2" class="form-control" autocomplete="off" />
+            
+            <span class="input-group-btn">
+              <a style="display: none;" class="btn btn-default" id="search-clear-button" title="Clear" onclick="clearSearch()"><img src="fonts/x-circle.svg" alt="Clear" /></a>
+              <a class="btn btn-default" id="search-help-button" title="Help" onclick="toggleSearchHelpText()"><img src="fonts/info.svg" alt="Help" /></a>
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      <div id="search-results-container" style="display: none;">
+        
+        <div id="search-buttons">
+          <span class="label label-default" id="search-docstrings-button">
+          <label class="checkbox-inline">
+            <input type="checkbox" id="toggle-search-in-docstrings-checkbox" value="false" onclick="toggleSearchInDocstrings()">
+              search in docstrings
+            </input>
+          </label>
+          </span>
+          
+        </div>
+        
+        <noscript>
+            <h1>Cannot search: JavaScript is not supported/enabled in your browser.</h1>
+        </noscript>
+
+        <div class="hint" id="search-help-box">
+          <p class="rst-last">
+      
+            Search bar offers the following options:
+            <ul>   
+                <li>
+                  <strong>Term presence.</strong> The below example searches for documents that 
+                    must contain “foo”, might contain “bar” and must not contain “baz”: <code>+foo bar -baz</code>
+                </li> 
+
+                <li>
+                  <strong>Wildcards.</strong> The below example searches for documents with words beginning with “foo”: <code>foo*</code>
+                </li> 
+
+                <li>
+                  <strong>Search in specific fields.</strong> The following search matches all objects 
+                  in "twisted.mail" that matches “search”: <code>+qname:twisted.mail.* +search</code>
+
+                  <p>
+                    Possible fields: 'name', 'qname' (fully qualified name), 'docstring', and 'kind'.
+                    Last two fields are only applicable if "search in docstrings" is enabled.
+                  </p>
+                </li>
+
+                <li>
+                  <strong>Fuzzy matches.</strong> The following search matches all documents 
+                  that have a word within 1 edit distance of “foo”: <code>foo~1</code>
+                </li>
+            </ul>
+
+          </p>
+        </div>
+
+        <div id="search-status"> </div>
+
+        <div class="warning" id="search-warn-box" style="display: none;">
+          <p class="rst-last"><span id="search-warn"></span></p>
+        </div>
+
+        <table id="search-results">
+          <!-- Filled dynamically by JS -->
+        </table>
+        
+        <div style="margin-top: 8px;">
+          <p>Results provided by <a href="https://lunrjs.com">Lunr.js</a></p>
         </div>
       </div>
-    </nav>
 
-    <div id="showPrivate">
-      <button onclick="togglePrivate()" class="btn btn-link">Toggle Private API</button>
     </div>
 
-    <div class="container">
 
-      <div class="page-header">
-        <h1 class="class"><code>comocma.sofomore_logger.SofomoreDataLogger(<span title="cma.interfaces.BaseDataLogger">interfaces.BaseDataLogger</span>)</code> <small>class documentation</small></h1>
+  </div>
+</nav>
+    
+    <div class="container-fluid">
 
-        <span id="partOf">
-          Part of <code><a href="comocma.html" data-type="Package" class="code">comocma</a>.<a href="comocma.sofomore_logger.html" data-type="Module" class="code">sofomore_logger</a></code>
-          
-          <a href="classIndex.html#comocma.sofomore_logger.SofomoreDataLogger">(View In Hierarchy)</a>
-        </span>
+      <!-- Side navigation -->
+      <div class="sidebarcontainer" style="display: none;">
+        
+        <div class="sidebar"><nav class="sidebar">
+  
+
+  <div>
+
+      <div class="thingTitle">
+        <span>Class</span>
+        <code class="thisobject"><a href="comocma.sofomore_logger.SofomoreDataLogger.html" class="internal-link" title="This class"><wbr></wbr>Sofomore<wbr></wbr>Data<wbr></wbr>Logger</a></code> 
       </div>
+      
+      <div>
+         
+          <div class="childrenKindTitle">Contents</div>
+          <ul><li><a class="rst-reference internal" href="#rst-examples" id="rst-toc-entry-1">Examples</a></li>
+<li><a class="rst-reference internal" href="#rst-details" id="rst-toc-entry-2">Details</a></li>
+</ul>
+        
 
-      <div class="extrasDocstring">
+        
+         
+
+        
+        
+
+        <div class="childrenKindTitle">Methods</div>
+        <ul>
+    
+    <li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#__init__" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.__init__">__init__</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#add" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.add">add</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#initialize" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.initialize">initialize</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#load" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.load">load</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#plot" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.plot">plot</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#plot_divers" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.plot_divers">plot<wbr></wbr>_divers</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#plot_front" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.plot_front">plot<wbr></wbr>_front</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#plot_ratios" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.plot_ratios">plot<wbr></wbr>_ratios</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#plot_stds" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.plot_stds">plot<wbr></wbr>_stds</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#register" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.register">register</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#_enter_plotting" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger._enter_plotting">_enter<wbr></wbr>_plotting</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#_finalize_plotting" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger._finalize_plotting">_finalize<wbr></wbr>_plotting</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#_xlabel" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger._xlabel">_xlabel</a></code>
+            </div>
+        
+
+    </li>
+</ul> 
+
+        
+         
+
+        <div class="childrenKindTitle">Attributes</div>
+        <ul>
+    
+    <li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#default_prefix" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.default_prefix">default<wbr></wbr>_prefix</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#append" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.append">append</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#counter" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.counter">counter</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#es" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.es">es</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#file_names" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.file_names">file<wbr></wbr>_names</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#last_iteration" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.last_iteration">last<wbr></wbr>_iteration</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#modulo" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.modulo">modulo</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#name_prefix" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.name_prefix">name<wbr></wbr>_prefix</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#original_fontsize" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.original_fontsize">original<wbr></wbr>_fontsize</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#persistent_communication_dict" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.persistent_communication_dict">persistent<wbr></wbr>_communication<wbr></wbr>_dict</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#registered" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.registered">registered</a></code>
+            </div>
+        
+
+    </li>
+</ul> 
+
+        
+         
         
       </div>
+  </div><div>
 
-      <div class="moduleDocstring">
-        <div><p>data logger for class <code>CMAEvolutionStrategy</code>.</p>
+      <div class="thingTitle">
+        <span>Module</span>
+        <code><a href="comocma.sofomore_logger.html" class="internal-link" title="The parent of this class">sofomore<wbr></wbr>_logger</a></code> 
+      </div>
+      
+      <div>
+        
+
+        
+         
+
+        <div class="childrenKindTitle">Classes</div>
+        <ul>
+    
+    <li class=" thisobject">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="comocma.sofomore_logger.SofomoreDataLogger.html" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger"><wbr></wbr>Sofomore<wbr></wbr>Data<wbr></wbr>Logger</a></code>
+            </div>
+        
+
+    </li>
+</ul>
+
+        <div class="childrenKindTitle">Functions</div>
+        <ul>
+    
+    <li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="comocma.sofomore_logger.html#str_" class="internal-link" title="comocma.sofomore_logger.str_">str_</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="comocma.sofomore_logger.html#_ifloat" class="internal-link" title="comocma.sofomore_logger._ifloat">_ifloat</a></code>
+            </div>
+        
+
+    </li>
+</ul> 
+
+        
+         
+
+        
+         
+
+        
+         
+        
+      </div>
+  </div>
+
+</nav>
+        </div>
+        <div id="collapseSideBar">
+          <a class="btn btn-link" onclick="toggleSideBarCollapse()" title="Toggle Sidebar Collapse">
+          </a>
+        </div> 
+        <script src="sidebartoggle.js" type="text/javascript"></script>
+       
+      </div>
+
+      <div id="main" class="">
+        
+
+        
+
+        <div class="page-header">
+          <h1 class="class"><code><code><a href="index.html" class="internal-link">comocma</a></code><wbr></wbr>.<code><a href="comocma.sofomore_logger.html" class="internal-link" title="comocma.sofomore_logger">sofomore_logger</a></code><wbr></wbr>.<code><a href="comocma.sofomore_logger.SofomoreDataLogger.html" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger">SofomoreDataLogger</a></code></code></h1>
+          <div id="showPrivate">
+            <button class="btn btn-link" onclick="togglePrivate()">Toggle Private API</button>
+          </div>
+        </div>
+
+        <div class="categoryHeader">
+          class documentation
+        </div>
+
+        <div class="extrasDocstring">
+          <p class="class-signature"><code><span class="py-keyword">class</span> <span class="py-defname">SofomoreDataLogger</span>(interfaces.BaseDataLogger):</code></p><p>Constructor: <code><a href="#__init__" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.__init__">SofomoreDataLogger(name_prefix, modulo, append)</a></code></p>
+          <p><a href="classIndex.html#comocma.sofomore_logger.SofomoreDataLogger">View In Hierarchy</a></p>
+        </div>
+
+        <div class="moduleDocstring">
+          <div><p>data logger for class <code>CMAEvolutionStrategy</code>.</p>
 <p>The logger is identified by its name prefix and (over-)writes or
 reads according data files. Therefore, the logger must be
 considered as <em>global</em> variable with unpredictable side effects,
 if two loggers with the same name and on the same working folder
 are used at the same time.</p>
 <div class="rst-section" id="rst-examples">
-<h1 class="heading">Examples</h1>
+<h2 class="heading">Examples</h2>
 <pre class="rst-literal-block">
 import cma
 es = cma.CMAEvolutionStrategy(...)
@@ -75,92 +550,149 @@ cma.s.figshow()
 </pre>
 </div>
 <div class="rst-section" id="rst-details">
-<h1 class="heading">Details</h1>
+<h2 class="heading">Details</h2>
 <p>After loading data, the logger has the attributes <code>xmean</code>, <code>xrecent</code>,
 <code>std</code>, <code>f</code>, <code>D</code> and <code>corrspec</code> corresponding to <tt class="rst-docutils literal">xmean</tt>,
 <tt class="rst-docutils literal">xrecentbest</tt>, <tt class="rst-docutils literal">stddev</tt>, <tt class="rst-docutils literal">fit</tt>, <tt class="rst-docutils literal">axlen</tt> and <tt class="rst-docutils literal">axlencorr</tt>
 filename trails.</p>
-</div><table class="fieldTable"><tr class="fieldStart"><td class="fieldName">See Also</td><td colspan="2"><code>disp</code> (), <a href="comocma.sofomore_logger.SofomoreDataLogger.html#plot"><code>plot</code></a> ()</td></tr></table></div>
-      </div>
+</div>
+<table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">See Also</td></tr><tr><td colspan="2"><code>disp</code> (), <code><a href="#plot" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.plot">plot</a></code> ()</td></tr></table></div>
+        </div>
 
-      <div id="splitTables">
-        <table class="children sortable" id="id14">
+        <div id="splitTables">
+          <table class="children sortable" id="id21">
+  
   
   <tr class="method">
     
     <td>Method</td>
-    <td><a href="comocma.sofomore_logger.SofomoreDataLogger.html#__init__" data-type="Method" class="code">__init__</a></td>
-    <td><span>initialize logging of data from a <code>CMAEvolutionStrategy</code> instance, default <tt class="rst-docutils literal">modulo=1</tt> means logging with each call</span></td>
+    <td><code><a href="#__init__" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.__init__">__init__</a></code></td>
+    <td>initialize logging of data from a <code>CMAEvolutionStrategy</code> instance, default <tt class="rst-docutils literal">modulo=1</tt> means logging with each call</td>
   </tr><tr class="method">
     
     <td>Method</td>
-    <td><a href="comocma.sofomore_logger.SofomoreDataLogger.html#register" data-type="Method" class="code">register</a></td>
-    <td><span>register a <a href="comocma.como.Sofomore.html"><code>Sofomore</code></a> instance for logging, <tt class="rst-docutils literal">append=True</tt> appends to previous data logged under the same name, by default previous data are overwritten.</span></td>
+    <td><code><a href="#add" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.add">add</a></code></td>
+    <td>append some logging data from <code><a href="comocma.como.Sofomore.html" class="internal-link" title="comocma.como.Sofomore">Sofomore</a></code> class instance <code><a href="comocma.sofomore_logger.SofomoreDataLogger.html#es" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.es">es</a></code>, if <tt class="rst-docutils literal">number_of_times_called % modulo</tt> equals to zero, never if <tt class="rst-docutils literal"><span class="pre">modulo==0</span></tt>.</td>
   </tr><tr class="method">
     
     <td>Method</td>
-    <td><a href="comocma.sofomore_logger.SofomoreDataLogger.html#initialize" data-type="Method" class="code">initialize</a></td>
-    <td><span>reset logger, overwrite original files, <code>modulo</code>: log only every modulo call</span></td>
+    <td><code><a href="#initialize" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.initialize">initialize</a></code></td>
+    <td>reset logger, overwrite original files, <code><a href="comocma.sofomore_logger.SofomoreDataLogger.html#modulo" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.modulo">modulo</a></code>: log only every modulo call</td>
   </tr><tr class="method">
     
     <td>Method</td>
-    <td><a href="comocma.sofomore_logger.SofomoreDataLogger.html#add" data-type="Method" class="code">add</a></td>
-    <td><span>append some logging data from <a href="comocma.como.Sofomore.html"><code>Sofomore</code></a> class instance <code>es</code>, if <tt class="rst-docutils literal">number_of_times_called % modulo</tt> equals to zero, never if <tt class="rst-docutils literal"><span class="pre">modulo==0</span></tt>.</span></td>
+    <td><code><a href="#load" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.load">load</a></code></td>
+    <td><span class="undocumented">No summary</span></td>
   </tr><tr class="method">
     
     <td>Method</td>
-    <td><a href="comocma.sofomore_logger.SofomoreDataLogger.html#load" data-type="Method" class="code">load</a></td>
+    <td><code><a href="#plot" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.plot">plot</a></code></td>
+    <td>load <code>filename</code> if given and plot the result.</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#plot_divers" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.plot_divers">plot<wbr></wbr>_divers</a></code></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#plot_front" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.plot_front">plot<wbr></wbr>_front</a></code></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#plot_ratios" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.plot_ratios">plot<wbr></wbr>_ratios</a></code></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#plot_stds" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.plot_stds">plot<wbr></wbr>_stds</a></code></td>
+    <td><span class="undocumented">No summary</span></td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#register" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.register">register</a></code></td>
+    <td>register a <code><a href="comocma.como.Sofomore.html" class="internal-link" title="comocma.como.Sofomore">Sofomore</a></code> instance for logging, <tt class="rst-docutils literal">append=True</tt> appends to previous data logged under the same name, by default previous data are overwritten.</td>
+  </tr><tr class="classvariable">
+    
+    <td>Class Variable</td>
+    <td><code><a href="#default_prefix" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.default_prefix">default<wbr></wbr>_prefix</a></code></td>
     <td><span class="undocumented">Undocumented</span></td>
-  </tr><tr class="method">
+  </tr><tr class="instancevariable">
     
-    <td>Method</td>
-    <td><a href="comocma.sofomore_logger.SofomoreDataLogger.html#plot" data-type="Method" class="code">plot</a></td>
+    <td>Instance Variable</td>
+    <td><code><a href="#append" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.append">append</a></code></td>
+    <td>append to previous data</td>
+  </tr><tr class="instancevariable">
+    
+    <td>Instance Variable</td>
+    <td><code><a href="#counter" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.counter">counter</a></code></td>
+    <td>number of calls to <code><a href="comocma.sofomore_logger.SofomoreDataLogger.html#add" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.add">add</a></code></td>
+  </tr><tr class="instancevariable">
+    
+    <td>Instance Variable</td>
+    <td><code><a href="#es" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.es">es</a></code></td>
     <td><span class="undocumented">Undocumented</span></td>
-  </tr><tr class="method">
+  </tr><tr class="instancevariable">
     
-    <td>Method</td>
-    <td><a href="comocma.sofomore_logger.SofomoreDataLogger.html#plot_front" data-type="Method" class="code">plot_front</a></td>
+    <td>Instance Variable</td>
+    <td><code><a href="#file_names" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.file_names">file<wbr></wbr>_names</a></code></td>
     <td><span class="undocumented">Undocumented</span></td>
-  </tr><tr class="method">
+  </tr><tr class="instancevariable">
     
-    <td>Method</td>
-    <td><a href="comocma.sofomore_logger.SofomoreDataLogger.html#plot_ratios" data-type="Method" class="code">plot_ratios</a></td>
+    <td>Instance Variable</td>
+    <td><code><a href="#last_iteration" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.last_iteration">last<wbr></wbr>_iteration</a></code></td>
     <td><span class="undocumented">Undocumented</span></td>
-  </tr><tr class="method">
+  </tr><tr class="instancevariable">
     
-    <td>Method</td>
-    <td><a href="comocma.sofomore_logger.SofomoreDataLogger.html#plot_divers" data-type="Method" class="code">plot_divers</a></td>
+    <td>Instance Variable</td>
+    <td><code><a href="#modulo" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.modulo">modulo</a></code></td>
+    <td>how often to record data, allows calling <code><a href="comocma.sofomore_logger.SofomoreDataLogger.html#add" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.add">add</a></code> without args</td>
+  </tr><tr class="instancevariable">
+    
+    <td>Instance Variable</td>
+    <td><code><a href="#name_prefix" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.name_prefix">name<wbr></wbr>_prefix</a></code></td>
     <td><span class="undocumented">Undocumented</span></td>
-  </tr><tr class="method">
+  </tr><tr class="instancevariable">
     
-    <td>Method</td>
-    <td><a href="comocma.sofomore_logger.SofomoreDataLogger.html#plot_stds" data-type="Method" class="code">plot_stds</a></td>
+    <td>Instance Variable</td>
+    <td><code><a href="#original_fontsize" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.original_fontsize">original<wbr></wbr>_fontsize</a></code></td>
+    <td><span class="undocumented">Undocumented</span></td>
+  </tr><tr class="instancevariable">
+    
+    <td>Instance Variable</td>
+    <td><code><a href="#persistent_communication_dict" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.persistent_communication_dict">persistent<wbr></wbr>_communication<wbr></wbr>_dict</a></code></td>
+    <td><span class="undocumented">Undocumented</span></td>
+  </tr><tr class="instancevariable">
+    
+    <td>Instance Variable</td>
+    <td><code><a href="#registered" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.registered">registered</a></code></td>
     <td><span class="undocumented">Undocumented</span></td>
   </tr><tr class="method private">
     
     <td>Method</td>
-    <td><a href="comocma.sofomore_logger.SofomoreDataLogger.html#_enter_plotting" data-type="Method" class="code">_enter_plotting</a></td>
-    <td><span>assumes that a figure is open</span></td>
+    <td><code><a href="#_enter_plotting" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger._enter_plotting">_enter<wbr></wbr>_plotting</a></code></td>
+    <td>assumes that a figure is open</td>
   </tr><tr class="method private">
     
     <td>Method</td>
-    <td><a href="comocma.sofomore_logger.SofomoreDataLogger.html#_finalize_plotting" data-type="Method" class="code">_finalize_plotting</a></td>
+    <td><code><a href="#_finalize_plotting" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger._finalize_plotting">_finalize<wbr></wbr>_plotting</a></code></td>
     <td><span class="undocumented">Undocumented</span></td>
   </tr><tr class="method private">
     
     <td>Method</td>
-    <td><a href="comocma.sofomore_logger.SofomoreDataLogger.html#_xlabel" data-type="Method" class="code">_xlabel</a></td>
+    <td><code><a href="#_xlabel" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger._xlabel">_xlabel</a></code></td>
     <td><span class="undocumented">Undocumented</span></td>
   </tr>
 </table>
-        
-
           
-      </div>
 
-      <div id="childList">
+            
+        </div>
 
-        <div class="basemethod">
+        <div id="childList">
+          <div class="basemethod">
+  
   
   <a name="comocma.sofomore_logger.SofomoreDataLogger.__init__">
     
@@ -170,57 +702,22 @@ filename trails.</p>
   </a>
   <div class="functionHeader">
     
-    def
-    __init__(self, name_prefix=default_prefix, modulo=1, append=False):
     
+    <span class="py-keyword">def</span> <span class="py-defname">__init__</span><span class="function-signature">(self, name_prefix=<a href="#default_prefix" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.default_prefix">default_prefix</a>, modulo=1, append=False)</span>:
+    
+    <a class="headerLink" href="#__init__" title="comocma.sofomore_logger.SofomoreDataLogger.__init__">
+      
+      
+      ¶
+    </a>
   </div>
   <div class="docstring functionBody">
     
-    
-    <div>initialize logging of data from a <code>CMAEvolutionStrategy</code>
-instance, default <tt class="rst-docutils literal">modulo=1</tt> means logging with each call<table class="fieldTable"></table></div>
+    <div><p>initialize logging of data from a <code>CMAEvolutionStrategy</code>
+instance, default <tt class="rst-docutils literal">modulo=1</tt> means logging with each call</p></div>
   </div>
 </div><div class="basemethod">
   
-  <a name="comocma.sofomore_logger.SofomoreDataLogger.register">
-    
-  </a>
-  <a name="register">
-    
-  </a>
-  <div class="functionHeader">
-    
-    def
-    register(self, es, append=None, modulo=None):
-    
-  </div>
-  <div class="docstring functionBody">
-    
-    
-    <div>register a <a href="comocma.como.Sofomore.html"><code>Sofomore</code></a> instance for logging,
-<tt class="rst-docutils literal">append=True</tt> appends to previous data logged under the same name,
-by default previous data are overwritten.<table class="fieldTable"></table></div>
-  </div>
-</div><div class="basemethod">
-  
-  <a name="comocma.sofomore_logger.SofomoreDataLogger.initialize">
-    
-  </a>
-  <a name="initialize">
-    
-  </a>
-  <div class="functionHeader">
-    
-    def
-    initialize(self, modulo=None):
-    
-  </div>
-  <div class="docstring functionBody">
-    
-    
-    <div>reset logger, overwrite original files, <code>modulo</code>: log only every modulo call<table class="fieldTable"></table></div>
-  </div>
-</div><div class="basemethod">
   
   <a name="comocma.sofomore_logger.SofomoreDataLogger.add">
     
@@ -230,22 +727,52 @@ by default previous data are overwritten.<table class="fieldTable"></table></div
   </a>
   <div class="functionHeader">
     
-    def
-    add(self, es=None, more_data=(), modulo=None):
     
+    <span class="py-keyword">def</span> <span class="py-defname">add</span><span class="function-signature">(self, es=None, more_data=(), modulo=None)</span>:
+    
+    <a class="headerLink" href="#add" title="comocma.sofomore_logger.SofomoreDataLogger.add">
+      
+      
+      ¶
+    </a>
   </div>
   <div class="docstring functionBody">
     
-    
-    <div><p>append some logging data from <a href="comocma.como.Sofomore.html"><code>Sofomore</code></a> class instance <code>es</code>,
+    <div><p>append some logging data from <code><a href="comocma.como.Sofomore.html" class="internal-link" title="comocma.como.Sofomore">Sofomore</a></code> class instance <code><a href="#es" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.es">es</a></code>,
 if <tt class="rst-docutils literal">number_of_times_called % modulo</tt> equals to zero, never if <tt class="rst-docutils literal"><span class="pre">modulo==0</span></tt>.</p>
 <p><tt class="rst-docutils literal">more_data</tt> is a list of additional data to be recorded where each
 data entry must have the same length.</p>
 <p>When used for a different optimizer class, this function can be
 (easily?) adapted by changing the assignments under INTERFACE
-in the implemention.</p><table class="fieldTable"></table></div>
+in the implemention.</p>
+</div>
   </div>
 </div><div class="basemethod">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.initialize">
+    
+  </a>
+  <a name="initialize">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">initialize</span><span class="function-signature">(self, modulo=None)</span>:
+    
+    <a class="headerLink" href="#initialize" title="comocma.sofomore_logger.SofomoreDataLogger.initialize">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>reset logger, overwrite original files, <code><a href="#modulo" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.modulo">modulo</a></code>: log only every modulo call</p></div>
+  </div>
+</div><div class="basemethod">
+  
   
   <a name="comocma.sofomore_logger.SofomoreDataLogger.load">
     
@@ -255,16 +782,21 @@ in the implemention.</p><table class="fieldTable"></table></div>
   </a>
   <div class="functionHeader">
     
-    def
-    load(self, filenames):
     
+    <span class="py-keyword">def</span> <span class="py-defname">load</span><span class="function-signature">(self, filenames)</span>:
+    
+    <a class="headerLink" href="#load" title="comocma.sofomore_logger.SofomoreDataLogger.load">
+      
+      
+      ¶
+    </a>
   </div>
   <div class="docstring functionBody">
     
-    
-    <div class="undocumented">Undocumented</div>
+    <div></div>
   </div>
 </div><div class="basemethod">
+  
   
   <a name="comocma.sofomore_logger.SofomoreDataLogger.plot">
     
@@ -274,54 +806,23 @@ in the implemention.</p><table class="fieldTable"></table></div>
   </a>
   <div class="functionHeader">
     
-    def
-    plot(self, filename, x_iteration=0):
     
+    <span class="py-keyword">def</span> <span class="py-defname">plot</span><span class="function-signature">(self, filename=None, x_iteration=False)</span>:
+    
+    <a class="headerLink" href="#plot" title="comocma.sofomore_logger.SofomoreDataLogger.plot">
+      
+      
+      ¶
+    </a>
   </div>
   <div class="docstring functionBody">
     
-    
-    <div class="undocumented">Undocumented</div>
+    <div><p>load <code>filename</code> if given and plot the result.</p>
+<p>Otherwise, plot all.</p>
+</div>
   </div>
 </div><div class="basemethod">
   
-  <a name="comocma.sofomore_logger.SofomoreDataLogger.plot_front">
-    
-  </a>
-  <a name="plot_front">
-    
-  </a>
-  <div class="functionHeader">
-    
-    def
-    plot_front(self, aspect=None):
-    
-  </div>
-  <div class="docstring functionBody">
-    
-    
-    <div class="undocumented">Undocumented</div>
-  </div>
-</div><div class="basemethod">
-  
-  <a name="comocma.sofomore_logger.SofomoreDataLogger.plot_ratios">
-    
-  </a>
-  <a name="plot_ratios">
-    
-  </a>
-  <div class="functionHeader">
-    
-    def
-    plot_ratios(self, iabscissa=1):
-    
-  </div>
-  <div class="docstring functionBody">
-    
-    
-    <div class="undocumented">Undocumented</div>
-  </div>
-</div><div class="basemethod">
   
   <a name="comocma.sofomore_logger.SofomoreDataLogger.plot_divers">
     
@@ -331,16 +832,69 @@ in the implemention.</p><table class="fieldTable"></table></div>
   </a>
   <div class="functionHeader">
     
-    def
-    plot_divers(self, iabscissa=1):
     
+    <span class="py-keyword">def</span> <span class="py-defname">plot_divers</span><span class="function-signature">(self, iabscissa=1)</span>:
+    
+    <a class="headerLink" href="#plot_divers" title="comocma.sofomore_logger.SofomoreDataLogger.plot_divers">
+      
+      
+      ¶
+    </a>
   </div>
   <div class="docstring functionBody">
     
-    
-    <div class="undocumented">Undocumented</div>
+    <div></div>
   </div>
 </div><div class="basemethod">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.plot_front">
+    
+  </a>
+  <a name="plot_front">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">plot_front</span><span class="function-signature">(self, aspect=None)</span>:
+    
+    <a class="headerLink" href="#plot_front" title="comocma.sofomore_logger.SofomoreDataLogger.plot_front">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.plot_ratios">
+    
+  </a>
+  <a name="plot_ratios">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">plot_ratios</span><span class="function-signature">(self, iabscissa=1)</span>:
+    
+    <a class="headerLink" href="#plot_ratios" title="comocma.sofomore_logger.SofomoreDataLogger.plot_ratios">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div></div>
+  </div>
+</div><div class="basemethod">
+  
   
   <a name="comocma.sofomore_logger.SofomoreDataLogger.plot_stds">
     
@@ -350,16 +904,311 @@ in the implemention.</p><table class="fieldTable"></table></div>
   </a>
   <div class="functionHeader">
     
-    def
-    plot_stds(self, iabscissa=1):
     
+    <span class="py-keyword">def</span> <span class="py-defname">plot_stds</span><span class="function-signature">(self, iabscissa=1)</span>:
+    
+    <a class="headerLink" href="#plot_stds" title="comocma.sofomore_logger.SofomoreDataLogger.plot_stds">
+      
+      
+      ¶
+    </a>
   </div>
   <div class="docstring functionBody">
     
+    <div></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.register">
     
-    <div class="undocumented">Undocumented</div>
+  </a>
+  <a name="register">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">register</span><span class="function-signature">(self, es, append=None, modulo=None)</span>:
+    
+    <a class="headerLink" href="#register" title="comocma.sofomore_logger.SofomoreDataLogger.register">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>register a <code><a href="comocma.como.Sofomore.html" class="internal-link" title="comocma.como.Sofomore">Sofomore</a></code> instance for logging,
+<tt class="rst-docutils literal">append=True</tt> appends to previous data logged under the same name,
+by default previous data are overwritten.</p></div>
+  </div>
+</div><div class="baseclassvariable">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.default_prefix">
+    
+  </a>
+  <a name="default_prefix">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">default_prefix</span> =
+    
+    <a class="headerLink" href="#default_prefix" title="comocma.sofomore_logger.SofomoreDataLogger.default_prefix">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p class="undocumented">Undocumented</p></div>
+    
+  </div>
+</div><div class="baseinstancevariable">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.append">
+    
+  </a>
+  <a name="append">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">append</span> =
+    
+    <a class="headerLink" href="#append" title="comocma.sofomore_logger.SofomoreDataLogger.append">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p>append to previous data</p></div>
+    
+  </div>
+</div><div class="baseinstancevariable">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.counter">
+    
+  </a>
+  <a name="counter">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">counter</span>: <code>int</code> =
+    
+    <a class="headerLink" href="#counter" title="comocma.sofomore_logger.SofomoreDataLogger.counter">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p>number of calls to <code><a href="#add" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.add">add</a></code></p></div>
+    
+  </div>
+</div><div class="baseinstancevariable">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.es">
+    
+  </a>
+  <a name="es">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">es</span> =
+    
+    <a class="headerLink" href="#es" title="comocma.sofomore_logger.SofomoreDataLogger.es">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p class="undocumented">Undocumented</p></div>
+    
+  </div>
+</div><div class="baseinstancevariable">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.file_names">
+    
+  </a>
+  <a name="file_names">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">file_names</span>: <code>tuple[<wbr></wbr>str, <wbr></wbr><span class="rst-variable-ellipsis">...</span>]</code> =
+    
+    <a class="headerLink" href="#file_names" title="comocma.sofomore_logger.SofomoreDataLogger.file_names">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p class="undocumented">Undocumented</p></div>
+    
+  </div>
+</div><div class="baseinstancevariable">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.last_iteration">
+    
+  </a>
+  <a name="last_iteration">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">last_iteration</span> =
+    
+    <a class="headerLink" href="#last_iteration" title="comocma.sofomore_logger.SofomoreDataLogger.last_iteration">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p class="undocumented">Undocumented</p></div>
+    
+  </div>
+</div><div class="baseinstancevariable">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.modulo">
+    
+  </a>
+  <a name="modulo">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">modulo</span> =
+    
+    <a class="headerLink" href="#modulo" title="comocma.sofomore_logger.SofomoreDataLogger.modulo">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p>how often to record data, allows calling <code><a href="#add" class="internal-link" title="comocma.sofomore_logger.SofomoreDataLogger.add">add</a></code> without args</p></div>
+    
+  </div>
+</div><div class="baseinstancevariable">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.name_prefix">
+    
+  </a>
+  <a name="name_prefix">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">name_prefix</span> =
+    
+    <a class="headerLink" href="#name_prefix" title="comocma.sofomore_logger.SofomoreDataLogger.name_prefix">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p class="undocumented">Undocumented</p></div>
+    
+  </div>
+</div><div class="baseinstancevariable">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.original_fontsize">
+    
+  </a>
+  <a name="original_fontsize">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">original_fontsize</span> =
+    
+    <a class="headerLink" href="#original_fontsize" title="comocma.sofomore_logger.SofomoreDataLogger.original_fontsize">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p class="undocumented">Undocumented</p></div>
+    
+  </div>
+</div><div class="baseinstancevariable">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.persistent_communication_dict">
+    
+  </a>
+  <a name="persistent_communication_dict">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">persistent_communication_dict</span> =
+    
+    <a class="headerLink" href="#persistent_communication_dict" title="comocma.sofomore_logger.SofomoreDataLogger.persistent_communication_dict">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p class="undocumented">Undocumented</p></div>
+    
+  </div>
+</div><div class="baseinstancevariable">
+  
+  
+  <a name="comocma.sofomore_logger.SofomoreDataLogger.registered">
+    
+  </a>
+  <a name="registered">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">registered</span>: <code>bool</code> =
+    
+    <a class="headerLink" href="#registered" title="comocma.sofomore_logger.SofomoreDataLogger.registered">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p class="undocumented">Undocumented</p></div>
+    
   </div>
 </div><div class="basemethod private">
+  
   
   <a name="comocma.sofomore_logger.SofomoreDataLogger._enter_plotting">
     
@@ -369,16 +1218,21 @@ in the implemention.</p><table class="fieldTable"></table></div>
   </a>
   <div class="functionHeader">
     
-    def
-    _enter_plotting(self, fontsize=7):
     
+    <span class="py-keyword">def</span> <span class="py-defname">_enter_plotting</span><span class="function-signature">(self, fontsize=7)</span>:
+    
+    <a class="headerLink" href="#_enter_plotting" title="comocma.sofomore_logger.SofomoreDataLogger._enter_plotting">
+      
+      
+      ¶
+    </a>
   </div>
   <div class="docstring functionBody">
     
-    
-    <div>assumes that a figure is open<table class="fieldTable"></table></div>
+    <div><p>assumes that a figure is open</p></div>
   </div>
 </div><div class="basemethod private">
+  
   
   <a name="comocma.sofomore_logger.SofomoreDataLogger._finalize_plotting">
     
@@ -388,16 +1242,21 @@ in the implemention.</p><table class="fieldTable"></table></div>
   </a>
   <div class="functionHeader">
     
-    def
-    _finalize_plotting(self):
     
+    <span class="py-keyword">def</span> <span class="py-defname">_finalize_plotting</span><span class="function-signature">(self)</span>:
+    
+    <a class="headerLink" href="#_finalize_plotting" title="comocma.sofomore_logger.SofomoreDataLogger._finalize_plotting">
+      
+      
+      ¶
+    </a>
   </div>
   <div class="docstring functionBody">
     
-    
-    <div class="undocumented">Undocumented</div>
+    <div><p class="undocumented">Undocumented</p></div>
   </div>
 </div><div class="basemethod private">
+  
   
   <a name="comocma.sofomore_logger.SofomoreDataLogger._xlabel">
     
@@ -407,25 +1266,43 @@ in the implemention.</p><table class="fieldTable"></table></div>
   </a>
   <div class="functionHeader">
     
-    def
-    _xlabel(self, iabscissa=1):
     
+    <span class="py-keyword">def</span> <span class="py-defname">_xlabel</span><span class="function-signature">(self, iabscissa=1)</span>:
+    
+    <a class="headerLink" href="#_xlabel" title="comocma.sofomore_logger.SofomoreDataLogger._xlabel">
+      
+      
+      ¶
+    </a>
   </div>
   <div class="docstring functionBody">
     
-    
-    <div class="undocumented">Undocumented</div>
+    <div><p class="undocumented">Undocumented</p></div>
   </div>
 </div>
-
+        </div>
+      
       </div>
-      <address>
-        <a href="index.html">API Documentation</a> for comocma, generated by <a href="https://github.com/twisted/pydoctor/">pydoctor</a> at 2020-04-18 16:47:06.
-      </address>
-
     </div>
 
-    <script type="text/javascript" src="pydoctor.js"></script>
+    <footer class="navbar navbar-default">
+
+  
+  <div class="container">
+    <a href="index.html">API Documentation</a> for comocma,
+  generated by <a href="https://github.com/twisted/pydoctor/">pydoctor</a>
+    23.9.1 at 2026-01-24 21:18:39.
+  </div>
+
+  <!-- Search related scripts needs to be loaded at the end of HTML 
+    parsing not to introduce overhead and display HTML data asap -->
+  <script src="ajax.js" type="text/javascript"></script>
+  <script src="searchlib.js" type="text/javascript"></script>
+  <script src="search.js" type="text/javascript"></script>
+
+</footer>
+  
+    <script src="pydoctor.js" type="text/javascript"></script>
 
   </body>
 </html>
