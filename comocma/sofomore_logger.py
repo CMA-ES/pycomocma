@@ -9,6 +9,15 @@ import matplotlib.pyplot as plt
 import ast
 import warnings
 
+def _ifloat(a):
+    return a if isinstance(a, int) else float(a)
+def str_(a):
+    """fix numpy types"""
+    try:
+        return str([_ifloat(ai) for ai in a])
+    except TypeError:
+        return str(_ifloat(a))
+
 class SofomoreDataLogger(interfaces.BaseDataLogger):
     """data logger for class `CMAEvolutionStrategy`.
 
@@ -310,7 +319,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             with open(fn, 'a') as f:
                 f.write(str(iteration) + ' '
                         + str(evals) + ' '
-                        + str(median_axis_ratios)
+                        + str_(median_axis_ratios)
                         + '\n')
             
             # median sigmas
@@ -318,7 +327,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             with open(fn, 'a') as f:
                 f.write(str(iteration) + ' '
                         + str(evals) + ' '
-                        + str(median_sigmas)
+                        + str_(median_sigmas)
                         + '\n')
             
             # median min stds
@@ -326,7 +335,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             with open(fn, 'a') as f:
                 f.write(str(iteration) + ' '
                         + str(evals) + ' '
-                        + str(median_min_stds)
+                        + str_(median_min_stds)
                         + '\n')
                 
             # median max stds
@@ -334,7 +343,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             with open(fn, 'a') as f:
                 f.write(str(iteration) + ' '
                         + str(evals) + ' '
-                        + str(median_max_stds)
+                        + str_(median_max_stds)
                         + '\n')
 
             # median stds
@@ -342,7 +351,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
             with open(fn, 'a') as f:
                 f.write(str(iteration) + ' '
                         + str(evals) + ' '
-                        + str(median_stds)
+                        + str_(median_stds)
                         + '\n')            
             # hypervolume
             if iteration > self.last_iteration:
@@ -350,7 +359,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                 with open(fn, 'a') as f:
                     f.write(str(iteration) + ' '
                             + str(evals) + ' '
-                            + str(hypervolume) + ' '
+                            + str_(hypervolume) + ' '
                             + '\n')
  
            # hypervolume archive
@@ -359,7 +368,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                 with open(fn, 'a') as f:
                     f.write(str(iteration) + ' '
                             + str(evals) + ' '
-                            + str(hypervolume_archive)
+                            + str_(hypervolume_archive)
                             + '\n')
 
             # length archive
@@ -368,7 +377,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                 with open(fn, 'a') as f:
                     f.write(str(iteration) + ' '
                             + str(evals) + ' '
-                            + str(len_archive)
+                            + str_(len_archive)
                             + '\n')
         # ratio of inactive kernels
             if iteration > self.last_iteration:
@@ -376,7 +385,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                 with open(fn, 'a') as f:
                     f.write(str(iteration) + ' '
                             + str(evals) + ' '
-                            + str(ratio_inactive)
+                            + str_(ratio_inactive)
                             + '\n')
                 # ratio of non dominated incumbents
             if iteration > self.last_iteration:
@@ -384,7 +393,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                 with open(fn, 'a') as f:
                     f.write(str(iteration) + ' '
                             + str(evals) + ' '
-                            + str(ratio_nondom_incumbent)
+                            + str_(ratio_nondom_incumbent)
                             + '\n')
             # ratio of nondominated [incumbent + its offspring]
             if iteration > self.last_iteration:
@@ -392,9 +401,9 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                 with open(fn, 'a') as f:
                     f.write(str(iteration) + ' '
                             + str(evals) + ' '
-                            + str(first_quartile_ratio_offspring_incumbent) + ' '
-                            + str(median_ratio_offspring_incumbent) + ' '
-                            + str(last_quartile_ratio_offspring_incumbent)
+                            + str_(first_quartile_ratio_offspring_incumbent) + ' '
+                            + str_(median_ratio_offspring_incumbent) + ' '
+                            + str_(last_quartile_ratio_offspring_incumbent)
                             + '\n')
             
 
@@ -429,16 +438,30 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                 
         return iteration, countevals, res
         
-    def plot(self, filename, x_iteration = 0):
+    def plot(self, filename=None, x_iteration = False):
         """
+        load `filename` if given and plot the result.
+
+        Otherwise, plot all.
         """
-        iteration, countevals, res = self.load(filename)
-        for i in range(len(res)):   
-            if not x_iteration:
-                plt.plot(countevals, res)
-            else:
-                plt.plot(iteration, res)
-            
+        if filename:
+            iteration, countevals, res = self.load(filename)
+            for i in range(len(res)):   
+                if not x_iteration:
+                    plt.plot(countevals, res)
+                else:
+                    plt.plot(iteration, res)
+        else:
+            from matplotlib import pyplot as plt
+            plt.figure(np.random.randint(9999999))
+            self.plot_divers()
+            plt.figure(np.random.randint(9999999))
+            self.plot_front()
+            plt.figure(np.random.randint(9999999))
+            self.plot_ratios()
+            plt.figure(np.random.randint(9999999))
+            self.plot_stds()
+
     def plot_front(self, aspect=None):
         """
         """
