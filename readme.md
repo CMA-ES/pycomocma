@@ -28,13 +28,13 @@ python -m pip install git+https://github.com/CMA-ES/pycomocma.git@master
 
 ## Testing of the `comocma` module
 
-The script
+The call
 
 ```sh
 python -m comocma
 ```
 
-runs the test written in the `__main__` file.
+runs the doc-tests from `comocma.como` and `comocma.test` (by calling ``comocma.test.main()``).
 
 # Example code
 
