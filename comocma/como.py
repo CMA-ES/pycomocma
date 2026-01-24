@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 """
 This module contains the implementation of the Multiobjective framework called
-Sofomore, and its instantiation with cma-es to obtain COMO-CMA-ES, defined in 
-the paper [Toure, Cheikh, et al. "Uncrowded Hypervolume Improvement: 
-        COMO-CMA-ES and the Sofomore framework." 
-        GECCO'19-Genetic and Evolutionary Computation Conference. 2019.].
+Sofomore, and its instantiation with cma-es to obtain COMO-CMA-ES, defined in
+the paper [Toure, Cheikh, et al. "Uncrowded Hypervolume Improvement: COMO-CMA-ES
+and the Sofomore framework." GECCO'19-Genetic and Evolutionary Computation
+Conference. 2019.].
 
 Only the bi-objective framework is functional and has been thoroughly tested.
 """
@@ -33,9 +33,10 @@ class Sofomore(interfaces.OOOptimizer):
     """ 
     Sofomore framework for multiobjective optimization, with the 
     ask-and-tell interface.
-    See: [Toure, Cheikh, et al. "Uncrowded Hypervolume Improvement: 
-        COMO-CMA-ES and the Sofomore framework." 
-        GECCO'19-Genetic and Evolutionary Computation Conference. 2019.].
+
+    See: [Toure, Cheikh, et al. "Uncrowded Hypervolume Improvement: COMO-CMA-ES
+    and the Sofomore framework." GECCO'19-Genetic and Evolutionary Computation
+    Conference. 2019.].
         
     Calling Sequences
     =================
@@ -44,8 +45,7 @@ class Sofomore(interfaces.OOOptimizer):
 
     - ``moes = Sofomore(list_of_solvers_instances, reference_point)``
 
-    - ``moes = Sofomore(list_of_solvers_instances, 
-                             reference_point).optimize(objective_fcts)``
+    - ``moes = Sofomore(list_of_solvers_instances, reference_point).optimize(objective_fcts)``
 
     Arguments   
     =========
@@ -59,37 +59,40 @@ class Sofomore(interfaces.OOOptimizer):
         step-size `sigma0`.
         A single-objective solver instance must have the following
         attributes and methods:
+
             - `incumbent`: an attribute that gives an estimate of 
-            the single-objective solver.
+              the single-objective solver.
             - `objective_values`: an attribute that stores the objective 
-            values of the incumbent.
+              values of the incumbent.
             - `stop`: a method returning a dictionary representing the 
-            termination status.
+              termination status.
             - `ask`: generates new candidate solutions.
             - `tell`: passes the objective values and updates the states of the
-            single-objective solvers.
+              single-objective solvers.
                 
             
     `opts`
         opts, a dictionary with optional settings related to the 
         Sofomore framework. It mainly contains the following keys:
+
             - 'archive': default value is `True`. 
-            If its value is `True`, tracks the non-dominated
-            points that dominate the reference point, among the points evaluated
-            so far during the optimization.
-            The archive will not interfere with the optimization 
-            process.
+              If its value is `True`, tracks the non-dominated
+              points that dominate the reference point, among the points evaluated
+              so far during the optimization.
+              The archive will not interfere with the optimization 
+              process.
             - 'indicator_front': default value is `None`. Used via
-            `self.indicator_front = IndicatorFront(self.opts['indicator_front'])` 
-            within the __init__ method of Sofomore. See the class IndicatorFront
-            for more details.
+              `self.indicator_front = IndicatorFront(self.opts['indicator_front'])` 
+              within the __init__ method of Sofomore. See the class IndicatorFront
+              for more details.
             - 'restart': used to define in __init__ the attribute `restart` via
-            `self.restart = self.opts['restart']`.
-            - 'update_order': default value is a function that takes a natural 
-            integer as input and returns a random number between 0 and 1.
-            It is used as a `key value` in: `sorted(..., key = ...)`, and guides the
-            order in which the kernels will be updated during the optimization.
- 
+              `self.restart = self.opts['restart']`.
+            - 'update_order': default value is a function that takes a natural
+              integer as input and returns a random number between 0 and 1. It
+              is used as a `key value` in: `sorted(..., key = ...)`, and guides
+              the order in which the kernels will be updated during the
+              optimization.
+
 
     `reference_point`  
         reference point of the multiobjective optimization.
@@ -155,49 +158,49 @@ class Sofomore(interfaces.OOOptimizer):
     =========================
     
     - `archive`: list of non-dominated points among all points evaluated 
-    so far, which dominate the reference point.
+      so far, which dominate the reference point.
     - `countevals`: the number of function evaluations.
     - `countiter`: the number of iterations.
     - `dimension`: is the dimension of the search space.
     - `indicator_front`: the indicator used as a changing fitness inside an
-    iteration of Sofomore. By default it is the UHVI of all the objective values
-    of the kernels' incumbents, except the kernel being optimized.
-    See the class `IndicatorFront` for more details.
+      iteration of Sofomore. By default it is the UHVI of all the objective values
+      of the kernels' incumbents, except the kernel being optimized.
+      See the class `IndicatorFront` for more details.
     - `isarchive`: a boolean accessible via `self.opts['archive']`. If `True`,
-    we keep track of the archive, otherwise we don't.
+      we keep track of the archive, otherwise we don't.
     - `kernels`: initialized with `list_of_solvers_instances`, 
-    and is the list of single-objective solvers.
+      and is the list of single-objective solvers.
     - `key_sort_indices`: default value is `self.opts['update_order']`.
-    It is a function used as a key to sort some kernels' indices, in order to
-    select the first indices during the call of the `ask` method.
+      It is a function used as a key to sort some kernels' indices, in order to
+      select the first indices during the call of the `ask` method.
     - `logger`: an attribute that accounts for the way we log the Sofomore data
-    during an optimization. `self.logger` is an instance of the SofomoreDataLogger
-    class.
+      during an optimization. `self.logger` is an instance of the SofomoreDataLogger
+      class.
     - `NDA`: it is the non-dominated archiving method used within Sofomore.
-    By default the class `BiobjectiveNondominatedSortedList` is used
-    in two objectives and the class (non tested yet) `NonDominatedList` is used
-    for three or more objectives.
+      By default the class `BiobjectiveNondominatedSortedList` is used
+      in two objectives and the class (non tested yet) `NonDominatedList` is used
+      for three or more objectives.
     - `opts`: passed options.
     - `offspring`: list of tuples of the index of a kernel with its 
-    corresponding candidate solutions, that we generally get with the cma's 
-    `ask` method.
+      corresponding candidate solutions, that we generally get with the cma's 
+      `ask` method.
     - `pareto_front_cut`: list of non-dominated points among the incumbents of 
-    `self.kernels`, which dominate the reference point.
+      `self.kernels`, which dominate the reference point.
     - `pareto_set_cut`: preimage of `pareto_front_cut`.
     - `reference_point`: the current reference point.
     - `restart`: accessible via `self.opts['restart']`. If not `None`, a callback
-    function that adds kernels after a kernel of the running Sofomore instance
-    stops. Its default value is `None`, meaning that we do not do any restart.
+      function that adds kernels after a kernel of the running Sofomore instance
+      stops. Its default value is `None`, meaning that we do not do any restart.
     - `_active_indices`: the indices of the kernels that have not stopped yet.
     - `_last_stopped_kernel_id`: the index of the last stopped kernel.
     - `_told_indices`: the kernels' indices for which we will evaluate the 
-    objective values of their incumbents, before the next call of the `tell` 
-    method. And before the first call of `tell`, they are the indices of all the
-    initial kernels (i.e. `range(len(self))`). And before another call of 
-    `tell`, they are the indices of the kernels from which we have sampled new 
-    candidate solutions during the penultimate `ask` method. 
-    Note that we should call the `ask` method before any call of the `tell`
-    method.
+      objective values of their incumbents, before the next call of the `tell` 
+      method. And before the first call of `tell`, they are the indices of all the
+      initial kernels (i.e. `range(len(self))`). And before another call of 
+      `tell`, they are the indices of the kernels from which we have sampled new 
+      candidate solutions during the penultimate `ask` method. 
+      Note that we should call the `ask` method before any call of the `tell`
+      method.
 """
     def __init__(self,
                list_of_solvers_instances, # usually come from a factory function 
@@ -207,20 +210,21 @@ class Sofomore(interfaces.OOOptimizer):
                ):
         """
         Initialization:
+
             - `list_of_solvers_instances` is a list of single-objective 
-            solvers' instances
+              solvers' instances
             - The reference_point is set by the user during the 
-            initialization.
+              initialization.
             - `opts` is a dictionary updating the values of 'indicator_front',
-            'archive', 'restart', 'update_order'; that respond respectfully to
-            the changing fitness we will choose within an iteration of Sofomore,
-            whether or not keeping an archive, how to do the restart in case of
-            any restart, and the order of update of the kernels. It also has
-            the keys 'verb_filename', 'verb_log' and 'verb_disp'; that 
-            respectfully indicate the name of the filename containing the Sofomore
-            data, the logging of the Sofomore data every 'verb_log' iterations
-            and the display of the data via `self.disp()` every 'verb_disp'
-            iterations. 
+              'archive', 'restart', 'update_order'; that respond respectfully to
+              the changing fitness we will choose within an iteration of Sofomore,
+              whether or not keeping an archive, how to do the restart in case of
+              any restart, and the order of update of the kernels. It also has
+              the keys 'verb_filename', 'verb_log' and 'verb_disp'; that 
+              respectfully indicate the name of the filename containing the Sofomore
+              data, the logging of the Sofomore data every 'verb_log' iterations
+              and the display of the data via `self.disp()` every 'verb_disp'
+              iterations. 
         """
         assert len(list_of_solvers_instances) > 0
         self.kernels = list_of_solvers_instances
@@ -401,15 +405,15 @@ class Sofomore(interfaces.OOOptimizer):
 
         Arguments
         ---------
-        - `number_to_ask`: the number of kernels for which we sample solutions
-         from, it is of TYPE int or str and is smaller or equal to `len(self)`.
-         The unique case where it is a str instance is when it is equal to 
-         "all", meaning that all the kernels are asked. That case is mainly used
-         on parallel mode by distributing the evaluations of the kernels at the
-         same time before calling the `tell` method. The opposite is when
-         `number_to_ask` is equal to 1, which is the exact COMO-CMA-ES algorithm,
-         where the evaluations are done sequentially by updating the kernels one
-         by one.
+        `number_to_ask` is the number of kernels for which we sample solutions
+        from, it is of TYPE int or str and is smaller or equal to `len(self)`.
+        The unique case where it is a str instance is when it is equal to 
+        "all", meaning that all the kernels are asked. That case is mainly used
+        on parallel mode by distributing the evaluations of the kernels at the
+        same time before calling the `tell` method. The opposite is when
+        `number_to_ask` is equal to 1, which is the exact COMO-CMA-ES algorithm,
+        where the evaluations are done sequentially by updating the kernels one
+        by one.
         
         Return
         ------
@@ -447,6 +451,7 @@ class Sofomore(interfaces.OOOptimizer):
         kernels, `self._told_indices` and eventually `self.archive`.
         Arguments
         ---------
+
         `solutions`
             list or array of points (of type `numpy.ndarray`), most presumably 
             before delivered by the `ask()` method.
@@ -466,12 +471,13 @@ class Sofomore(interfaces.OOOptimizer):
         with the "changing" fitness `- self.indicator_front.hypervolume_improvement`.
         
         :See: 
+
             - the `tell` method from the class `cma.CMAEvolutionStrategy`,
-            in `evolution_strategy.py` from the `cma` module.
+              in `evolution_strategy.py` from the `cma` module.
             - the `hypervolume_improvement` method from the class
-            `BiobjectiveNondominatedSortedList`, in the module `moarchiving.py`
+              `BiobjectiveNondominatedSortedList`, in the module `moarchiving.py`
             - the `hypervolume_improvement` method from the class
-            `NonDominatedList`, in the module `nondominatedarchive.py`
+              `NonDominatedList`, in the module `nondominatedarchive.py`
         """
         if len(solutions) == 0: # when asking a terminated kernel for example
             return 
@@ -613,12 +619,14 @@ class Sofomore(interfaces.OOOptimizer):
         Return
         ------
         For example with 5 kernels, stop should return either None, or a `dict`
-        of the form:
+        of the form::
+
             {0: dict0,
              1: dict1,
              2: dict2,
              3: dict2,
              4: dict4},
+
         where each index `i` is a key which value is the `dict` instance
         `self.kernels[i].stop()`
         """
@@ -1025,7 +1033,7 @@ def random_restart_kernel(moes, x0_fct=None, sigma0=None, opts=None, **kwargs):
         Initial step-size of the returned kernel. The default is None.
     opts : TYPE dict, optional
         The returned kernel's options. The default is `None`.
-    **kwargs : 
+    ``**kwargs`` : 
         Other keyword arguments.
 
     Returns
@@ -1059,7 +1067,7 @@ def best_chv_restart_kernel(moes, sigma_factor=1, **kwargs):
     sigma_factor : TYPE int or float, optional
         A step size factor used in the initial step-size of the kernel returned.
         The default is 1.
-    **kwargs : 
+    ``**kwargs`` : 
         Other keyword arguments.
 
     Returns
@@ -1157,7 +1165,7 @@ class RampUpSelector:
     `selected_restarts` has the same interface as either of the
     `restart_methods`, that is, the same calling arguments and the same
     return value(s), and it can be used just like the original single
-    methods::
+    methods:
     
     >>> list_of_solvers = comocma.get_cmas(21 * [10 * [0]], 0.3)
     >>> reference_point = [11, 11]
@@ -1465,8 +1473,10 @@ class CmaKernel(cma.CMAEvolutionStrategy):
 class FitFun:
     """
     Define a callable multiobjective function from single objective ones.
-    Example:
-        fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)).
+    Example::
+
+        fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1))
+
     """
     def __init__(self, *args):
         self.callables = args
@@ -1482,7 +1492,9 @@ def sort_random(i):
     """
     Used for the update order of a Sofomore instance.
     Example::
+
         moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_random})
+
     randomly picks the kernels to update in the `tell` method of Sofomore.
     
     """
@@ -1491,7 +1503,9 @@ def sort_random(i):
 def sort_increasing(i):
     """
     Example::
+
         moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_increasing})
+
     updates respectively `self[0]`, `self[1]`, ..., `self[-1]` 
     in the `tell` method of Sofomore.
     """
@@ -1500,7 +1514,9 @@ def sort_increasing(i):
 def sort_decreasing(i):
     """
     Example::
+
         moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_decreasing})
+
     updates respectively `self[-1]`, `self[-2]`, ..., `self[0]`
     in the `tell` method of Sofomore.
     """
@@ -1509,7 +1525,9 @@ def sort_decreasing(i):
 def sort_even_odds(i):
     """
     Example::
+
         moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_even_odds})
+
     pick the kernels with even indices before the kernels with odd indices in
     the `tell` method of Sofomore.
     """
@@ -1518,7 +1536,9 @@ def sort_even_odds(i):
 def sort_odds_even(i):
     """
     Example::
+
         moes = Sofomore(list_of_instances, reference_point, {'update_order': sort_odds_even})
+
     pick the kernels with odd indices before the kernels with even indices 
     in the `tell` method of Sofomore.
     """
