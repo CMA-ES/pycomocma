@@ -1,3 +1,4 @@
+![Deploy to GitHub Pages](https://github.com/CMA-ES/pycomocma/actions/workflows/tests.yml/badge.svg)
 # Introduction
 
 ``pycomocma`` is a Python implementation of [COMO-CMA-ES](https://hal.inria.fr/hal-02103694/document) which is a Multiobjective Evolution Strategy, based upon the [Covariance Matrix Adaptation Evolution Strategy](https://en.wikipedia.org/wiki/CMA-ES) 
@@ -24,7 +25,7 @@ python -m pip install git+https://github.com/CMA-ES/pycomocma.git@master
 - [Code on Github](https://github.com/CMA-ES/pycomocma)
 - Documentation in
   - [apidocs format](https://cma-es.github.io/pycomocma/comocma-apidocs/index.html)
-  - [epydocs format](https://cma-es.github.io/pycomocma/comocma-epydocs/index.html)
+  - [epydocs format (outdated)](https://cma-es.github.io/pycomocma/comocma-epydocs/index.html)
 
 ## Testing of the `comocma` module
 
