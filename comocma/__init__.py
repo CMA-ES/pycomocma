@@ -1,10 +1,10 @@
 
 """
 This module contains the implementation of the Multiobjective framework called
-Sofomore, and its instantiation with cma-es to obtain COMO-CMA-ES, defined in 
-the paper [Toure, Cheikh, et al. "Uncrowded Hypervolume Improvement: 
-        COMO-CMA-ES and the Sofomore framework." 
-        GECCO'19-Genetic and Evolutionary Computation Conference. 2019.].
+Sofomore, and its instantiation with cma-es to obtain COMO-CMA-ES, defined in
+the paper [Toure, Cheikh, et al. "Uncrowded Hypervolume Improvement: COMO-CMA-ES
+and the Sofomore framework." GECCO'19-Genetic and Evolutionary Computation
+Conference. 2019.].
 
 Only the bi-objective framework is functional and has been thoroughly tested.
 
