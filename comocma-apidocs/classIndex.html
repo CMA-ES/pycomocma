@@ -2,33 +2,166 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
           "DTD/xhtml1-strict.dtd">
 <html>
+  
+  
   <head>
+    
     <title>Class Hierarchy</title>
-    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
-    <link type="text/css" href="bootstrap.min.css" rel="stylesheet" />
-    <link type="text/css" href="apidocs.css" rel="stylesheet" />
-  </head>
-  <body>
-    <nav class="navbar navbar-default">
-      <div class="container">
+    <meta name="generator" content="pydoctor 23.9.1"> 
+        
+    </meta>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1 maximum-scale=1" />
+    <link rel="stylesheet" type="text/css" href="bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="apidocs.css" />
+    <link rel="stylesheet" type="text/css" href="extra.css" />
+</head>
 
-        <div class="navbar-header">
-          <a href="index.html" class="navbar-brand">
-            comocma API Documentation
-          </a>
+  <body>
+
+    
+
+    <nav class="navbar navbar-default mainnavbar">
+      
+  
+  <div class="container-fluid">
+
+
+    <div class="navbar-header">
+      
+      <div class="navlinks">
+        <span class="navbar-brand">
+          comocma <a href="index.html">API Documentation</a>
+        </span>
+
+        <a href="moduleIndex.html">
+          Modules
+        </a>
+
+        <a href="classIndex.html">
+          Classes
+        </a>
+
+        <a href="nameIndex.html">
+          Names
+        </a>
+
+        <div id="search-box-container">
+          <div class="input-group">
+            <input id="search-box" type="search" name="search-query" placeholder="Search..." aria-label="Search" minlength="2" class="form-control" autocomplete="off" />
+            
+            <span class="input-group-btn">
+              <a style="display: none;" class="btn btn-default" id="search-clear-button" title="Clear" onclick="clearSearch()"><img src="fonts/x-circle.svg" alt="Clear" /></a>
+              <a class="btn btn-default" id="search-help-button" title="Help" onclick="toggleSearchHelpText()"><img src="fonts/info.svg" alt="Help" /></a>
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      <div id="search-results-container" style="display: none;">
+        
+        <div id="search-buttons">
+          <span class="label label-default" id="search-docstrings-button">
+          <label class="checkbox-inline">
+            <input type="checkbox" id="toggle-search-in-docstrings-checkbox" value="false" onclick="toggleSearchInDocstrings()">
+              search in docstrings
+            </input>
+          </label>
+          </span>
+          
+        </div>
+        
+        <noscript>
+            <h1>Cannot search: JavaScript is not supported/enabled in your browser.</h1>
+        </noscript>
+
+        <div class="hint" id="search-help-box">
+          <p class="rst-last">
+      
+            Search bar offers the following options:
+            <ul>   
+                <li>
+                  <strong>Term presence.</strong> The below example searches for documents that 
+                    must contain “foo”, might contain “bar” and must not contain “baz”: <code>+foo bar -baz</code>
+                </li> 
+
+                <li>
+                  <strong>Wildcards.</strong> The below example searches for documents with words beginning with “foo”: <code>foo*</code>
+                </li> 
+
+                <li>
+                  <strong>Search in specific fields.</strong> The following search matches all objects 
+                  in "twisted.mail" that matches “search”: <code>+qname:twisted.mail.* +search</code>
+
+                  <p>
+                    Possible fields: 'name', 'qname' (fully qualified name), 'docstring', and 'kind'.
+                    Last two fields are only applicable if "search in docstrings" is enabled.
+                  </p>
+                </li>
+
+                <li>
+                  <strong>Fuzzy matches.</strong> The following search matches all documents 
+                  that have a word within 1 edit distance of “foo”: <code>foo~1</code>
+                </li>
+            </ul>
+
+          </p>
+        </div>
+
+        <div id="search-status"> </div>
+
+        <div class="warning" id="search-warn-box" style="display: none;">
+          <p class="rst-last"><span id="search-warn"></span></p>
+        </div>
+
+        <table id="search-results">
+          <!-- Filled dynamically by JS -->
+        </table>
+        
+        <div style="margin-top: 8px;">
+          <p>Results provided by <a href="https://lunrjs.com">Lunr.js</a></p>
         </div>
       </div>
-    </nav>
 
-    <div class="container">
+    </div>
+
+
+  </div>
+</nav>
+
+    <div class="container-fluid">
 
       <div class="page-header">
         <h1>Class Hierarchy</h1>
+        <div id="showPrivate">
+          <button class="btn btn-link" onclick="togglePrivate()">Toggle Private API</button>
+        </div>
       </div>
 
-      <ul>
-      <li><code>cma.CMAEvolutionStrategy</code><ul><li><a name="comocma.como.CmaKernel"></a><a href="comocma.como.CmaKernel.html" data-type="Class" class="code">comocma.como.CmaKernel</a> - <span>inheriting from the <code>cma.CMAEvolutionStrategy</code> class, by adding the property <a href="comocma.como.CmaKernel.html#incumbent"><code>incumbent</code></a>, the attributes <code>objective_values</code> and <code>_last_offspring_f_values</code>.</span></li></ul></li><li><code>cma.interfaces.BaseDataLogger</code><ul><li><a name="comocma.sofomore_logger.SofomoreDataLogger"></a><a href="comocma.sofomore_logger.SofomoreDataLogger.html" data-type="Class" class="code">comocma.sofomore_logger.SofomoreDataLogger</a> - <span>data logger for class <code>CMAEvolutionStrategy</code>.</span></li></ul></li><li><code>cma.interfaces.OOOptimizer</code><ul><li><a name="comocma.como.Sofomore"></a><a href="comocma.como.Sofomore.html" data-type="Class" class="code">comocma.como.Sofomore</a> - <span class="undocumented">No summary</span></li></ul></li><li><a name="comocma.como.FitFun"></a><a href="comocma.como.FitFun.html" data-type="Class" class="code">comocma.como.FitFun</a> - <span>Define a callable multiobjective function from single objective ones. Example: fitness = comocma.FitFun(cma.ff.sphere, lambda x: cma.ff.sphere(x-1)).</span></li><li><a name="comocma.como.IndicatorFront"></a><a href="comocma.como.IndicatorFront.html" data-type="Class" class="code">comocma.como.IndicatorFront</a> - <span>with <a href="comocma.como.IndicatorFront.html#hypervolume_improvement"><code>hypervolume_improvement</code></a> method based on a varying empirical front.</span></li><li><a name="comocma.hv.HyperVolume"></a><a href="comocma.hv.HyperVolume.html" data-type="Class" class="code">comocma.hv.HyperVolume</a> - <span class="undocumented">No summary</span></li><li><a name="comocma.hv.MultiList"></a><a href="comocma.hv.MultiList.html" data-type="Class" class="code">comocma.hv.MultiList</a> - <span>A special data structure needed by FonsecaHyperVolume.</span></li><li><a name="comocma.hv.MultiList.Node"></a><a href="comocma.hv.MultiList.Node.html" data-type="Class" class="code">comocma.hv.MultiList.Node</a> - <span class="undocumented">Undocumented</span></li><li><code>list</code><ul><li><a name="comocma.nondominatedarchive.NonDominatedList"></a><a href="comocma.nondominatedarchive.NonDominatedList.html" data-type="Class" class="code">comocma.nondominatedarchive.NonDominatedList</a> - <span>A list of objective values in an empirical Pareto front, meaning that no point strictly domminates another one in all objectives.</span></li></ul></li></ul>
+      <ul id="summaryTree">
+      <li><code>cma.CMAEvolutionStrategy</code><ul><li><a name="comocma.como.CmaKernel"></a><div><code><a href="comocma.como.CmaKernel.html" class="internal-link">comocma.como.CmaKernel</a></code> - inheriting from the <code>cma.CMAEvolutionStrategy</code> class, by adding the property <code><a href="comocma.como.CmaKernel.html#incumbent" class="internal-link" title="comocma.como.CmaKernel.incumbent">incumbent</a></code>, the attributes <code><a href="comocma.como.CmaKernel.html#objective_values" class="internal-link" title="comocma.como.CmaKernel.objective_values">objective_values</a></code> and <code><a href="comocma.como.CmaKernel.html#_last_offspring_f_values" class="internal-link" title="comocma.como.CmaKernel._last_offspring_f_values">_last_offspring_f_values</a></code>.</div></li></ul></li><li><code>cma.interfaces.BaseDataLogger</code><ul><li><a name="comocma.sofomore_logger.SofomoreDataLogger"></a><div><code><a href="comocma.sofomore_logger.SofomoreDataLogger.html" class="internal-link">comocma.sofomore_logger.SofomoreDataLogger</a></code> - data logger for class <code>CMAEvolutionStrategy</code>.</div></li></ul></li><li><code>cma.interfaces.OOOptimizer</code><ul><li><a name="comocma.como.Sofomore"></a><div><code><a href="comocma.como.Sofomore.html" class="internal-link">comocma.como.Sofomore</a></code> - Sofomore framework for multiobjective optimization, with the ask-and-tell interface.</div></li></ul></li><li><a name="comocma.como.FitFun"></a><div><code><a href="comocma.como.FitFun.html" class="internal-link">comocma.como.FitFun</a></code> - Define a callable multiobjective function from single objective ones. Example:</div></li><li><a name="comocma.como.GetKernelPopsizeIncrementer"></a><div><code><a href="comocma.como.GetKernelPopsizeIncrementer.html" class="internal-link">comocma.como.GetKernelPopsizeIncrementer</a></code> - a <code>callable</code> that returns the result of a call of <code><a href="comocma.como.GetKernelPopsizeIncrementer.html#get_kernel" class="internal-link" title="comocma.como.GetKernelPopsizeIncrementer.get_kernel">get_kernel</a></code>.</div><ul><li><a name="comocma.como.GetKernelIPOP"></a><div><code><a href="comocma.como.GetKernelIPOP.html" class="internal-link">comocma.como.GetKernelIPOP</a></code> - non-adaptive IPOP incrementing scheme.</div></li></ul></li><li><a name="comocma.como.IndicatorFront"></a><div><code><a href="comocma.como.IndicatorFront.html" class="internal-link">comocma.como.IndicatorFront</a></code> - with <code><a href="comocma.como.IndicatorFront.html#hypervolume_improvement" class="internal-link" title="comocma.como.IndicatorFront.hypervolume_improvement">hypervolume_improvement</a></code> method based on a varying empirical front.</div></li><li><a name="comocma.como.RampUpSelector"></a><div><code><a href="comocma.como.RampUpSelector.html" class="internal-link">comocma.como.RampUpSelector</a></code> - Takes a list of ramp-up methods and a selection "criterion",</div></li><li><a name="comocma.como_logger.COMOPlot"></a><div><code><a href="comocma.como_logger.COMOPlot.html" class="internal-link">comocma.como_logger.COMOPlot</a></code> - A class designed to store, load and plot data relative to a Sofomore object.</div></li><li><a name="comocma.hv.HyperVolume"></a><div><code><a href="comocma.hv.HyperVolume.html" class="internal-link">comocma.hv.HyperVolume</a></code> - Hypervolume computation based on variant 3 of the algorithm in the paper: C. M. Fonseca, L. Paquete, and M. Lopez-Ibanez. An improved dimension-sweep algorithm for the hypervolume indicator. In IEEE Congress on Evolutionary Computation, pages 1157-1163, Vancouver, Canada, July 2006.</div></li><li><a name="comocma.hv.MultiList"></a><div><code><a href="comocma.hv.MultiList.html" class="internal-link">comocma.hv.MultiList</a></code> - A special data structure needed by FonsecaHyperVolume.</div></li><li><a name="comocma.hv.MultiList.Node"></a><div><code><a href="comocma.hv.MultiList.Node.html" class="internal-link">comocma.hv.MultiList.Node</a></code> - <span class="undocumented">Undocumented</span></div></li><li class="private"><code>dict</code><ul><li class="private"><a name="comocma.como._CounterDict"></a><div><code><a href="comocma.como._CounterDict.html" class="internal-link">comocma.como._CounterDict</a></code> - A dictionary with two additional features.</div></li></ul></li><li><code>list</code><ul><li><a name="comocma.nondominatedarchive.NonDominatedList"></a><div><code><a href="comocma.nondominatedarchive.NonDominatedList.html" class="internal-link">comocma.nondominatedarchive.NonDominatedList</a></code> - A list of objective values in an empirical Pareto front, meaning that no point strictly domminates another one in all objectives.</div></li></ul></li></ul>
 
     </div>
+
+    <footer class="navbar navbar-default">
+
+  
+  <div class="container">
+    <a href="index.html">API Documentation</a> for comocma,
+  generated by <a href="https://github.com/twisted/pydoctor/">pydoctor</a>
+    23.9.1 at 2026-01-24 14:37:29.
+  </div>
+
+  <!-- Search related scripts needs to be loaded at the end of HTML 
+    parsing not to introduce overhead and display HTML data asap -->
+  <script src="ajax.js" type="text/javascript"></script>
+  <script src="searchlib.js" type="text/javascript"></script>
+  <script src="search.js" type="text/javascript"></script>
+
+</footer>
+
+    <script src="pydoctor.js" type="text/javascript"></script>
+
   </body>
 </html>
