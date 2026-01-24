@@ -201,9 +201,9 @@ class COMOPlot:
         # update the number of times this function have been called
         self.num_calls += 1
         # update the maximum and minimum stepsize of the current run
-        if not "max_stepsize" in self._data:
+        if "max_stepsize" not in self._data:
             self._data["max_stepsize"] = - float('inf')
-        if not "min_stepsize" in self._data:
+        if "min_stepsize" not in self._data:
             self._data["min_stepsize"] = float('inf')
         if moes.kernels[-1].countevals > 0 or len(moes.kernels) < 1:
             self._data["max_stepsize"] = max(self._data["max_stepsize"], moes.kernels[-1].sigma)
