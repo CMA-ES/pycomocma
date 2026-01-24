@@ -120,11 +120,6 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         """reset logger, overwrite original files, `modulo`: log only every modulo call"""
         if modulo is not None:
             self.modulo = modulo
-        try:
-            es = self.es  # must have been registered
-        except AttributeError:
-            pass  # TODO: revise usage of es... that this can pass
-            raise AttributeError('call register() before initialize()')
 
         self.counter = 0  # number of calls of add
         self.last_iteration = 0  # some lines are only written if iteration>last_iteration
@@ -295,18 +290,21 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                     1 + len(kernel._last_offspring_f_values) )
                 
     
-        first_quartile_ratio_offspring_incumbent = np.percentile(es._ratio_nondom_offspring_incumbent, 25);
-        median_ratio_offspring_incumbent = np.percentile(es._ratio_nondom_offspring_incumbent, 50);
-        last_quartile_ratio_offspring_incumbent = np.percentile(es._ratio_nondom_offspring_incumbent, 75);
+        first_quartile_ratio_offspring_incumbent = np.percentile(
+                            es._ratio_nondom_offspring_incumbent, 25)
+        median_ratio_offspring_incumbent = np.percentile(
+                            es._ratio_nondom_offspring_incumbent, 50)
+        last_quartile_ratio_offspring_incumbent = np.percentile(
+                            es._ratio_nondom_offspring_incumbent, 75)
         
         
-        median_axis_ratios = np.median([kernel.D.max() / kernel.D.min() \
-        if not kernel.opts['CMA_diagonal'] or kernel.countiter > kernel.opts['CMA_diagonal']
-        else max(kernel.sigma_vec*1) / min(kernel.sigma_vec*1) for kernel in es.kernels])
+        median_axis_ratios = np.median([kernel.D.max() / kernel.D.min()
+            if not kernel.opts['CMA_diagonal'] or kernel.countiter > kernel.opts['CMA_diagonal']
+            else max(kernel.sigma_vec*1) / min(kernel.sigma_vec*1) for kernel in es.kernels])
         median_sigmas = np.median([kernel.sigma for kernel in es.kernels])
-        median_min_stds = np.median([kernel.sigma * min(kernel.sigma_vec * kernel.dC**0.5) \
+        median_min_stds = np.median([kernel.sigma * min(kernel.sigma_vec * kernel.dC**0.5)
                                      for kernel in es.kernels])
-        median_max_stds = np.median([kernel.sigma * max(kernel.sigma_vec * kernel.dC**0.5) \
+        median_max_stds = np.median([kernel.sigma * max(kernel.sigma_vec * kernel.dC**0.5)
                                      for kernel in es.kernels])
         median_stds = self.es.median_stds
 
@@ -444,6 +442,7 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
 
         Otherwise, plot all.
         """
+        from matplotlib import pyplot as plt
         if filename:
             iteration, countevals, res = self.load(filename)
             for i in range(len(res)):   
@@ -452,7 +451,6 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
                 else:
                     plt.plot(iteration, res)
         else:
-            from matplotlib import pyplot as plt
             plt.figure(np.random.randint(9999999))
             self.plot_divers()
             plt.figure(np.random.randint(9999999))
@@ -609,14 +607,14 @@ class SofomoreDataLogger(interfaces.BaseDataLogger):
         iteration, countevals, res = self.load(filename)
         absciss = countevals if iabscissa else iteration
         self._enter_plotting()
-  #      color = iter(pyplot.cm.plasma_r(np.linspace(0.35, 1, 3)))
+    #      color = iter(pyplot.cm.plasma_r(np.linspace(0.35, 1, 3)))
         self._xlabel(iabscissa)
         
         pyplot.semilogy(absciss, res[0])
           #  pyplot.plot(absciss, res[i],
            #             '-', color=next(color), label = mylabel[i])
     #        pyplot.semilogy(absciss, res[i],
-     #                       '-', color=next(color), label = mylabel[i])
+    #                       '-', color=next(color), label = mylabel[i])
         # pyplot.hold(True)
         pyplot.grid(True)
         ax = np.array(pyplot.axis())
